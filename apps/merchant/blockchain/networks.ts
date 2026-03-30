@@ -12,6 +12,13 @@ export interface NetworkConfig {
 }
 
 export const NETWORKS: Record<string, NetworkConfig> = {
+  hardhat: {
+    chainId: 31337,
+    name: "Hardhat Local",
+    rpcUrl: "http://127.0.0.1:8545",
+    blockExplorer: "",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  },
   celo: {
     chainId: 42220,
     name: "Celo",

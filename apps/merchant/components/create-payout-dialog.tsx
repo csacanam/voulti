@@ -18,7 +18,7 @@ import { NETWORKS } from "@/blockchain/networks"
 import type { Payout } from "@/lib/types"
 
 // Network priority: cheapest gas first
-const NETWORK_PRIORITY = ["celo", "base", "polygon", "arbitrum", "bsc"]
+const NETWORK_PRIORITY = ["hardhat", "celo", "base", "polygon", "arbitrum", "bsc"]
 
 interface CreatePayoutDialogProps {
   open: boolean
@@ -123,7 +123,23 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
       const networkConfig = NETWORKS[resolvedNetwork]
       if (!networkConfig) throw new Error("Network not configured")
 
-      await wallet.switchChain(networkConfig.chainId)
+      // Switch chain — add network first if needed (e.g. Hardhat local)
+      try {
+        await wallet.switchChain(networkConfig.chainId)
+      } catch {
+        // If chain not recognized, add it via the provider
+        const wp = await wallet.getEthereumProvider()
+        await wp.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: `0x${networkConfig.chainId.toString(16)}`,
+            chainName: networkConfig.name,
+            nativeCurrency: networkConfig.nativeCurrency,
+            rpcUrls: [networkConfig.rpcUrl],
+          }],
+        })
+        await wallet.switchChain(networkConfig.chainId)
+      }
 
       const provider = await wallet.getEthereumProvider()
       const ethersProvider = new ethers.BrowserProvider(provider)
@@ -161,12 +177,19 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
       onCreatePayout([newPayout], parseFloat(amount))
       handleClose()
     } catch (err: any) {
-      if (err.code === "ACTION_REJECTED" || err.message?.includes("rejected")) {
-        setError("Transaction rejected")
-      } else if (err.message?.includes("insufficient funds")) {
-        setError(`Insufficient gas on ${resolvedNetwork}. Add native tokens for gas fees.`)
+      const msg = err.message || ""
+      if (err.code === "ACTION_REJECTED" || msg.includes("rejected")) {
+        setError("Transaction was cancelled.")
+      } else if (msg.includes("insufficient funds")) {
+        const networkName = NETWORKS[resolvedNetwork]?.name || resolvedNetwork
+        setError(`Not enough gas on ${networkName}. You need native tokens to pay for the transaction fee.`)
+      } else if (msg.includes("Unsupported") || msg.includes("wallet_addEthereumChain")) {
+        const networkName = NETWORKS[resolvedNetwork]?.name || resolvedNetwork
+        setError(`${networkName} is not available in your wallet. This network may only work with an external wallet like MetaMask.`)
+      } else if (msg.includes("not whitelisted") || msg.includes("not registered")) {
+        setError("Your account is not yet activated on this network. Please contact support.")
       } else {
-        setError(err.message || "Transfer failed")
+        setError("Something went wrong. Please try again or contact support.")
       }
     } finally {
       setLoading(false)

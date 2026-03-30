@@ -4,6 +4,7 @@
  */
 
 export const PROXY_ADDRESSES: Record<string, string> = {
+  hardhat: process.env.NEXT_PUBLIC_HARDHAT_PROXY_ADDRESS || "",
   celo: process.env.NEXT_PUBLIC_CELO_PROXY_ADDRESS || "",
   arbitrum: process.env.NEXT_PUBLIC_ARBITRUM_PROXY_ADDRESS || "",
   polygon: process.env.NEXT_PUBLIC_POLYGON_PROXY_ADDRESS || "",
