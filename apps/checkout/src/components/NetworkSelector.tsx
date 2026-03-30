@@ -1,4 +1,5 @@
 import { SUPPORTED_CHAINS } from '../config/chains';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface NetworkSelectorProps {
   selectedChainId: number | null;
@@ -6,11 +7,12 @@ interface NetworkSelectorProps {
 }
 
 export function NetworkSelector({ selectedChainId, onSelect }: NetworkSelectorProps) {
+  const { t } = useLanguage();
   const enabledChains = SUPPORTED_CHAINS.filter(c => c.enabled);
 
   return (
     <div className="space-y-2">
-      <label className="block text-white font-medium">Select Network</label>
+      <label className="block text-white font-medium">{t.payByAddress.selectNetwork}</label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {enabledChains.map(config => (
           <button

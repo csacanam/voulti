@@ -1,4 +1,5 @@
 import { Wallet, QrCode } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PaymentMethodSelectorProps {
   onSelectWallet: () => void;
@@ -6,9 +7,11 @@ interface PaymentMethodSelectorProps {
 }
 
 export function PaymentMethodSelector({ onSelectWallet, onSelectAddress }: PaymentMethodSelectorProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-400 text-center mb-4">How would you like to pay?</p>
+      <p className="text-sm text-gray-400 text-center mb-4">{t.paymentMethod.title}</p>
 
       <button
         onClick={onSelectWallet}
@@ -18,8 +21,8 @@ export function PaymentMethodSelector({ onSelectWallet, onSelectAddress }: Payme
           <Wallet className="w-6 h-6 text-blue-400" />
         </div>
         <div>
-          <div className="font-medium text-white">Connect Wallet</div>
-          <div className="text-sm text-gray-400">MetaMask, WalletConnect, Coinbase...</div>
+          <div className="font-medium text-white">{t.paymentMethod.connectWallet}</div>
+          <div className="text-sm text-gray-400">{t.paymentMethod.connectWalletDesc}</div>
         </div>
       </button>
 
@@ -31,8 +34,8 @@ export function PaymentMethodSelector({ onSelectWallet, onSelectAddress }: Payme
           <QrCode className="w-6 h-6 text-purple-400" />
         </div>
         <div>
-          <div className="font-medium text-white">Pay by Address</div>
-          <div className="text-sm text-gray-400">Send from any wallet or exchange</div>
+          <div className="font-medium text-white">{t.paymentMethod.payByAddress}</div>
+          <div className="text-sm text-gray-400">{t.paymentMethod.payByAddressDesc}</div>
         </div>
       </button>
     </div>

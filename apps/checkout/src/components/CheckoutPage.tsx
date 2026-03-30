@@ -273,7 +273,7 @@ export const CheckoutPage: React.FC = () => {
             onClick={() => setPaymentMode('select')}
             className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors py-2 px-1 min-h-[44px]"
           >
-            ← Back to payment methods
+            ← {t.payByAddress.back}
           </button>
 
           {/* Network Mismatch Warning or Token Selection */}
@@ -346,7 +346,7 @@ export const CheckoutPage: React.FC = () => {
                             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                           >
                             <QrCode className="h-5 w-5" />
-                            <span>Pay by Address instead</span>
+                            <span>{t.paymentMethod.payByAddress}</span>
                           </button>
                         </div>
                       ) : (

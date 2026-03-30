@@ -5,6 +5,8 @@ import { QRCodeComponent } from './QRCode';
 import { depositService, type DepositData } from '../services/depositService';
 import { useDepositPolling } from '../hooks/useDepositPolling';
 import { findChainConfigByChainId, SUPPORTED_CHAINS } from '../config/chains';
+import { useLanguage } from '../contexts/LanguageContext';
+import { interpolate } from '../utils/i18n';
 import type { Invoice, Token } from '../types/invoice';
 
 interface PayByAddressFlowProps {
@@ -25,6 +27,7 @@ function useIsMobile() {
 }
 
 export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlowProps) {
+  const { t } = useLanguage();
   const [selectedChainId, setSelectedChainId] = useState<number | null>(null);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [deposit, setDeposit] = useState<DepositData | null>(null);
@@ -111,7 +114,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
         className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors py-2 -ml-1 px-1 min-h-[44px]"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to payment methods
+        {t.payByAddress.back}
       </button>
 
       {!deposit ? (
@@ -121,7 +124,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
 
           {selectedChainId && availableTokens.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-white font-medium">Select Token</label>
+              <label className="block text-white font-medium">{t.payByAddress.selectToken}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {availableTokens.map(token => (
                     <button
@@ -144,32 +147,32 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
           )}
 
           {selectedChainId && availableTokens.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-4">No tokens available on this network for this invoice.</p>
+            <p className="text-sm text-gray-500 text-center py-4">{t.payByAddress.noTokens}</p>
           )}
 
           {/* Pre-generation confirmation with warning */}
           {selectedToken && selectedToken.amount_to_pay && (
             <div className="space-y-3">
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-2">You will send</p>
+                <p className="text-sm text-gray-400 mb-2">{t.payByAddress.youWillSend}</p>
                 <p className="text-xl font-bold text-white">
                   {selectedToken.amount_to_pay} {selectedToken.symbol}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">
-                  on <span className="text-purple-400 font-medium">{networkName}</span>
+                  {t.payByAddress.onNetwork} <span className="text-purple-400 font-medium">{networkName}</span>
                 </p>
               </div>
 
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span className="text-sm font-medium text-amber-300">Before you continue</span>
+                  <span className="text-sm font-medium text-amber-300">{t.payByAddress.beforeContinue}</span>
                 </div>
                 <ul className="text-sm text-amber-200/80 space-y-2 ml-6">
-                  <li>Send <strong className="text-amber-200">{selectedToken.symbol}</strong> only, not another token</li>
-                  <li>Send on the <strong className="text-amber-200">{networkName}</strong> network</li>
-                  <li>Send the <strong className="text-amber-200">exact amount</strong> — sending less will not complete the payment</li>
-                  <li>If you send more, the excess will be automatically refunded</li>
+                  <li>{t.payByAddress.sendOnly} <strong className="text-amber-200">{selectedToken.symbol}</strong> {t.payByAddress.notAnotherToken}</li>
+                  <li>{t.payByAddress.sendOnNetwork} <strong className="text-amber-200">{networkName}</strong></li>
+                  <li>{t.payByAddress.sendExactAmount}</li>
+                  <li>{t.payByAddress.overpaymentRefund}</li>
                 </ul>
               </div>
 
@@ -181,10 +184,10 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating address...
+                    {t.payByAddress.generating}
                   </>
                 ) : (
-                  'I understand, generate address'
+                  t.payByAddress.understand
                 )}
               </button>
             </div>
@@ -203,12 +206,16 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-medium text-amber-300">Partial deposit received</span>
+                <span className="text-sm font-medium text-amber-300">{t.payByAddress.partialTitle}</span>
               </div>
               {detectedAmount && (
                 <p className="text-sm text-amber-200/80 ml-6">
-                  Received <strong>{detectedAmount}</strong> of <strong>{deposit.expectedAmount}</strong> {deposit.tokenSymbol}.
-                  Please send the remaining <strong>{(parseFloat(deposit.expectedAmount) - parseFloat(detectedAmount)).toFixed(6)}</strong> {deposit.tokenSymbol}.
+                  {interpolate(t.payByAddress.partialDesc, {
+                    detected: detectedAmount,
+                    expected: deposit.expectedAmount,
+                    symbol: deposit.tokenSymbol,
+                    remaining: (parseFloat(deposit.expectedAmount) - parseFloat(detectedAmount)).toFixed(6),
+                  })}
                 </p>
               )}
             </div>
@@ -220,8 +227,8 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                 <Loader2 className="w-5 h-5 animate-spin text-green-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-green-300">Deposit received!</p>
-                <p className="text-sm text-green-400/80">Processing your payment...</p>
+                <p className="text-sm font-medium text-green-300">{t.payByAddress.depositReceived}</p>
+                <p className="text-sm text-green-400/80">{t.payByAddress.processing}</p>
               </div>
             </div>
           )}
@@ -232,8 +239,8 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                 <CheckCircle2 className="w-5 h-5 text-green-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-green-300">Payment complete!</p>
-                <p className="text-sm text-green-400/80">Your payment has been confirmed.</p>
+                <p className="text-sm font-medium text-green-300">{t.payByAddress.paymentComplete}</p>
+                <p className="text-sm text-green-400/80">{t.payByAddress.paymentConfirmed}</p>
               </div>
             </div>
           )}
@@ -242,8 +249,8 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-blue-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-blue-300">Invoice expired</p>
-                <p className="text-sm text-blue-400/80">Your deposit has been automatically refunded.</p>
+                <p className="text-sm font-medium text-blue-300">{t.payByAddress.invoiceExpired}</p>
+                <p className="text-sm text-blue-400/80">{t.payByAddress.depositRefunded}</p>
               </div>
             </div>
           )}
@@ -252,8 +259,8 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-red-300">Something went wrong</p>
-                <p className="text-sm text-red-400/80">Please contact support for assistance.</p>
+                <p className="text-sm font-medium text-red-300">{t.payByAddress.somethingWrong}</p>
+                <p className="text-sm text-red-400/80">{t.payByAddress.contactSupport}</p>
               </div>
             </div>
           )}
@@ -284,17 +291,17 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
               {isMobile && (
                 <div className="flex items-center justify-center gap-2 py-2 text-gray-500">
                   <Smartphone className="w-4 h-4" />
-                  <span className="text-xs">Copy the address below and paste it in your wallet app</span>
+                  <span className="text-xs">{t.payByAddress.scanToPayMobile}</span>
                 </div>
               )}
 
               {/* Amount — large and tappable copy */}
               <div className="text-center">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Send exactly</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">{t.payByAddress.sendExactly}</p>
                 <button
                   onClick={() => copyToClipboard(deposit.expectedAmount, 'amount')}
                   className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-600 active:bg-gray-700 transition-all min-h-[48px]"
-                  title="Tap to copy amount"
+                  title={t.payByAddress.tapToCopy}
                 >
                   <span className="text-2xl font-bold text-white">{deposit.expectedAmount}</span>
                   <span className="text-lg text-gray-400">{deposit.tokenSymbol}</span>
@@ -305,7 +312,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                   )}
                 </button>
                 {copied === 'amount' && (
-                  <p className="text-xs text-green-400 mt-1">Amount copied!</p>
+                  <p className="text-xs text-green-400 mt-1">{t.payByAddress.amountCopied}</p>
                 )}
               </div>
 
@@ -313,15 +320,15 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
               <button
                 onClick={() => copyToClipboard(deposit.address, 'address')}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 active:bg-gray-700 transition-all text-left group min-h-[72px]"
-                title="Tap to copy address"
+                title={t.payByAddress.tapToCopy}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-gray-500">Deposit address</p>
+                  <p className="text-xs text-gray-500">{t.payByAddress.depositAddress}</p>
                   <span className="flex items-center gap-1 text-xs text-purple-400 group-hover:text-purple-300">
                     {copied === 'address' ? (
-                      <><Check className="w-4 h-4" /> Copied!</>
+                      <><Check className="w-4 h-4" /> {t.payByAddress.copied}</>
                     ) : (
-                      <><Copy className="w-4 h-4" /> Tap to copy</>
+                      <><Copy className="w-4 h-4" /> {t.payByAddress.tapToCopy}</>
                     )}
                   </span>
                 </div>
@@ -332,12 +339,12 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
 
               {/* Checklist */}
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-                <p className="text-xs font-medium text-gray-400 mb-3 uppercase tracking-wide">Double check before sending</p>
+                <p className="text-xs font-medium text-gray-400 mb-3 uppercase tracking-wide">{t.payByAddress.doubleCheck}</p>
                 <div className="space-y-3">
                   {[
-                    <>Sending <strong className="text-white">{deposit.tokenSymbol}</strong> (not another token)</>,
-                    <>On the <strong className="text-white">{networkName}</strong> network</>,
-                    <>Amount is exactly <strong className="text-white">{deposit.expectedAmount} {deposit.tokenSymbol}</strong></>,
+                    <>{t.payByAddress.checkToken} <strong className="text-white">{deposit.tokenSymbol}</strong> {t.payByAddress.checkNotAnother}</>,
+                    <>{t.payByAddress.checkNetwork} <strong className="text-white">{networkName}</strong></>,
+                    <>{t.payByAddress.checkAmount} <strong className="text-white">{deposit.expectedAmount} {deposit.tokenSymbol}</strong></>,
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <div className="w-5 h-5 rounded-full border border-amber-500/50 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -353,7 +360,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
               {(!depositStatus || depositStatus === 'awaiting') && (
                 <div className="flex items-center justify-center gap-2 py-3">
                   <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
-                  <span className="text-sm text-gray-500">Waiting for your deposit...</span>
+                  <span className="text-sm text-gray-500">{t.payByAddress.waiting}</span>
                 </div>
               )}
             </>
