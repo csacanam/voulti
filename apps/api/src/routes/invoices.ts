@@ -98,6 +98,34 @@ export async function invoicesRoutes(app: FastifyInstance) {
     }
   });
 
+  // List invoices by commerce
+  app.get('/by-commerce/:commerceId', async (req, res) => {
+    try {
+      const { commerceId } = req.params as { commerceId: string };
+
+      if (!commerceId) {
+        return res.status(400).send({ error: 'commerceId is required' });
+      }
+
+      const commerce_id = commerceId;
+
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method')
+        .eq('commerce_id', commerce_id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        return res.status(500).send({ error: 'Failed to fetch invoices' });
+      }
+
+      return res.send({ data: invoices || [] });
+    } catch (error: any) {
+      return res.status(500).send({ error: error.message || 'Failed to fetch invoices' });
+    }
+  });
+
   // Get invoice by ID
   app.get('/:id', async (req, res) => {
     const { id } = req.params as { id: string };

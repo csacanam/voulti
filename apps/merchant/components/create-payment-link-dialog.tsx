@@ -179,9 +179,13 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="expiration">Enable expiration</Label>
+                  <Label htmlFor="expiration">Custom expiration</Label>
                   <Switch id="expiration" checked={enableExpiration} onCheckedChange={setEnableExpiration} disabled={loading} />
                 </div>
+
+                {!enableExpiration && (
+                  <p className="text-xs text-muted-foreground">Default: expires in 1 hour</p>
+                )}
 
                 {enableExpiration && (
                   <div className="grid grid-cols-2 gap-3">

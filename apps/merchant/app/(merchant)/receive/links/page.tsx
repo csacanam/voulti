@@ -1,22 +1,86 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
-import { Copy, Ban, Link as LinkIcon, Lock } from "lucide-react"
+import { Copy, Link as LinkIcon, Lock } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import type { PaymentLink } from "@/lib/types"
+import { useCommerce } from "@/components/providers/commerce-provider"
 import { useToast } from "@/hooks/use-toast"
+import { API_CONFIG } from "@/services/config"
+
+const CHECKOUT_BASE_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || "http://localhost:5175"
+
+function formatTimeRemaining(expires: string): string {
+  const diff = new Date(expires).getTime() - Date.now()
+  if (diff <= 0) return "Expired"
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m left`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h left`
+  const days = Math.floor(hours / 24)
+  return `${days}d left`
+}
 
 export default function PaymentLinksPage() {
   const { authenticated } = usePrivy()
+  const { commerce } = useCommerce()
   const { toast } = useToast()
   const [links, setLinks] = useState<PaymentLink[]>([])
+  const [loadingLinks, setLoadingLinks] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+
+  // Load invoices from backend
+  useEffect(() => {
+    if (!commerce?.commerce_id) {
+      setLoadingLinks(false)
+      return
+    }
+
+    const fetchInvoices = async () => {
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/invoices/by-commerce/${commerce.commerce_id}`)
+        if (!res.ok) throw new Error("Failed to fetch invoices")
+        const data = await res.json()
+        const invoices = data.data || data || []
+
+        const paymentLinks: PaymentLink[] = invoices.map((inv: any) => {
+          let status: "active" | "expired" | "disabled" = "active"
+          if (inv.status === "Expired" || (inv.expires_at && new Date(inv.expires_at) < new Date())) {
+            status = "expired"
+          } else if (inv.status === "Paid") {
+            status = "disabled"
+          }
+
+          return {
+            id: inv.id,
+            title: `${inv.fiat_currency} ${inv.amount_fiat}`,
+            currency: inv.fiat_currency,
+            amount: inv.amount_fiat,
+            status,
+            created: inv.created_at,
+            expires: inv.expires_at || undefined,
+            uses: inv.status === "Paid" ? 1 : 0,
+            url: `${CHECKOUT_BASE_URL}/checkout/${inv.id}`,
+          }
+        })
+
+        setLinks(paymentLinks)
+      } catch {
+        // silently fail, show empty
+      } finally {
+        setLoadingLinks(false)
+      }
+    }
+
+    fetchInvoices()
+  }, [commerce?.commerce_id])
 
   const handleCreateLink = (link: PaymentLink) => {
     setLinks([link, ...links])
@@ -27,14 +91,6 @@ export default function PaymentLinksPage() {
     toast({
       title: "URL copied",
       description: "Payment link URL copied to clipboard",
-    })
-  }
-
-  const handleDisableLink = (id: string) => {
-    setLinks(links.map((link) => (link.id === id ? { ...link, status: "disabled" as const } : link)))
-    toast({
-      title: "Link disabled",
-      description: "The payment link has been disabled",
     })
   }
 
@@ -54,10 +110,10 @@ export default function PaymentLinksPage() {
     )
   }
 
-  const statusConfig = {
-    active: { label: "Active", variant: "default" as const },
-    expired: { label: "Expired", variant: "secondary" as const },
-    disabled: { label: "Disabled", variant: "destructive" as const },
+  const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    active: { label: "Active", variant: "default" },
+    expired: { label: "Expired", variant: "secondary" },
+    disabled: { label: "Paid", variant: "outline" },
   }
 
   return (
@@ -73,7 +129,11 @@ export default function PaymentLinksPage() {
         </Button>
       </div>
 
-      {links.length === 0 ? (
+      {loadingLinks ? (
+        <div className="flex items-center justify-center py-12">
+          <Spinner className="w-6 h-6" />
+        </div>
+      ) : links.length === 0 ? (
         <Card className="p-12 text-center">
           <div className="flex flex-col items-center gap-4 text-muted-foreground">
             <LinkIcon className="w-12 h-12" />
@@ -107,14 +167,11 @@ export default function PaymentLinksPage() {
               <table className="w-full">
                 <thead className="border-b border-border bg-muted/50">
                   <tr>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Title/ID</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Currency</th>
                     <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
                     <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
                     <th className="text-left p-4 text-sm font-medium text-muted-foreground">Created</th>
                     <th className="text-left p-4 text-sm font-medium text-muted-foreground">Expires</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Uses</th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -123,44 +180,30 @@ export default function PaymentLinksPage() {
                     return (
                       <tr key={link.id} className="hover:bg-muted/50">
                         <td className="p-4">
-                          <div className="font-medium text-foreground">{link.title}</div>
-                          <div className="text-xs text-muted-foreground">{link.id}</div>
-                        </td>
-                        <td className="p-4 text-foreground">{link.currency}</td>
-                        <td className="p-4 text-foreground">
-                          {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          <div className="font-medium text-foreground">
+                            {link.currency} {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">{link.id.slice(0, 8)}...</div>
                         </td>
                         <td className="p-4">
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                         </td>
                         <td className="p-4 text-sm text-muted-foreground">
                           {new Date(link.created).toLocaleDateString("en-US", {
-                            year: "numeric",
                             month: "short",
                             day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
                           })}
                         </td>
                         <td className="p-4 text-sm text-muted-foreground">
-                          {link.expires
-                            ? new Date(link.expires).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
-                            : "—"}
+                          {link.expires ? formatTimeRemaining(link.expires) : "—"}
                         </td>
-                        <td className="p-4 text-foreground">{link.uses}</td>
                         <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)}>
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                            {link.status === "active" && (
-                              <Button variant="ghost" size="sm" onClick={() => handleDisableLink(link.id)}>
-                                <Ban className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
+                            <Copy className="w-4 h-4" />
+                            Copy
+                          </Button>
                         </td>
                       </tr>
                     )
