@@ -12,12 +12,23 @@ import { payoutsRoutes } from './routes/payouts';
 import { depositRoutes } from './routes/deposit';
 import { sweepService } from './blockchain/services/SweepService';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 
 async function main() {
   const app = Fastify();
 
+  // Rate limiting
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  });
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : true; // allow all in dev if not set
+
   await app.register(cors, {
-    origin: true, // or an array like ['https://yourdomain.com']
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

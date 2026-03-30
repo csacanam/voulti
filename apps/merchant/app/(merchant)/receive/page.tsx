@@ -81,7 +81,11 @@ function PaymentLinksTab() {
 
     const fetchInvoices = async () => {
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/invoices/by-commerce/${commerce.commerce_id}`)
+        const { getAuthToken } = await import("@/services/api")
+        const token = getAuthToken()
+        const res = await fetch(`${API_CONFIG.BASE_URL}/invoices/by-commerce/${commerce.commerce_id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
         if (!res.ok) throw new Error()
         const data = await res.json()
         const invoices = data.data || []

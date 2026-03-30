@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { NETWORKS } from '../blockchain/config/networks';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -9,8 +10,8 @@ const supabase = createClient(
 );
 
 export async function invoicesRoutes(app: FastifyInstance) {
-  // Create invoice in Supabase
-  app.post('/', async (req, res) => {
+  // Create invoice in Supabase (authenticated + verify user owns the commerce)
+  app.post('/', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { commerce_id, amount_fiat, expires_at } = req.body as any;
 
@@ -24,7 +25,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
       // Validate commerce exists and get its currency and confirmation_url
       const { data: commerce, error: commerceError } = await supabase
         .from('commerces')
-        .select('id, name, minAmount, maxAmount, currency, confirmation_url, confirmation_email')
+        .select('id, name, wallet, minAmount, maxAmount, currency, confirmation_url, confirmation_email')
         .eq('id', commerce_id)
         .single();
 
@@ -32,6 +33,11 @@ export async function invoicesRoutes(app: FastifyInstance) {
         return res.status(404).send({
           error: 'Commerce not found'
         });
+      }
+
+      // Verify the authenticated user owns this commerce
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
       }
 
       // Use commerce currency
@@ -98,13 +104,24 @@ export async function invoicesRoutes(app: FastifyInstance) {
     }
   });
 
-  // List invoices by commerce
-  app.get('/by-commerce/:commerceId', async (req, res) => {
+  // List invoices by commerce (authenticated + verify ownership)
+  app.get('/by-commerce/:commerceId', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { commerceId } = req.params as { commerceId: string };
 
       if (!commerceId) {
         return res.status(400).send({ error: 'commerceId is required' });
+      }
+
+      // Verify the authenticated user owns this commerce
+      const { data: commerceCheck } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', commerceId)
+        .single();
+
+      if (!commerceCheck || commerceCheck.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
       }
 
       const commerce_id = commerceId;
@@ -372,8 +389,8 @@ export async function invoicesRoutes(app: FastifyInstance) {
     }
   });
 
-  // Update invoice status in backend only (admin endpoint)
-  app.put('/:id/status', async (req, res) => {
+  // Update invoice status in backend only (admin endpoint, authenticated)
+  app.put('/:id/status', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };
       const { status, reason } = req.body as { status: string; reason?: string };

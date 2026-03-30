@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono'
 import { Analytics } from '@vercel/analytics/next'
 import PrivyProviderWrapper from '@/components/providers/privy-provider'
 import { LanguageProvider } from '@/components/providers/language-provider'
+import { AuthTokenProvider } from '@/components/providers/auth-token-provider'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
@@ -22,10 +23,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <PrivyProviderWrapper>
-          <LanguageProvider>
-            {children}
-            <Toaster />
-          </LanguageProvider>
+          <AuthTokenProvider>
+            <LanguageProvider>
+              {children}
+              <Toaster />
+            </LanguageProvider>
+          </AuthTokenProvider>
         </PrivyProviderWrapper>
         <Analytics />
       </body>

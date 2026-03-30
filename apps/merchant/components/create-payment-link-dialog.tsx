@@ -12,6 +12,7 @@ import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/hooks/use-toast"
 import { API_CONFIG } from "@/services/config"
+import { getAuthToken } from "@/services/api"
 
 const CHECKOUT_BASE_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || "http://localhost:5175"
 
@@ -67,9 +68,13 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
         body.expires_at = new Date(`${expirationDate}T${expirationTime}`).toISOString()
       }
 
+      const token = getAuthToken()
       const res = await fetch(`${API_CONFIG.BASE_URL}/invoices`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(body),
       })
 

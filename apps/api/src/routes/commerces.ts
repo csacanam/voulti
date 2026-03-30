@@ -6,6 +6,7 @@ import { CONTRACTS } from '../blockchain/config/contracts';
 import { TOKENS } from '../blockchain/config/tokens';
 import { getWallet } from '../blockchain/utils/web3';
 import AccessManagerABI from '../blockchain/abi/AccessManager.json';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -64,13 +65,24 @@ async function whitelistCommerceOnChain(wallet: string): Promise<{ network: stri
 
 export async function commercesRoutes(app: FastifyInstance) {
   
-  // Get payouts/withdrawals for a specific commerce
-  app.get('/:id/payouts', async (req, res) => {
+  // Get payouts/withdrawals for a specific commerce (authenticated + ownership)
+  app.get('/:id/payouts', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };
 
       if (!id) {
         return res.status(400).send({ error: 'Commerce ID is required' });
+      }
+
+      // Verify ownership
+      const { data: commerceCheck } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerceCheck || commerceCheck.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
       }
 
       const { data: payouts, error: payoutsError } = await supabase
@@ -91,8 +103,8 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
-  // Get commerce balances across all chains
-  app.get('/:id/balances', async (req, res) => {
+  // Get commerce balances across all chains (authenticated + ownership)
+  app.get('/:id/balances', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };
 
@@ -104,6 +116,11 @@ export async function commercesRoutes(app: FastifyInstance) {
 
       if (error || !commerce) {
         return res.status(404).send({ error: 'Commerce not found' });
+      }
+
+      // Verify ownership
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
       }
 
       const wallet = commerce.wallet;
@@ -161,8 +178,8 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
-  // Get commerce by wallet address
-  app.get('/by-wallet/:wallet', async (req, res) => {
+  // Get commerce by wallet address (authenticated + verify own wallet)
+  app.get('/by-wallet/:wallet', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { wallet } = req.params as { wallet: string };
 
@@ -170,6 +187,11 @@ export async function commercesRoutes(app: FastifyInstance) {
         return res.status(400).send({
           error: 'Wallet address is required'
         });
+      }
+
+      // Verify the requested wallet matches the authenticated user's wallet
+      if (wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
       }
 
       // Get commerce by wallet (case insensitive)
@@ -213,18 +235,23 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
-  // Register/Create new commerce (self-service)
-  app.post('/', async (req, res) => {
+  // Register/Create new commerce (authenticated — wallet from token)
+  app.post('/', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
-      const { wallet, name, currency } = req.body as {
-        wallet: string;
+      // Use wallet from auth token, not from body (prevents spoofing)
+      const wallet = req.walletAddress;
+      if (!wallet) {
+        return res.status(401).send({ error: 'Wallet not found in token' });
+      }
+
+      const { name, currency } = req.body as {
         name: string;
         currency: string;
       };
 
-      if (!wallet || !name) {
+      if (!name) {
         return res.status(400).send({
-          error: 'Missing required fields: wallet, name'
+          error: 'Missing required field: name'
         });
       }
 

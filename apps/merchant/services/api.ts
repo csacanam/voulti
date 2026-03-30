@@ -1,6 +1,6 @@
 /**
  * API Client
- * Base HTTP client with common request/response handling
+ * Base HTTP client with auth token injection
  */
 
 import { API_CONFIG } from "./config"
@@ -17,13 +17,35 @@ export class ApiError extends Error {
   }
 }
 
-interface RequestOptions extends RequestInit {
-  timeout?: number
+// Global token store — set by AuthTokenProvider
+let _authToken: string | null = null
+
+export function setAuthToken(token: string | null) {
+  _authToken = token
 }
 
-/**
- * Base fetch wrapper with error handling and timeouts
- */
+export function getAuthToken(): string | null {
+  return _authToken
+}
+
+interface RequestOptions extends RequestInit {
+  timeout?: number
+  skipAuth?: boolean
+}
+
+function getHeaders(options?: RequestOptions): Record<string, string> {
+  const headers: Record<string, string> = {
+    ...API_CONFIG.HEADERS,
+    ...(options?.headers as Record<string, string>),
+  }
+
+  if (!options?.skipAuth && _authToken) {
+    headers["Authorization"] = `Bearer ${_authToken}`
+  }
+
+  return headers
+}
+
 async function fetchWithTimeout(url: string, options: RequestOptions = {}): Promise<Response> {
   const { timeout = API_CONFIG.TIMEOUT, ...fetchOptions } = options
 
@@ -46,122 +68,59 @@ async function fetchWithTimeout(url: string, options: RequestOptions = {}): Prom
   }
 }
 
-/**
- * Main API client functions
- */
-export const apiClient = {
-  /**
-   * GET request
-   */
-  async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
-    const url = `${API_CONFIG.BASE_URL}${endpoint}`
-
-    const response = await fetchWithTimeout(url, {
-      method: "GET",
-      headers: {
-        ...API_CONFIG.HEADERS,
-        ...options?.headers,
-      },
-      ...options,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      throw new ApiError(
-        response.status,
-        response.statusText,
-        errorData?.message || "Request failed",
-        errorData
-      )
-    }
-
-    return response.json()
-  },
-
-  /**
-   * POST request
-   */
-  async post<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
-    const url = `${API_CONFIG.BASE_URL}${endpoint}`
-
-    const response = await fetchWithTimeout(url, {
-      method: "POST",
-      headers: {
-        ...API_CONFIG.HEADERS,
-        ...options?.headers,
-      },
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      throw new ApiError(
-        response.status,
-        response.statusText,
-        errorData?.message || "Request failed",
-        errorData
-      )
-    }
-
-    return response.json()
-  },
-
-  /**
-   * PUT request
-   */
-  async put<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
-    const url = `${API_CONFIG.BASE_URL}${endpoint}`
-
-    const response = await fetchWithTimeout(url, {
-      method: "PUT",
-      headers: {
-        ...API_CONFIG.HEADERS,
-        ...options?.headers,
-      },
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      throw new ApiError(
-        response.status,
-        response.statusText,
-        errorData?.message || "Request failed",
-        errorData
-      )
-    }
-
-    return response.json()
-  },
-
-  /**
-   * DELETE request
-   */
-  async delete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
-    const url = `${API_CONFIG.BASE_URL}${endpoint}`
-
-    const response = await fetchWithTimeout(url, {
-      method: "DELETE",
-      headers: {
-        ...API_CONFIG.HEADERS,
-        ...options?.headers,
-      },
-      ...options,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      throw new ApiError(
-        response.status,
-        response.statusText,
-        errorData?.message || "Request failed",
-        errorData
-      )
-    }
-
-    return response.json()
-  },
+async function handleResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new ApiError(
+      response.status,
+      response.statusText,
+      errorData?.error || errorData?.message || "Request failed",
+      errorData
+    )
+  }
+  return response.json()
 }
 
+export const apiClient = {
+  async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+    const url = `${API_CONFIG.BASE_URL}${endpoint}`
+    const response = await fetchWithTimeout(url, {
+      method: "GET",
+      headers: getHeaders(options),
+      ...options,
+    })
+    return handleResponse<T>(response)
+  },
+
+  async post<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
+    const url = `${API_CONFIG.BASE_URL}${endpoint}`
+    const response = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: getHeaders(options),
+      body: data ? JSON.stringify(data) : undefined,
+      ...options,
+    })
+    return handleResponse<T>(response)
+  },
+
+  async put<T>(endpoint: string, data?: any, options?: RequestOptions): Promise<T> {
+    const url = `${API_CONFIG.BASE_URL}${endpoint}`
+    const response = await fetchWithTimeout(url, {
+      method: "PUT",
+      headers: getHeaders(options),
+      body: data ? JSON.stringify(data) : undefined,
+      ...options,
+    })
+    return handleResponse<T>(response)
+  },
+
+  async delete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+    const url = `${API_CONFIG.BASE_URL}${endpoint}`
+    const response = await fetchWithTimeout(url, {
+      method: "DELETE",
+      headers: getHeaders(options),
+      ...options,
+    })
+    return handleResponse<T>(response)
+  },
+}

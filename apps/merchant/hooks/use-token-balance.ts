@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { API_CONFIG } from "@/services/config"
+import { getAuthToken } from "@/services/api"
 
 export interface TokenBalance {
   network: string
@@ -41,7 +42,10 @@ export function useCommerceBalances(commerceId: string | null): UseCommerceBalan
       setError(null)
 
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/balances`)
+        const token = getAuthToken()
+        const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/balances`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
         if (!res.ok) throw new Error("Failed to fetch balances")
 
         const data = await res.json()
