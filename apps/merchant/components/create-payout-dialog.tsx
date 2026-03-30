@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, Loader2, Send } from "lucide-react"
+import { AlertCircle, Loader2, Send, ArrowLeft, CheckCircle2 } from "lucide-react"
 import { useCommerce } from "@/components/providers/commerce-provider"
-import { useCommerceBalances, type TokenBalance } from "@/hooks/use-token-balance"
+import { useAggregatedBalances } from "@/hooks/use-aggregated-balances"
 import { useToast } from "@/hooks/use-toast"
 import { useWallets } from "@privy-io/react-auth"
 import { ethers } from "ethers"
 import { PROXY_ADDRESSES, DERAMP_PROXY_ABI } from "@/blockchain/contracts"
 import { NETWORKS } from "@/blockchain/networks"
 import type { Payout } from "@/lib/types"
+
+// Network priority: cheapest gas first
+const NETWORK_PRIORITY = ["celo", "base", "polygon", "arbitrum", "bsc"]
 
 interface CreatePayoutDialogProps {
   open: boolean
@@ -28,122 +31,140 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
   const { commerce } = useCommerce()
   const { toast } = useToast()
   const { wallets } = useWallets()
-  const { balances } = useCommerceBalances(commerce?.commerce_id || null)
+  const { aggregated } = useAggregatedBalances(commerce?.commerce_id || null)
 
-  const [selectedNetwork, setSelectedNetwork] = useState("")
-  const [selectedToken, setSelectedToken] = useState("")
+  const [selectedSymbol, setSelectedSymbol] = useState("")
   const [amount, setAmount] = useState("")
   const [recipient, setRecipient] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [step, setStep] = useState<"form" | "confirm">("form")
+  const [resolvedNetwork, setResolvedNetwork] = useState<string | null>(null)
 
-  // Get non-zero balances grouped by network
-  const nonZeroBalances = balances.filter((b) => parseFloat(b.balance) > 0)
-  const networks = [...new Set(nonZeroBalances.map((b) => b.network))]
-  const tokensForNetwork = nonZeroBalances.filter((b) => b.network === selectedNetwork)
+  const selectedToken = aggregated.find((t) => t.symbol === selectedSymbol)
 
-  const selectedBalance = nonZeroBalances.find(
-    (b) => b.network === selectedNetwork && b.symbol === selectedToken
-  )
+  // Auto-select best network for the amount
+  const resolveNetwork = (symbol: string, amountNum: number): { network: string; balance: number } | null => {
+    const token = aggregated.find((t) => t.symbol === symbol)
+    if (!token) return null
 
-  const handleNetworkChange = (network: string) => {
-    setSelectedNetwork(network)
-    setSelectedToken("")
-    setAmount("")
-  }
+    // Sort by priority, then find first with enough balance
+    const sorted = [...token.networks].sort((a, b) => {
+      const aIdx = NETWORK_PRIORITY.indexOf(a.network)
+      const bIdx = NETWORK_PRIORITY.indexOf(b.network)
+      return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx)
+    })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    if (!selectedBalance || !commerce) {
-      setError("Please select a network and token")
-      return
+    for (const net of sorted) {
+      if (net.balanceNum >= amountNum && PROXY_ADDRESSES[net.network]) {
+        return { network: net.network, balance: net.balanceNum }
+      }
     }
 
-    if (!recipient || !ethers.isAddress(recipient)) {
-      setError("Please enter a valid wallet address")
+    return null
+  }
+
+  const handleContinue = () => {
+    setError(null)
+
+    if (!selectedSymbol) {
+      setError("Select a token")
       return
     }
 
     const amountNum = parseFloat(amount)
     if (!amountNum || amountNum <= 0) {
-      setError("Please enter a valid amount")
+      setError("Enter a valid amount")
       return
     }
 
-    if (amountNum > parseFloat(selectedBalance.balance)) {
+    if (!selectedToken || amountNum > selectedToken.totalBalance) {
       setError("Insufficient balance")
       return
     }
 
-    const proxyAddress = PROXY_ADDRESSES[selectedNetwork]
-    if (!proxyAddress) {
-      setError("Contract not deployed on this network yet")
+    if (!recipient || !ethers.isAddress(recipient)) {
+      setError("Enter a valid wallet address")
       return
     }
 
-    const networkConfig = NETWORKS[selectedNetwork]
-    if (!networkConfig) {
-      setError("Network not configured")
+    const resolved = resolveNetwork(selectedSymbol, amountNum)
+    if (!resolved) {
+      // Show fragmentation message
+      const token = aggregated.find((t) => t.symbol === selectedSymbol)
+      if (token && token.networkCount > 1) {
+        const breakdown = token.networks
+          .filter((n) => n.balanceNum > 0)
+          .map((n) => `${n.network}: ${n.balanceNum.toLocaleString(undefined, { maximumFractionDigits: 4 })}`)
+          .join(", ")
+        setError(
+          `Your ${selectedSymbol} is spread across networks (${breakdown}). No single network has ${amount} ${selectedSymbol}. Send a smaller amount or consolidate first.`
+        )
+      } else {
+        setError("No network available with sufficient balance and contract deployed")
+      }
       return
     }
+
+    setResolvedNetwork(resolved.network)
+    setStep("confirm")
+  }
+
+  const handleSend = async () => {
+    if (!resolvedNetwork || !selectedToken) return
 
     setLoading(true)
+    setError(null)
 
     try {
-      // Get the Privy embedded wallet
       const wallet = wallets.find((w) => w.walletClientType === "privy")
-      if (!wallet) {
-        throw new Error("No embedded wallet found. Please reconnect.")
-      }
+      if (!wallet) throw new Error("No embedded wallet found")
 
-      // Switch to the correct chain
+      const networkConfig = NETWORKS[resolvedNetwork]
+      if (!networkConfig) throw new Error("Network not configured")
+
       await wallet.switchChain(networkConfig.chainId)
 
-      // Get ethers provider from Privy wallet
       const provider = await wallet.getEthereumProvider()
       const ethersProvider = new ethers.BrowserProvider(provider)
       const signer = await ethersProvider.getSigner()
 
-      // Create contract instance
+      const proxyAddress = PROXY_ADDRESSES[resolvedNetwork]
       const proxy = new ethers.Contract(proxyAddress, DERAMP_PROXY_ABI, signer)
 
-      // Parse amount with correct decimals
-      const parsedAmount = ethers.parseUnits(amount, selectedBalance.decimals)
+      // Find the token address on the resolved network
+      const networkEntry = selectedToken.networks.find((n) => n.network === resolvedNetwork)
+      if (!networkEntry) throw new Error("Token not found on resolved network")
 
-      // Execute withdrawTo
-      const tx = await proxy.withdrawTo(selectedBalance.tokenAddress, parsedAmount, recipient)
+      const parsedAmount = ethers.parseUnits(amount, networkEntry.decimals)
+      const tx = await proxy.withdrawTo(networkEntry.tokenAddress, parsedAmount, recipient)
       const receipt = await tx.wait()
 
       toast({
         title: "Transfer sent!",
-        description: `${amount} ${selectedBalance.symbol} sent on ${selectedNetwork}`,
+        description: `${amount} ${selectedSymbol} sent via ${resolvedNetwork}`,
       })
 
-      // Create payout record for display
       const newPayout: Payout = {
         id: receipt.hash,
         recipientName: recipient.slice(0, 6) + "..." + recipient.slice(-4),
         email: "",
         walletAddress: recipient,
-        currency: selectedBalance.symbol,
-        amount: amountNum,
-        amountUSD: amountNum,
+        currency: selectedSymbol,
+        amount: parseFloat(amount),
+        amountUSD: parseFloat(amount),
         date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
         status: "completed",
         txHash: receipt.hash,
       }
 
-      onCreatePayout([newPayout], amountNum)
+      onCreatePayout([newPayout], parseFloat(amount))
       handleClose()
     } catch (err: any) {
-      console.error("Transfer error:", err)
-
       if (err.code === "ACTION_REJECTED" || err.message?.includes("rejected")) {
-        setError("Transaction rejected by user")
+        setError("Transaction rejected")
       } else if (err.message?.includes("insufficient funds")) {
-        setError("Insufficient gas. Please add native tokens for gas fees.")
+        setError(`Insufficient gas on ${resolvedNetwork}. Add native tokens for gas fees.`)
       } else {
         setError(err.message || "Transfer failed")
       }
@@ -154,11 +175,12 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
 
   const handleClose = () => {
     if (loading) return
-    setSelectedNetwork("")
-    setSelectedToken("")
+    setSelectedSymbol("")
     setAmount("")
     setRecipient("")
     setError(null)
+    setStep("form")
+    setResolvedNetwork(null)
     onOpenChange(false)
   }
 
@@ -166,100 +188,111 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Send Tokens</DialogTitle>
+          <DialogTitle className="text-xl">
+            {step === "confirm" ? "Confirm Transfer" : "Send Tokens"}
+          </DialogTitle>
         </DialogHeader>
 
-        {nonZeroBalances.length === 0 ? (
+        {aggregated.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             <p>No balances available to send.</p>
             <p className="text-sm mt-2">Receive payments first to build up your balance.</p>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+        ) : step === "form" ? (
+          <div className="space-y-4">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="text-sm">{error}</AlertDescription>
               </Alert>
             )}
 
             <div className="space-y-2">
-              <Label>Network</Label>
-              <Select value={selectedNetwork} onValueChange={handleNetworkChange} disabled={loading}>
+              <Label>Token</Label>
+              <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select network" />
+                  <SelectValue placeholder="Select token" />
                 </SelectTrigger>
                 <SelectContent>
-                  {networks.map((n) => (
-                    <SelectItem key={n} value={n}>
-                      {NETWORKS[n]?.name || n}
+                  {aggregated.map((t) => (
+                    <SelectItem key={t.symbol} value={t.symbol}>
+                      {t.symbol} — {t.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} available
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {selectedNetwork && (
-              <div className="space-y-2">
-                <Label>Token</Label>
-                <Select value={selectedToken} onValueChange={setSelectedToken} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select token" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tokensForNetwork.map((t) => (
-                      <SelectItem key={t.symbol} value={t.symbol}>
-                        {t.symbol} — {parseFloat(t.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <Label>Amount</Label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              {selectedToken && (
+                <p className="text-xs text-muted-foreground">
+                  Available: {selectedToken.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedSymbol}
+                  {selectedToken.networkCount > 1 && ` across ${selectedToken.networkCount} networks`}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Recipient Address</Label>
+              <Input placeholder="0x..." value={recipient} onChange={(e) => setRecipient(e.target.value)} />
+            </div>
+
+            <Button onClick={handleContinue} className="w-full gap-2" size="lg">
+              <Send className="h-4 w-4" />
+              Continue
+            </Button>
+          </div>
+        ) : (
+          /* Confirmation step */
+          <div className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="bg-muted rounded-lg p-4 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Sending</span>
+                <span className="font-semibold">{amount} {selectedSymbol}</span>
               </div>
-            )}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Network</span>
+                <span className="font-medium capitalize">{resolvedNetwork}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">To</span>
+                <span className="font-mono text-xs">{recipient.slice(0, 10)}...{recipient.slice(-8)}</span>
+              </div>
+            </div>
 
-            {selectedBalance && (
-              <>
-                <div className="space-y-2">
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Available: {parseFloat(selectedBalance.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedBalance.symbol}
-                  </p>
-                </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Network auto-selected for lowest fees. This will require a wallet signature.
+            </p>
 
-                <div className="space-y-2">
-                  <Label>Recipient Wallet Address</Label>
-                  <Input
-                    placeholder="0x..."
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-
-                <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      Send {amount || "0"} {selectedBalance.symbol}
-                    </>
-                  )}
-                </Button>
-              </>
-            )}
-          </form>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep("form")} className="flex-1 gap-2" disabled={loading}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <Button onClick={handleSend} className="flex-1 gap-2" disabled={loading}>
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Sending...</>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4" /> Confirm</>
+                )}
+              </Button>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>

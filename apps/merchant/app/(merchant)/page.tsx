@@ -5,7 +5,8 @@ import { Building2, Zap, Globe, Shield, QrCode, Send, Wallet, ArrowUpRight } fro
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useCommerce } from "@/components/providers/commerce-provider"
-import { useCommerceBalances } from "@/hooks/use-token-balance"
+import { useAggregatedBalances } from "@/hooks/use-aggregated-balances"
+import { TokenBalanceCard } from "@/components/token-balance-card"
 import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 
@@ -56,13 +57,7 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
 
 function Dashboard() {
   const { commerce } = useCommerce()
-  const { balances, loading: balancesLoading, refresh } = useCommerceBalances(commerce?.commerce_id || null)
-
-  const nonZeroBalances = balances.filter(b => parseFloat(b.balance) > 0)
-  const totalUsdEstimate = balances.reduce((sum, b) => {
-    // rough estimate: stablecoins ~= 1 USD
-    return sum + parseFloat(b.balance)
-  }, 0)
+  const { aggregated, totalUsd, loading: balancesLoading, refresh } = useAggregatedBalances(commerce?.commerce_id || null)
 
   return (
     <div className="space-y-6">
@@ -84,7 +79,7 @@ function Dashboard() {
           <Spinner className="w-6 h-6" />
         ) : (
           <p className="text-3xl font-bold">
-            ~${totalUsdEstimate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         )}
       </Card>
@@ -119,27 +114,17 @@ function Dashboard() {
         </Link>
       </div>
 
-      {/* Balances by network */}
+      {/* Balances by token */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Balances</h2>
         {balancesLoading ? (
           <div className="flex items-center justify-center py-8">
             <Spinner className="w-6 h-6" />
           </div>
-        ) : nonZeroBalances.length > 0 ? (
+        ) : aggregated.length > 0 ? (
           <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {nonZeroBalances.map((b) => (
-              <Card key={`${b.network}-${b.symbol}`} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">
-                      {parseFloat(b.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.symbol}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize">{b.network}</p>
-                  </div>
-                  <Wallet className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </Card>
+            {aggregated.map((token) => (
+              <TokenBalanceCard key={token.symbol} token={token} />
             ))}
           </div>
         ) : (

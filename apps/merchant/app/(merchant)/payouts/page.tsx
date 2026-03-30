@@ -9,9 +9,10 @@ import { PayoutDetailDialog } from "@/components/payout-detail-dialog"
 import { payoutService, type Payout as BackendPayout } from "@/services"
 import type { Payout } from "@/lib/types"
 import { useCommerce } from "@/components/providers/commerce-provider"
-import { useCommerceBalances } from "@/hooks/use-token-balance"
+import { useAggregatedBalances } from "@/hooks/use-aggregated-balances"
 import { useToast } from "@/hooks/use-toast"
 import { Spinner } from "@/components/ui/spinner"
+import { TokenBalanceCard } from "@/components/token-balance-card"
 
 function formatDate(dateString: string): string {
   try {
@@ -56,13 +57,9 @@ export default function PayoutsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
 
-  // Multi-chain balances
-  const { balances, loading: balanceLoading, refresh: refreshBalances } = useCommerceBalances(
+  const { aggregated, totalUsd: totalBalance, loading: balanceLoading, refresh: refreshBalances } = useAggregatedBalances(
     commerce?.commerce_id || null
   )
-
-  // Total balance in USD-equivalent (sum all non-zero balances)
-  const totalBalance = balances.reduce((sum, b) => sum + parseFloat(b.balance), 0)
 
   useEffect(() => {
     const fetchPayouts = async () => {
@@ -121,19 +118,12 @@ export default function PayoutsPage() {
         payoutCount={authenticated ? payoutCount : null}
       />
 
-      {/* Multi-chain balances */}
-      {authenticated && balances.length > 0 && (
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {balances
-            .filter((b) => parseFloat(b.balance) > 0)
-            .map((b) => (
-              <div key={`${b.network}-${b.symbol}`} className="rounded-lg border p-3">
-                <div className="text-sm text-muted-foreground capitalize">{b.network}</div>
-                <div className="text-lg font-semibold">
-                  {parseFloat(b.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.symbol}
-                </div>
-              </div>
-            ))}
+      {/* Token balances */}
+      {authenticated && aggregated.length > 0 && (
+        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {aggregated.map((token) => (
+            <TokenBalanceCard key={token.symbol} token={token} />
+          ))}
         </div>
       )}
 
