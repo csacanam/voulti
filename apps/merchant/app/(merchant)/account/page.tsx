@@ -117,15 +117,9 @@ export default function AccountPage() {
           {/* Currency Settings */}
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">{t.account.currencySettings}</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">{t.account.currency}</label>
-                <p className="text-foreground mt-1">{commerce.currency}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">{t.account.fee}</label>
-                <p className="text-foreground mt-1">{commerce.spread ? `${commerce.spread}%` : "0%"}</p>
-              </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">{t.account.currency}</label>
+              <p className="text-foreground mt-1">{commerce.currency}</p>
             </div>
           </div>
 
