@@ -27,6 +27,45 @@ function formatTimeRemaining(expires: string): string {
   return `${days}d left`
 }
 
+// ─── Commerce Banner ───
+function CommerceBanner({ commerce }: { commerce: any }) {
+  const { toast } = useToast()
+  const [copied, setCopied] = useState(false)
+  const [showQr, setShowQr] = useState(false)
+  const checkoutUrl = `${CHECKOUT_BASE_URL}/pay/${commerce.commerce_id}`
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(checkoutUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    toast({ title: "URL copied" })
+  }
+
+  return (
+    <>
+      <Card className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground mb-1">Your Voulti checkout</p>
+            <p className="text-sm font-mono truncate">{checkoutUrl}</p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5">
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowQr(true)} className="gap-1.5">
+              <QrCode className="w-3.5 h-3.5" />
+              QR
+            </Button>
+          </div>
+        </div>
+      </Card>
+      <QrModal open={showQr} onOpenChange={setShowQr} url={checkoutUrl} />
+    </>
+  )
+}
+
 // ─── Payment Links Tab ───
 function PaymentLinksTab() {
   const { commerce } = useCommerce()
@@ -128,7 +167,7 @@ function PaymentLinksTab() {
                       <td className="p-3 text-sm text-muted-foreground">
                         {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                       </td>
-                      <td className="p-3 text-sm text-muted-foreground">{link.expires ? formatTimeRemaining(link.expires) : "—"}</td>
+                      <td className="p-3 text-sm text-muted-foreground">{link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires) : "—"}</td>
                       <td className="p-3">
                         <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
                           <Copy className="w-4 h-4" /> Copy
@@ -299,6 +338,7 @@ function DevelopersTab() {
 // ─── Main Page ───
 export default function ReceivePage() {
   const { authenticated } = usePrivy()
+  const { commerce } = useCommerce()
 
   if (!authenticated) {
     return (
@@ -318,11 +358,12 @@ export default function ReceivePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Receive Payments</h1>
+        <p className="text-muted-foreground">Create payment links, share your checkout page, or integrate via API.</p>
       </div>
 
       <Tabs defaultValue="links" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="links" className="gap-2"><LinkIcon className="w-4 h-4" /> Invoices</TabsTrigger>
+          <TabsTrigger value="links" className="gap-2"><LinkIcon className="w-4 h-4" /> Payment Links</TabsTrigger>
           <TabsTrigger value="commerce" className="gap-2"><QrCode className="w-4 h-4" /> Commerce Link</TabsTrigger>
           <TabsTrigger value="developers" className="gap-2"><Code className="w-4 h-4" /> Developers</TabsTrigger>
         </TabsList>

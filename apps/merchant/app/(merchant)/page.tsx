@@ -91,7 +91,7 @@ function Dashboard() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/receive/links">
+        <Link href="/receive">
           <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer h-full">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
@@ -150,7 +150,7 @@ function Dashboard() {
                 <p className="font-medium">No balances yet</p>
                 <p className="text-sm">Create an invoice and receive your first payment</p>
               </div>
-              <Link href="/receive/links">
+              <Link href="/receive">
                 <Button variant="outline" size="sm" className="gap-2 mt-2">
                   <QrCode className="w-4 h-4" />
                   Create Invoice

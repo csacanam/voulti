@@ -24,13 +24,13 @@ export function QuickActions() {
     {
       label: "New Payment Link",
       icon: LinkIcon,
-      onClick: () => router.push("/receive/links"),
+      onClick: () => router.push("/receive"),
       variant: "outline" as const,
     },
     {
       label: "Show QR",
       icon: QrCode,
-      onClick: () => router.push("/receive/commerce-link"),
+      onClick: () => router.push("/receive"),
       variant: "outline" as const,
     },
   ]
