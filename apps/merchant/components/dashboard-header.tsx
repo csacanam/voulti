@@ -39,25 +39,27 @@ export function DashboardHeader() {
               </Link>
             )}
 
-            <Button
-              onClick={authenticated ? logout : login}
-              size="lg"
-              variant={authenticated ? "outline" : "default"}
-              className="gap-2 cursor-pointer"
-              disabled={!ready}
-            >
-              {authenticated ? (
-                <>
-                  <LogOut className="w-5 h-5" />
-                  Logout
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  {ready ? "Login" : "Loading..."}
-                </>
-              )}
-            </Button>
+            {authenticated ? (
+              <Button
+                onClick={logout}
+                size="lg"
+                variant="outline"
+                className="gap-2 cursor-pointer"
+              >
+                <LogOut className="w-5 h-5" />
+                Logout
+              </Button>
+            ) : (
+              <Button
+                onClick={login}
+                size="lg"
+                className="gap-2 cursor-pointer"
+                disabled={!ready}
+              >
+                <Wallet className="w-5 h-5" />
+                {ready ? "Get Started" : "Loading..."}
+              </Button>
+            )}
           </div>
         </div>
         

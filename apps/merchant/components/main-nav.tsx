@@ -2,16 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Receipt, Activity, QrCode } from "lucide-react"
+import { LayoutDashboard, QrCode, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// TEMPORARY: Only Payouts menu visible for development
-// To restore all menus, see docs/TEMPORARY_CONFIG.md
 const navItems = [
-  // { href: "/", label: "Home", icon: Home }, // HIDDEN: Temporarily disabled
-  // { href: "/receive", label: "Receive", icon: QrCode }, // HIDDEN: Temporarily disabled
-  { href: "/payouts", label: "Payouts", icon: Receipt },
-  // { href: "/activity", label: "Activity", icon: Activity }, // HIDDEN: Temporarily disabled
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/receive", label: "Receive", icon: QrCode },
+  { href: "/payouts", label: "Send", icon: Send },
 ]
 
 export function MainNav() {
@@ -21,8 +18,8 @@ export function MainNav() {
     <nav className="flex items-center gap-1">
       {navItems.map((item) => {
         const Icon = item.icon
-        const isActive = pathname === item.href
-        
+        const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+
         return (
           <Link
             key={item.href}
@@ -42,5 +39,3 @@ export function MainNav() {
     </nav>
   )
 }
-
-
