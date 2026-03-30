@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { Copy, Link as LinkIcon, Lock } from "lucide-react"
@@ -110,10 +109,10 @@ export default function PaymentLinksPage() {
     )
   }
 
-  const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    active: { label: "Active", variant: "default" },
-    expired: { label: "Expired", variant: "secondary" },
-    disabled: { label: "Paid", variant: "outline" },
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    active: { label: "Pending", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+    expired: { label: "Expired", className: "bg-red-500/10 text-red-400 border-red-500/30" },
+    disabled: { label: "Paid", className: "bg-green-500/10 text-green-400 border-green-500/30" },
   }
 
   return (
@@ -186,7 +185,9 @@ export default function PaymentLinksPage() {
                           <div className="text-xs text-muted-foreground font-mono">{link.id.slice(0, 8)}...</div>
                         </td>
                         <td className="p-4">
-                          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>
+                            {statusInfo.label}
+                          </span>
                         </td>
                         <td className="p-4 text-sm text-muted-foreground">
                           {new Date(link.created).toLocaleDateString("en-US", {

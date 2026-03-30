@@ -257,13 +257,30 @@ export async function commercesRoutes(app: FastifyInstance) {
         return res.status(500).send({ error: 'Failed to create commerce' });
       }
 
-      // Whitelist on all chains (non-blocking — commerce can start receiving once confirmed)
+      // Enable all available tokens for this commerce
+      try {
+        const { data: allTokenAddresses } = await supabase
+          .from('tokens_addresses')
+          .select('id')
+          .eq('is_active', true);
+
+        if (allTokenAddresses && allTokenAddresses.length > 0) {
+          const tokenRows = allTokenAddresses.map((ta: any) => ({
+            commerce_id: commerce.id,
+            token_id: ta.id,
+          }));
+          await supabase.from('tokens_enabled').insert(tokenRows);
+        }
+      } catch (err: any) {
+        console.error('Token enable error:', err.message);
+      }
+
+      // Whitelist on all chains (non-blocking)
       let chainResults: { network: string; success: boolean; error?: string }[] = [];
       try {
         chainResults = await whitelistCommerceOnChain(wallet.toLowerCase());
       } catch (err: any) {
         console.error('On-chain whitelist error:', err.message);
-        // Commerce is created in DB, whitelist can be retried
       }
 
       return res.status(201).send({
