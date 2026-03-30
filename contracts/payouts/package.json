@@ -1,0 +1,12 @@
+{
+  "name": "@voulti/contracts-payouts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voulti PayoutVault smart contracts (Foundry)",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "compile": "forge build",
+    "clean": "forge clean"
+  }
+}

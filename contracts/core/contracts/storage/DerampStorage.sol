@@ -1,0 +1,371 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/**
+ * @title DerampStorage
+ * @notice Centralized storage contract for the Deramp modular system.
+ *
+ * @dev Responsibilities:
+ * - Stores all persistent data for the system (balances, invoices, roles, whitelists, etc.).
+ * - Provides CRUD functions for managers to read/write data.
+ * - Should contain NO business logic—only data access and storage.
+ *
+ * Upgradeability:
+ * - Storage layout must remain consistent across upgrades.
+ * - Only add new variables at the end to avoid storage collisions.
+ * - All data access should be via manager contracts, not directly by users.
+ *
+ * Security:
+ * - Only authorized modules (managers) can modify storage.
+ * - The owner can add/remove modules for upgradeability.
+ * - No direct user interaction; all access is mediated by managers.
+ *
+ * Recommendations:
+ * - Keep storage contracts as simple as possible.
+ * - Never add business logic or complex calculations here.
+ * - Document all new storage variables and their intended use.
+ */
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "../interfaces/IDerampStorage.sol";
+
+contract DerampStorage is Ownable, IDerampStorage {
+    // =========================
+    // === ACCESS MANAGER ===
+    // =========================
+    // Whitelist storage
+    mapping(address => bool) public whitelistedTokens;
+    mapping(address => bool) public whitelistedCommerces;
+    address[] public whitelistedTokensList;
+    // Per-commerce token whitelist
+    mapping(address => mapping(address => bool)) public commerceTokenWhitelist;
+
+    // =========================
+    // === INVOICE MANAGER ===
+    // =========================
+    // Invoice storage
+    mapping(bytes32 => Invoice) public invoices;
+    mapping(bytes32 => PaymentOption[]) public invoicePaymentOptions;
+    mapping(address => bytes32[]) public commerceInvoices;
+
+    // =========================
+    // === PAYMENT PROCESSOR ===
+    // =========================
+    // Balance storage
+    mapping(address => mapping(address => uint256)) public balances; // commerce => token => amount
+
+    // =========================
+    // === WITHDRAWAL MANAGER ===
+    // =========================
+    // Withdrawal tracking
+    WithdrawalRecord[] public withdrawalHistory;
+    mapping(address => uint256[]) public commerceWithdrawals;
+
+    // =========================
+    // === TREASURY MANAGER ===
+    // =========================
+    // Fee system
+    uint256 public defaultFeePercent = 100; // 1% in basis points
+    mapping(address => uint256) public commerceFees;
+    mapping(address => uint256) public serviceFeeBalances;
+    // Treasury system
+    mapping(address => TreasuryWallet) public treasuryWallets;
+    address[] public treasuryWalletsList;
+    uint256[] public serviceFeeWithdrawals;
+
+    // =========================
+    // === INFRASTRUCTURE / MODULES / OWNER ===
+    // =========================
+    // Module addresses
+    mapping(string => address) public modules;
+    mapping(address => bool) public authorizedModules;
+
+    constructor() Ownable(msg.sender) {}
+
+    // === ACCESS MANAGER FUNCTIONS ===
+    function setWhitelistedToken(
+        address token,
+        bool whitelisted
+    ) external onlyAuthorizedModule {
+        bool wasWhitelisted = whitelistedTokens[token];
+        whitelistedTokens[token] = whitelisted;
+
+        if (whitelisted && !wasWhitelisted) {
+            whitelistedTokensList.push(token);
+        } else if (!whitelisted && wasWhitelisted) {
+            _removeTokenFromList(token);
+        }
+    }
+
+    function _removeTokenFromList(address token) internal {
+        for (uint256 i = 0; i < whitelistedTokensList.length; i++) {
+            if (whitelistedTokensList[i] == token) {
+                whitelistedTokensList[i] = whitelistedTokensList[
+                    whitelistedTokensList.length - 1
+                ];
+                whitelistedTokensList.pop();
+                break;
+            }
+        }
+    }
+
+    function getWhitelistedTokens() external view returns (address[] memory) {
+        return whitelistedTokensList;
+    }
+
+    function setWhitelistedCommerce(
+        address commerce,
+        bool whitelisted
+    ) external onlyAuthorizedModule {
+        whitelistedCommerces[commerce] = whitelisted;
+    }
+
+    function setCommerceTokenWhitelisted(
+        address commerce,
+        address token,
+        bool whitelisted
+    ) external onlyAuthorizedModule {
+        commerceTokenWhitelist[commerce][token] = whitelisted;
+    }
+
+    function isTokenWhitelistedForCommerce(
+        address commerce,
+        address token
+    ) external view returns (bool) {
+        return commerceTokenWhitelist[commerce][token];
+    }
+
+    // === INVOICE MANAGER FUNCTIONS ===
+    function setInvoice(
+        bytes32 id,
+        Invoice calldata invoice
+    ) external onlyAuthorizedModule {
+        invoices[id] = invoice;
+    }
+
+    function addPaymentOption(
+        bytes32 invoiceId,
+        PaymentOption calldata option
+    ) external onlyAuthorizedModule {
+        invoicePaymentOptions[invoiceId].push(option);
+    }
+
+    function clearPaymentOptions(
+        bytes32 invoiceId
+    ) external onlyAuthorizedModule {
+        delete invoicePaymentOptions[invoiceId];
+    }
+
+    function addCommerceInvoice(
+        address commerce,
+        bytes32 invoiceId
+    ) external onlyAuthorizedModule {
+        commerceInvoices[commerce].push(invoiceId);
+    }
+
+    function getInvoice(bytes32 id) external view returns (Invoice memory) {
+        return invoices[id];
+    }
+
+    function getInvoicePaymentOptions(
+        bytes32 id
+    ) external view returns (PaymentOption[] memory) {
+        return invoicePaymentOptions[id];
+    }
+
+    function getCommerceInvoices(
+        address commerce
+    ) external view returns (bytes32[] memory) {
+        return commerceInvoices[commerce];
+    }
+
+    // === PAYMENT PROCESSOR FUNCTIONS ===
+    function addToBalance(
+        address commerce,
+        address token,
+        uint256 amount
+    ) external onlyAuthorizedModule {
+        balances[commerce][token] += amount;
+    }
+
+    function subtractFromBalance(
+        address commerce,
+        address token,
+        uint256 amount
+    ) external onlyAuthorizedModule {
+        require(
+            balances[commerce][token] >= amount,
+            "Insufficient commerce balance"
+        );
+        balances[commerce][token] -= amount;
+    }
+
+    function getCommerceBalance(
+        address commerce,
+        address token
+    ) external view returns (uint256) {
+        return balances[commerce][token];
+    }
+
+    // === WITHDRAWAL MANAGER FUNCTIONS ===
+    function addWithdrawalRecord(
+        WithdrawalRecord calldata record
+    ) external onlyAuthorizedModule returns (uint256) {
+        uint256 index = withdrawalHistory.length;
+        withdrawalHistory.push(record);
+        return index;
+    }
+
+    function addCommerceWithdrawal(
+        address commerce,
+        uint256 index
+    ) external onlyAuthorizedModule {
+        commerceWithdrawals[commerce].push(index);
+    }
+
+    function addServiceFeeWithdrawal(
+        uint256 index
+    ) external onlyAuthorizedModule {
+        serviceFeeWithdrawals.push(index);
+    }
+
+    function getWithdrawalHistory()
+        external
+        view
+        returns (WithdrawalRecord[] memory)
+    {
+        return withdrawalHistory;
+    }
+
+    function getCommerceWithdrawals(
+        address commerce
+    ) external view returns (uint256[] memory) {
+        return commerceWithdrawals[commerce];
+    }
+
+    // === TREASURY MANAGER FUNCTIONS ===
+
+    function getServiceFeeWithdrawals()
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return serviceFeeWithdrawals;
+    }
+
+    function setTreasuryWallet(
+        address wallet,
+        TreasuryWallet calldata treasuryWallet
+    ) external onlyAuthorizedModule {
+        treasuryWallets[wallet] = treasuryWallet;
+    }
+
+    function addTreasuryWalletToList(
+        address wallet
+    ) external onlyAuthorizedModule {
+        treasuryWalletsList.push(wallet);
+    }
+
+    function removeTreasuryWalletFromList(
+        address wallet
+    ) external onlyAuthorizedModule {
+        for (uint256 i = 0; i < treasuryWalletsList.length; i++) {
+            if (treasuryWalletsList[i] == wallet) {
+                treasuryWalletsList[i] = treasuryWalletsList[
+                    treasuryWalletsList.length - 1
+                ];
+                treasuryWalletsList.pop();
+                break;
+            }
+        }
+        delete treasuryWallets[wallet];
+    }
+
+    function setTreasuryWalletStatus(
+        address wallet,
+        bool isActive
+    ) external onlyAuthorizedModule {
+        treasuryWallets[wallet].isActive = isActive;
+    }
+
+    function updateTreasuryWallet(
+        address wallet,
+        TreasuryWallet calldata updatedWallet
+    ) external onlyAuthorizedModule {
+        treasuryWallets[wallet] = updatedWallet;
+    }
+
+    function getTreasuryWallet(
+        address wallet
+    ) external view returns (TreasuryWallet memory) {
+        return treasuryWallets[wallet];
+    }
+
+    function isTreasuryWalletActive(
+        address wallet
+    ) external view returns (bool) {
+        TreasuryWallet memory treasuryWallet = treasuryWallets[wallet];
+        return treasuryWallet.wallet != address(0) && treasuryWallet.isActive;
+    }
+
+    function getTreasuryWalletsList() external view returns (address[] memory) {
+        return treasuryWalletsList;
+    }
+
+    // === SERVICE FEE FUNCTIONS (usadas por TreasuryManager) ===
+    function addToServiceFeeBalance(
+        address token,
+        uint256 amount
+    ) external onlyAuthorizedModule {
+        serviceFeeBalances[token] += amount;
+    }
+
+    function subtractServiceFeeBalance(
+        address token,
+        uint256 amount
+    ) external onlyAuthorizedModule {
+        require(
+            serviceFeeBalances[token] >= amount,
+            "Insufficient service fee balance"
+        );
+        serviceFeeBalances[token] -= amount;
+    }
+
+    function getServiceFeeBalance(
+        address token
+    ) external view returns (uint256) {
+        return serviceFeeBalances[token];
+    }
+
+    function setDefaultFeePercent(
+        uint256 feePercent
+    ) external onlyAuthorizedModule {
+        defaultFeePercent = feePercent;
+    }
+
+    function setCommerceFee(
+        address commerce,
+        uint256 feePercent
+    ) external onlyAuthorizedModule {
+        commerceFees[commerce] = feePercent;
+    }
+
+    // === INFRASTRUCTURE / MODULES / OWNER FUNCTIONS ===
+    function setModule(
+        string calldata name,
+        address moduleAddress
+    ) external onlyOwner {
+        modules[name] = moduleAddress;
+        authorizedModules[moduleAddress] = true;
+    }
+
+    function removeModule(string calldata name) external onlyOwner {
+        address moduleAddress = modules[name];
+        modules[name] = address(0);
+        authorizedModules[moduleAddress] = false;
+    }
+
+    modifier onlyAuthorizedModule() {
+        require(authorizedModules[msg.sender], "Unauthorized module [STORAGE]");
+        _;
+    }
+}

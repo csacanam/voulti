@@ -1,0 +1,27 @@
+{
+  "name": "voulti",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voulti - Crypto payments platform monorepo",
+  "scripts": {
+    "dev:checkout": "pnpm --filter @voulti/checkout dev",
+    "dev:merchant": "pnpm --filter @voulti/merchant dev",
+    "dev:api": "pnpm --filter @voulti/api dev",
+    "build": "turbo run build",
+    "build:checkout": "pnpm --filter @voulti/checkout build",
+    "build:merchant": "pnpm --filter @voulti/merchant build",
+    "build:api": "pnpm --filter @voulti/api build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "compile:contracts": "turbo run compile --filter='./contracts/*'",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=18"
+  }
+}

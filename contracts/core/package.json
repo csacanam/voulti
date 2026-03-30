@@ -1,0 +1,31 @@
+{
+  "name": "@voulti/contracts-core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "test:unit": "npx hardhat test test/unit/",
+    "test:integration": "npx hardhat test test/integration/",
+    "test:e2e": "npx hardhat test test/e2e/",
+    "test:coverage": "npx hardhat coverage",
+    "test:gas": "REPORT_GAS=true npx hardhat test",
+    "compile": "npx hardhat compile",
+    "clean": "npx hardhat clean",
+    "deploy": "npx hardhat run scripts/deploy.ts",
+    "deploy:testnet": "npx hardhat run scripts/deploy.ts --network celo"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "@types/node": "^24.0.15",
+    "hardhat": "^2.25.0",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.3.0",
+    "dotenv": "^16.5.0"
+  }
+}

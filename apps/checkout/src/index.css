@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure body background matches app theme */
+body {
+  background-color: #111827; /* bg-gray-900 */
+  margin: 0;
+  padding: 0;
+}
