@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Loader2, Copy, Check, ExternalLink } from "lucide-react"
 import type { PaymentLink } from "@/lib/types"
 import { useCommerce } from "@/components/providers/commerce-provider"
+import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/hooks/use-toast"
 import { API_CONFIG } from "@/services/config"
 
@@ -23,6 +24,7 @@ interface CreatePaymentLinkDialogProps {
 export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: CreatePaymentLinkDialogProps) {
   const { toast } = useToast()
   const { commerce } = useCommerce()
+  const { t } = useLanguage()
   const [amount, setAmount] = useState("")
   const currency = commerce?.currency || "USD"
   const [enableExpiration, setEnableExpiration] = useState(false)
@@ -36,19 +38,19 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
     if (!commerce) return
 
     if (!amount || Number.parseFloat(amount) <= 0) {
-      toast({ title: "Invalid Amount", description: "Please enter a positive amount", variant: "destructive" })
+      toast({ title: t.createLink.invalidAmount, description: t.createLink.invalidAmountDesc, variant: "destructive" })
       return
     }
 
     if (enableExpiration && (!expirationDate || !expirationTime)) {
-      toast({ title: "Invalid Expiration", description: "Please provide both date and time", variant: "destructive" })
+      toast({ title: t.createLink.invalidExpiration, description: t.createLink.invalidExpirationDesc, variant: "destructive" })
       return
     }
 
     if (enableExpiration) {
       const expDt = new Date(`${expirationDate}T${expirationTime}`)
       if (expDt <= new Date()) {
-        toast({ title: "Invalid Expiration", description: "Expiration must be in the future", variant: "destructive" })
+        toast({ title: t.createLink.invalidExpiration, description: t.createLink.expirationFuture, variant: "destructive" })
         return
       }
     }
@@ -95,7 +97,7 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
 
       onCreateLink(newLink)
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" })
+      toast({ title: t.createLink.error, description: err.message, variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -122,16 +124,16 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{createdLink ? "Payment Link Created" : "New Payment Link"}</DialogTitle>
+          <DialogTitle>{createdLink ? t.createLink.createdTitle : t.createLink.title}</DialogTitle>
         </DialogHeader>
 
         {createdLink ? (
           /* Success state — show link */
           <div className="space-y-4 py-4">
             <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-3">Invoice created successfully</p>
+              <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-3">{t.createLink.invoiceCreated}</p>
               <div className="bg-background border rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Checkout URL</p>
+                <p className="text-xs text-muted-foreground mb-1">{t.createLink.checkoutUrl}</p>
                 <p className="text-sm font-mono break-all">{createdLink.url}</p>
               </div>
             </div>
@@ -139,18 +141,18 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
             <div className="flex gap-2">
               <Button onClick={handleCopy} className="flex-1 gap-2">
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? "Copied!" : "Copy URL"}
+                {copied ? t.createLink.copied : t.createLink.copyUrl}
               </Button>
               <Button variant="outline" asChild>
                 <a href={createdLink.url} target="_blank" rel="noopener noreferrer" className="gap-2">
                   <ExternalLink className="w-4 h-4" />
-                  Open
+                  {t.createLink.open}
                 </a>
               </Button>
             </div>
 
             <Button variant="outline" onClick={handleClose} className="w-full">
-              Done
+              {t.createLink.done}
             </Button>
           </div>
         ) : (
@@ -158,13 +160,13 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
           <>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Currency</Label>
+                <Label>{t.createLink.currency}</Label>
                 <div className="px-3 py-2 bg-muted rounded-md text-sm font-medium">{currency}</div>
-                <p className="text-xs text-muted-foreground">Based on your account settings</p>
+                <p className="text-xs text-muted-foreground">{t.createLink.currencyNote}</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">{t.createLink.amount}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -179,22 +181,22 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="expiration">Custom expiration</Label>
+                  <Label htmlFor="expiration">{t.createLink.customExpiration}</Label>
                   <Switch id="expiration" checked={enableExpiration} onCheckedChange={setEnableExpiration} disabled={loading} />
                 </div>
 
                 {!enableExpiration && (
-                  <p className="text-xs text-muted-foreground">Default: expires in 1 hour</p>
+                  <p className="text-xs text-muted-foreground">{t.createLink.defaultExpiration}</p>
                 )}
 
                 {enableExpiration && (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="exp-date">Date</Label>
+                      <Label htmlFor="exp-date">{t.createLink.date}</Label>
                       <Input id="exp-date" type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} disabled={loading} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="exp-time">Time</Label>
+                      <Label htmlFor="exp-time">{t.createLink.time}</Label>
                       <Input id="exp-time" type="time" value={expirationTime} onChange={(e) => setExpirationTime(e.target.value)} disabled={loading} />
                     </div>
                   </div>
@@ -204,11 +206,11 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
 
             <DialogFooter>
               <Button variant="outline" onClick={handleClose} disabled={loading}>
-                Cancel
+                {t.createLink.cancel}
               </Button>
               <Button onClick={handleCreate} disabled={loading} className="gap-2">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? "Creating..." : "Create Invoice"}
+                {loading ? t.createLink.creating : t.createLink.createInvoice}
               </Button>
             </DialogFooter>
           </>

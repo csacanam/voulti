@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2, Send, ArrowLeft, CheckCircle2 } from "lucide-react"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useAggregatedBalances } from "@/hooks/use-aggregated-balances"
+import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/hooks/use-toast"
 import { useWallets } from "@privy-io/react-auth"
 import { ethers } from "ethers"
@@ -32,6 +33,7 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
   const { toast } = useToast()
   const { wallets } = useWallets()
   const { aggregated } = useAggregatedBalances(commerce?.commerce_id || null)
+  const { t } = useLanguage()
 
   const [selectedSymbol, setSelectedSymbol] = useState("")
   const [amount, setAmount] = useState("")
@@ -41,11 +43,11 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
   const [step, setStep] = useState<"form" | "confirm">("form")
   const [resolvedNetwork, setResolvedNetwork] = useState<string | null>(null)
 
-  const selectedToken = aggregated.find((t) => t.symbol === selectedSymbol)
+  const selectedToken = aggregated.find((tk) => tk.symbol === selectedSymbol)
 
   // Auto-select best network for the amount
   const resolveNetwork = (symbol: string, amountNum: number): { network: string; balance: number } | null => {
-    const token = aggregated.find((t) => t.symbol === symbol)
+    const token = aggregated.find((tk) => tk.symbol === symbol)
     if (!token) return null
 
     // Sort by priority, then find first with enough balance
@@ -91,17 +93,17 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
     const resolved = resolveNetwork(selectedSymbol, amountNum)
     if (!resolved) {
       // Show fragmentation message
-      const token = aggregated.find((t) => t.symbol === selectedSymbol)
+      const token = aggregated.find((tk) => tk.symbol === selectedSymbol)
       if (token && token.networkCount > 1) {
         const breakdown = token.networks
           .filter((n) => n.balanceNum > 0)
           .map((n) => `${n.network}: ${n.balanceNum.toLocaleString(undefined, { maximumFractionDigits: 4 })}`)
           .join(", ")
         setError(
-          `Your ${selectedSymbol} is spread across networks (${breakdown}). No single network has ${amount} ${selectedSymbol}. Send a smaller amount or consolidate first.`
+          t.send.errorFragmented.replaceAll("{symbol}", selectedSymbol).replace("{breakdown}", breakdown).replace("{amount}", amount)
         )
       } else {
-        setError("No network available with sufficient balance and contract deployed")
+        setError(t.send.errorNoNetwork)
       }
       return
     }
@@ -157,8 +159,8 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
       const receipt = await tx.wait()
 
       toast({
-        title: "Transfer sent!",
-        description: `${amount} ${selectedSymbol} sent via ${resolvedNetwork}`,
+        title: t.send.transferSent,
+        description: t.send.transferSentDesc.replace("{amount}", amount).replace("{symbol}", selectedSymbol).replace("{network}", resolvedNetwork!),
       })
 
       const newPayout: Payout = {
@@ -179,17 +181,17 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
     } catch (err: any) {
       const msg = err.message || ""
       if (err.code === "ACTION_REJECTED" || msg.includes("rejected")) {
-        setError("Transaction was cancelled.")
+        setError(t.send.errorRejected)
       } else if (msg.includes("insufficient funds")) {
         const networkName = NETWORKS[resolvedNetwork]?.name || resolvedNetwork
-        setError(`Not enough gas on ${networkName}. You need native tokens to pay for the transaction fee.`)
+        setError(t.send.errorGas.replace("{network}", networkName))
       } else if (msg.includes("Unsupported") || msg.includes("wallet_addEthereumChain")) {
         const networkName = NETWORKS[resolvedNetwork]?.name || resolvedNetwork
-        setError(`${networkName} is not available in your wallet. This network may only work with an external wallet like MetaMask.`)
+        setError(t.send.errorUnsupported.replace("{network}", networkName))
       } else if (msg.includes("not whitelisted") || msg.includes("not registered")) {
-        setError("Your account is not yet activated on this network. Please contact support.")
+        setError(t.send.errorNotWhitelisted)
       } else {
-        setError("Something went wrong. Please try again or contact support.")
+        setError(t.send.errorGeneric)
       }
     } finally {
       setLoading(false)
@@ -212,14 +214,14 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {step === "confirm" ? "Confirm Transfer" : "Send Tokens"}
+            {step === "confirm" ? t.send.confirmTitle : t.send.title}
           </DialogTitle>
         </DialogHeader>
 
         {aggregated.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
-            <p>No balances available to send.</p>
-            <p className="text-sm mt-2">Receive payments first to build up your balance.</p>
+            <p>{t.send.noBalances}</p>
+            <p className="text-sm mt-2">{t.send.noBalancesDesc}</p>
           </div>
         ) : step === "form" ? (
           <div className="space-y-4">
@@ -231,15 +233,15 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
             )}
 
             <div className="space-y-2">
-              <Label>Token</Label>
+              <Label>{t.send.token}</Label>
               <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select token" />
+                  <SelectValue placeholder={t.send.selectToken} />
                 </SelectTrigger>
                 <SelectContent>
-                  {aggregated.map((t) => (
-                    <SelectItem key={t.symbol} value={t.symbol}>
-                      {t.symbol} — {t.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} available
+                  {aggregated.map((tk) => (
+                    <SelectItem key={tk.symbol} value={tk.symbol}>
+                      {tk.symbol} — {tk.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {t.send.available}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -247,7 +249,7 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
             </div>
 
             <div className="space-y-2">
-              <Label>Amount</Label>
+              <Label>{t.send.amount}</Label>
               <Input
                 type="number"
                 step="any"
@@ -257,20 +259,20 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
               />
               {selectedToken && (
                 <p className="text-xs text-muted-foreground">
-                  Available: {selectedToken.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedSymbol}
-                  {selectedToken.networkCount > 1 && ` across ${selectedToken.networkCount} networks`}
+                  {t.send.available}: {selectedToken.totalBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedSymbol}
+                  {selectedToken.networkCount > 1 && ` ${t.send.acrossNetworks.replace("{count}", String(selectedToken.networkCount))}`}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label>Recipient Address</Label>
+              <Label>{t.send.recipientAddress}</Label>
               <Input placeholder="0x..." value={recipient} onChange={(e) => setRecipient(e.target.value)} />
             </div>
 
             <Button onClick={handleContinue} className="w-full gap-2" size="lg">
               <Send className="h-4 w-4" />
-              Continue
+              {t.send.continue}
             </Button>
           </div>
         ) : (
@@ -285,33 +287,33 @@ export function CreatePayoutDialog({ open, onOpenChange, onCreatePayout }: Creat
 
             <div className="bg-muted rounded-lg p-4 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Sending</span>
+                <span className="text-muted-foreground">{t.send.sending}</span>
                 <span className="font-semibold">{amount} {selectedSymbol}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Network</span>
+                <span className="text-muted-foreground">{t.send.network}</span>
                 <span className="font-medium capitalize">{resolvedNetwork}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">To</span>
+                <span className="text-muted-foreground">{t.send.to}</span>
                 <span className="font-mono text-xs">{recipient.slice(0, 10)}...{recipient.slice(-8)}</span>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              Network auto-selected for lowest fees. This will require a wallet signature.
+              {t.send.autoNetwork}
             </p>
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep("form")} className="flex-1 gap-2" disabled={loading}>
                 <ArrowLeft className="h-4 w-4" />
-                Back
+                {t.send.back}
               </Button>
               <Button onClick={handleSend} className="flex-1 gap-2" disabled={loading}>
                 {loading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Sending...</>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> {t.send.sendingProgress}</>
                 ) : (
-                  <><CheckCircle2 className="h-4 w-4" /> Confirm</>
+                  <><CheckCircle2 className="h-4 w-4" /> {t.send.confirm}</>
                 )}
               </Button>
             </div>

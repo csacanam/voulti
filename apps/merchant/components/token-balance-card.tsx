@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { ChevronDown, ChevronUp } from "lucide-react"
+import { useLanguage } from "@/components/providers/language-provider"
 import type { AggregatedBalance } from "@/hooks/use-aggregated-balances"
 
 interface TokenBalanceCardProps {
@@ -11,6 +12,7 @@ interface TokenBalanceCardProps {
 
 export function TokenBalanceCard({ token }: TokenBalanceCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const { t } = useLanguage()
 
   const formattedTotal = token.totalBalance.toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -29,7 +31,7 @@ export function TokenBalanceCard({ token }: TokenBalanceCardProps) {
           <p className="text-xs text-muted-foreground capitalize">
             {token.networkCount === 1
               ? token.networks[0].network
-              : `${token.networkCount} networks`}
+              : `${token.networkCount} ${t.dashboard.networks}`}
           </p>
         </div>
         {token.networkCount > 1 && (

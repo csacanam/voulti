@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Wallet, LogIn, LogOut, User, Building2 } from "lucide-react"
 import { usePrivy } from "@privy-io/react-auth"
 import { useCommerce } from "@/components/providers/commerce-provider"
+import { useLanguage } from "@/components/providers/language-provider"
+import { LanguageSelector } from "@/components/language-selector"
 import { MainNav } from "@/components/main-nav"
 
 export function DashboardHeader() {
   const { ready, authenticated, login, logout, user } = usePrivy()
   const { commerce } = useCommerce()
+  const { t } = useLanguage()
 
   return (
     <header className="border-b border-border bg-card sticky top-0 z-50">
@@ -18,7 +21,7 @@ export function DashboardHeader() {
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-xl font-semibold text-foreground">Voulti</h1>
-              <p className="text-sm text-muted-foreground">Your Business, Unchained.</p>
+              <p className="text-sm text-muted-foreground">{t.header.tagline}</p>
             </div>
           </div>
 
@@ -30,11 +33,13 @@ export function DashboardHeader() {
               </div>
             )}
 
+            <LanguageSelector />
+
             {authenticated && (
               <Link href="/account">
                 <Button variant="outline" size="lg" className="gap-2 cursor-pointer">
                   <User className="w-5 h-5" />
-                  Account
+                  {t.header.account}
                 </Button>
               </Link>
             )}
@@ -47,7 +52,7 @@ export function DashboardHeader() {
                 className="gap-2 cursor-pointer"
               >
                 <LogOut className="w-5 h-5" />
-                Logout
+                {t.header.logout}
               </Button>
             ) : (
               <Button
@@ -57,7 +62,7 @@ export function DashboardHeader() {
                 disabled={!ready}
               >
                 <Wallet className="w-5 h-5" />
-                {ready ? "Get Started" : "Loading..."}
+                {ready ? t.header.getStarted : t.header.loading}
               </Button>
             )}
           </div>

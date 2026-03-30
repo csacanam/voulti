@@ -10,21 +10,22 @@ import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { QrModal } from "@/components/qr-modal"
 import { useCommerce } from "@/components/providers/commerce-provider"
+import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/hooks/use-toast"
 import { API_CONFIG } from "@/services/config"
 import type { PaymentLink } from "@/lib/types"
 
 const CHECKOUT_BASE_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || "http://localhost:5175"
 
-function formatTimeRemaining(expires: string): string {
+function formatTimeRemaining(expires: string, t: any): string {
   const diff = new Date(expires).getTime() - Date.now()
-  if (diff <= 0) return "Expired"
+  if (diff <= 0) return t.time.expired
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m left`
+  if (mins < 60) return t.time.mLeft.replace("{m}", String(mins))
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h left`
+  if (hours < 24) return t.time.hLeft.replace("{h}", String(hours))
   const days = Math.floor(hours / 24)
-  return `${days}d left`
+  return t.time.dLeft.replace("{d}", String(days))
 }
 
 // ─── Commerce Banner ───
@@ -70,6 +71,7 @@ function CommerceBanner({ commerce }: { commerce: any }) {
 function PaymentLinksTab() {
   const { commerce } = useCommerce()
   const { toast } = useToast()
+  const { t } = useLanguage()
   const [links, setLinks] = useState<PaymentLink[]>([])
   const [loadingLinks, setLoadingLinks] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -110,13 +112,13 @@ function PaymentLinksTab() {
 
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url)
-    toast({ title: "URL copied" })
+    toast({ title: t.receive.urlCopied })
   }
 
   const statusConfig: Record<string, { label: string; className: string }> = {
-    active: { label: "Pending", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
-    expired: { label: "Expired", className: "bg-red-500/10 text-red-400 border-red-500/30" },
-    disabled: { label: "Paid", className: "bg-green-500/10 text-green-400 border-green-500/30" },
+    active: { label: t.status.pending, className: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+    expired: { label: t.status.expired, className: "bg-red-500/10 text-red-400 border-red-500/30" },
+    disabled: { label: t.status.paid, className: "bg-green-500/10 text-green-400 border-green-500/30" },
   }
 
   return (
@@ -125,7 +127,7 @@ function PaymentLinksTab() {
         <p className="text-sm text-muted-foreground">Create one-time payment links with a fixed amount</p>
         <Button onClick={() => setIsCreateDialogOpen(true)} size="sm" className="gap-2">
           <LinkIcon className="w-4 h-4" />
-          New
+          {t.receive.newLink}
         </Button>
       </div>
 
@@ -135,8 +137,8 @@ function PaymentLinksTab() {
         <Card className="p-8 text-center">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <LinkIcon className="w-8 h-8" />
-            <p className="text-sm">No invoices yet. Create your first one.</p>
-            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" size="sm">Create Invoice</Button>
+            <p className="text-sm">{t.receive.noInvoices}</p>
+            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" size="sm">{t.receive.createInvoice}</Button>
           </div>
         </Card>
       ) : (
@@ -145,10 +147,10 @@ function PaymentLinksTab() {
             <table className="w-full">
               <thead className="border-b border-border bg-muted/50">
                 <tr>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Amount</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Status</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Created</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">Expires</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.amount}</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.status}</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.created}</th>
+                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.expires}</th>
                   <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
                 </tr>
               </thead>
@@ -167,10 +169,10 @@ function PaymentLinksTab() {
                       <td className="p-3 text-sm text-muted-foreground">
                         {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                       </td>
-                      <td className="p-3 text-sm text-muted-foreground">{link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires) : "—"}</td>
+                      <td className="p-3 text-sm text-muted-foreground">{link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</td>
                       <td className="p-3">
                         <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
-                          <Copy className="w-4 h-4" /> Copy
+                          <Copy className="w-4 h-4" /> {t.receive.copyUrl}
                         </Button>
                       </td>
                     </tr>
@@ -191,6 +193,7 @@ function PaymentLinksTab() {
 function CommerceLinkTab() {
   const { commerce } = useCommerce()
   const { toast } = useToast()
+  const { t } = useLanguage()
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -200,37 +203,37 @@ function CommerceLinkTab() {
     navigator.clipboard.writeText(commerceUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-    toast({ title: "URL copied" })
+    toast({ title: t.receive.urlCopied })
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Your permanent checkout page. Customers enter the amount and pay.</p>
+      <p className="text-sm text-muted-foreground">{t.receive.commerceSubtitle}</p>
 
       <Card className="p-5">
-        <p className="text-xs text-muted-foreground mb-2">Your Checkout URL</p>
+        <p className="text-xs text-muted-foreground mb-2">{t.receive.checkoutUrl}</p>
         <div className="p-3 bg-muted rounded-lg font-mono text-sm break-all mb-4">{commerceUrl}</div>
         <div className="flex gap-2">
           <Button onClick={handleCopy} className="gap-2">
-            {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy URL</>}
+            {copied ? <><Check className="w-4 h-4" /> {t.createLink.copied}</> : <><Copy className="w-4 h-4" /> {t.receive.copyUrlBtn}</>}
           </Button>
           <Button onClick={() => setIsQrModalOpen(true)} variant="outline" className="gap-2">
-            <QrCode className="w-4 h-4" /> QR Code
+            <QrCode className="w-4 h-4" /> {t.receive.qrCode}
           </Button>
           <Button variant="outline" asChild>
             <a href={commerceUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
-              <ExternalLink className="w-4 h-4" /> Preview
+              <ExternalLink className="w-4 h-4" /> {t.receive.preview}
             </a>
           </Button>
         </div>
       </Card>
 
       <Card className="p-5 bg-muted/50">
-        <p className="text-sm font-medium text-foreground mb-2">How it works</p>
+        <p className="text-sm font-medium text-foreground mb-2">{t.receive.howItWorks}</p>
         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-          <li>Customer opens the link and enters the amount in <strong>{commerce?.currency || "your currency"}</strong></li>
-          <li>An invoice is created and they choose how to pay</li>
-          <li>Print the QR code for in-person payments</li>
+          <li>{t.receive.howStep1} <strong>{commerce?.currency || "your currency"}</strong></li>
+          <li>{t.receive.howStep2}</li>
+          <li>{t.receive.howStep3}</li>
         </ul>
       </Card>
 
@@ -242,6 +245,7 @@ function CommerceLinkTab() {
 // ─── Developers Tab ───
 function DevelopersTab() {
   const { commerce } = useCommerce()
+  const { t } = useLanguage()
   const [copied, setCopied] = useState<string | null>(null)
 
   const copy = (text: string, id: string) => {
@@ -284,13 +288,13 @@ function DevelopersTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Accept payments programmatically from your app or website</p>
+      <p className="text-sm text-muted-foreground">{t.receive.devSubtitle}</p>
 
       {/* Commerce ID */}
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-2">
           <Key className="w-4 h-4 text-primary" />
-          <p className="text-sm font-semibold">Your Commerce ID</p>
+          <p className="text-sm font-semibold">{t.receive.commerceId}</p>
         </div>
         <div className="flex items-center gap-2">
           <code className="flex-1 p-2 bg-muted rounded text-sm font-mono break-all">{cid}</code>
@@ -303,23 +307,23 @@ function DevelopersTab() {
       {/* Steps */}
       <Card className="p-5 space-y-4">
         <div>
-          <p className="text-sm font-semibold mb-1">1. Create an Invoice</p>
-          <p className="text-xs text-muted-foreground mb-2">POST with amount in {commerce?.currency || "your currency"}. Returns an invoice ID.</p>
+          <p className="text-sm font-semibold mb-1">{t.receive.step1Title}</p>
+          <p className="text-xs text-muted-foreground mb-2">{t.receive.step1Desc} {commerce?.currency || "your currency"}{t.receive.step1DescEnd}</p>
           <CB code={createCode} id="create" />
-          <p className="text-xs text-muted-foreground mt-2 mb-1">Response:</p>
+          <p className="text-xs text-muted-foreground mt-2 mb-1">{t.receive.response}</p>
           <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto font-mono text-green-500">{responseCode}</pre>
         </div>
 
         <div>
-          <p className="text-sm font-semibold mb-1">2. Redirect to Checkout</p>
-          <p className="text-xs text-muted-foreground mb-2">Customer chooses to pay via wallet or deposit address.</p>
+          <p className="text-sm font-semibold mb-1">{t.receive.step2Title}</p>
+          <p className="text-xs text-muted-foreground mb-2">{t.receive.step2Desc}</p>
           <CB code={`${CHECKOUT_BASE_URL}/checkout/{invoice_id}`} id="url" />
         </div>
 
         <div>
-          <p className="text-sm font-semibold mb-1">3. Check Payment Status</p>
+          <p className="text-sm font-semibold mb-1">{t.receive.step3Title}</p>
           <p className="text-xs text-muted-foreground mb-2">
-            Poll until status is <code className="bg-muted px-1 rounded text-xs">Paid</code> or <code className="bg-muted px-1 rounded text-xs">Expired</code>
+            {t.receive.step3Desc} <code className="bg-muted px-1 rounded text-xs">Paid</code> {t.receive.step3Or} <code className="bg-muted px-1 rounded text-xs">Expired</code>
           </p>
           <CB code={`curl ${apiBase}/invoices/{invoice_id}`} id="get" />
         </div>
@@ -327,9 +331,9 @@ function DevelopersTab() {
 
       {/* Other */}
       <Card className="p-5 space-y-3">
-        <p className="text-sm font-semibold">Other Endpoints</p>
-        <CB code={`curl ${apiBase}/invoices/by-commerce/${cid}`} id="list" label="List all invoices" />
-        <CB code={`curl ${apiBase}/commerces/${cid}/balances`} id="bal" label="Get balances (all networks)" />
+        <p className="text-sm font-semibold">{t.receive.otherEndpoints}</p>
+        <CB code={`curl ${apiBase}/invoices/by-commerce/${cid}`} id="list" label={t.receive.listInvoices} />
+        <CB code={`curl ${apiBase}/commerces/${cid}/balances`} id="bal" label={t.receive.getBalances} />
       </Card>
     </div>
   )
@@ -339,6 +343,7 @@ function DevelopersTab() {
 export default function ReceivePage() {
   const { authenticated } = usePrivy()
   const { commerce } = useCommerce()
+  const { t } = useLanguage()
 
   if (!authenticated) {
     return (
@@ -346,8 +351,8 @@ export default function ReceivePage() {
         <div className="flex flex-col items-center gap-4 text-muted-foreground">
           <Lock className="w-12 h-12" />
           <div>
-            <h3 className="text-lg font-semibold mb-2">Login Required</h3>
-            <p className="text-sm">Please login to manage payments</p>
+            <h3 className="text-lg font-semibold mb-2">{t.general.loginRequired}</h3>
+            <p className="text-sm">{t.general.loginDesc}</p>
           </div>
         </div>
       </Card>
@@ -357,15 +362,15 @@ export default function ReceivePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Receive Payments</h1>
-        <p className="text-muted-foreground">Create payment links, share your checkout page, or integrate via API.</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">{t.receive.title}</h1>
+        <p className="text-muted-foreground">{t.receive.subtitle}</p>
       </div>
 
       <Tabs defaultValue="links" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="links" className="gap-2"><LinkIcon className="w-4 h-4" /> Payment Links</TabsTrigger>
-          <TabsTrigger value="commerce" className="gap-2"><QrCode className="w-4 h-4" /> Commerce Link</TabsTrigger>
-          <TabsTrigger value="developers" className="gap-2"><Code className="w-4 h-4" /> Developers</TabsTrigger>
+          <TabsTrigger value="links" className="gap-2"><LinkIcon className="w-4 h-4" /> {t.receive.paymentLinks}</TabsTrigger>
+          <TabsTrigger value="commerce" className="gap-2"><QrCode className="w-4 h-4" /> {t.receive.commerceLink}</TabsTrigger>
+          <TabsTrigger value="developers" className="gap-2"><Code className="w-4 h-4" /> {t.receive.developers}</TabsTrigger>
         </TabsList>
         <TabsContent value="links" className="mt-4"><PaymentLinksTab /></TabsContent>
         <TabsContent value="commerce" className="mt-4"><CommerceLinkTab /></TabsContent>
