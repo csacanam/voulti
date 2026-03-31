@@ -33,7 +33,7 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
   // Custom error handler that shows modal for network congestion
   const handleError = (error: string) => {
     // Check if it's a network congestion error
-    if (error.includes('congested') || error.includes('timeout') || error.includes('deadline') || 
+    if (error.includes('congested') || error.includes('timeout') || error.includes('deadline') ||
         error.includes('could not coalesce') || error.includes('nonce')) {
       setCongestionMessage(error);
       setIsCongestionModalOpen(true);
@@ -71,9 +71,9 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
         disabled={isButtonDisabled || disabled}
         className={`
           w-full px-4 py-3 font-medium rounded-lg transition-colors flex items-center justify-center space-x-2
-          ${disabled || isButtonDisabled 
-            ? 'bg-gray-600 text-gray-400 cursor-not-allowed hover:bg-gray-600' 
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+          ${disabled || isButtonDisabled
+            ? 'bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200'
+            : 'bg-violet-600 hover:bg-violet-700 text-white'
           }
           ${className}
         `}
@@ -96,4 +96,4 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
       />
     </>
   );
-}; 
+};

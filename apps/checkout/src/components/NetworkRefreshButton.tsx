@@ -36,8 +36,8 @@ export const NetworkRefreshButton: React.FC<NetworkRefreshButtonProps> = ({
         className={`
           flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors
           ${isRefreshing 
-            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+            ? 'bg-gray-600 text-gray-500 cursor-not-allowed' 
+            : 'bg-violet-600 hover:bg-violet-700 text-gray-900'
           }
         `}
         title={t.network?.refreshNetwork || 'Refresh Network'}
@@ -47,7 +47,7 @@ export const NetworkRefreshButton: React.FC<NetworkRefreshButtonProps> = ({
       </button>
       
       {lastRefresh && (
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-gray-500">
           {t.network?.lastRefresh || 'Last refresh'}: {formatLastRefresh(lastRefresh)}
         </div>
       )}

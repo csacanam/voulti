@@ -15,31 +15,31 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return {
           icon: Clock,
           text: t.status.pending,
-          className: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+          className: 'bg-amber-50 text-amber-700 border-amber-200',
         };
       case 'Paid':
         return {
           icon: CheckCircle,
           text: t.status.paid,
-          className: 'bg-green-500/10 text-green-300 border-green-500/30',
+          className: 'bg-green-50 text-green-700 border-green-200',
         };
       case 'Refunded':
         return {
           icon: RefreshCw,
           text: t.status.refunded,
-          className: 'bg-blue-500/10 text-blue-300 border-blue-500/30',
+          className: 'bg-blue-50 text-blue-700 border-blue-200',
         };
       case 'Expired':
         return {
           icon: XCircle,
           text: t.status.expired,
-          className: 'bg-red-500/10 text-red-300 border-red-500/30',
+          className: 'bg-red-50 text-red-700 border-red-200',
         };
       default:
         return {
           icon: Clock,
           text: status,
-          className: 'bg-gray-500/10 text-gray-300 border-gray-500/30',
+          className: 'bg-gray-100 text-gray-600 border-gray-200',
         };
     }
   };

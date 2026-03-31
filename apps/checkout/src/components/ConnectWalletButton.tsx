@@ -84,7 +84,7 @@ export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
       <button
         onClick={connectWallet}
         disabled={isPending || isConnecting}
-        className={`w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 ${className}`}
+        className={`w-full px-4 py-3 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 ${className}`}
       >
         {isPending || isConnecting ? (
           <>
@@ -100,9 +100,9 @@ export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
       </button>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-          <p className="text-sm text-red-300">{error}</p>
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
     </div>

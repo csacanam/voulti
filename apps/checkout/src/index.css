@@ -4,7 +4,7 @@
 
 /* Ensure body background matches app theme */
 body {
-  background-color: #111827; /* bg-gray-900 */
+  background-color: #f9fafb; /* bg-gray-50 */
   margin: 0;
   padding: 0;
 }

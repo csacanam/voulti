@@ -18,17 +18,17 @@ export const NetworkMismatchWarning: React.FC<NetworkMismatchWarningProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-6 text-center">
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
       <div className="flex flex-col items-center space-y-4">
-        <AlertTriangle className="h-12 w-12 text-yellow-500" />
-        
+        <AlertTriangle className="h-12 w-12 text-amber-500" />
+
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-yellow-400">
+          <h3 className="text-lg font-semibold text-amber-700">
             {t.payment?.networkMismatchTitle || 'Red incorrecta detectada'}
           </h3>
-          
-          <p className="text-gray-300 max-w-md">
-            {t.payment?.networkMismatchDescription?.replace('{expected}', expectedNetwork).replace('{current}', currentNetwork) || 
+
+          <p className="text-gray-600 max-w-md">
+            {t.payment?.networkMismatchDescription?.replace('{expected}', expectedNetwork).replace('{current}', currentNetwork) ||
              `Esta orden fue creada en ${expectedNetwork}, pero estás conectado a ${currentNetwork}.`}
           </p>
         </div>
@@ -37,7 +37,7 @@ export const NetworkMismatchWarning: React.FC<NetworkMismatchWarningProps> = ({
           <button
             onClick={onSwitchNetwork}
             disabled={isSwitching}
-            className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+            className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
           >
             {isSwitching ? (
               <RefreshCw className="h-5 w-5 animate-spin" />
@@ -45,7 +45,7 @@ export const NetworkMismatchWarning: React.FC<NetworkMismatchWarningProps> = ({
               <RefreshCw className="h-5 w-5" />
             )}
             <span>
-              {isSwitching 
+              {isSwitching
                 ? (t.payment?.switchingNetwork || 'Cambiando red...')
                 : (t.payment?.switchToCorrectNetwork || 'Cambiar a red correcta')
               }

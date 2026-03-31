@@ -21,8 +21,8 @@ export const TokenDropdown: React.FC<TokenDropdownProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filter tokens by current network
-  const availableTokens = currentChainId 
-    ? tokens.filter(token => 
+  const availableTokens = currentChainId
+    ? tokens.filter(token =>
         token.networks.some(network => network.chain_id === currentChainId)
       )
     : tokens;
@@ -30,8 +30,8 @@ export const TokenDropdown: React.FC<TokenDropdownProps> = ({
   // If no tokens available for current network, show message
   if (availableTokens.length === 0 && currentChainId) {
     return (
-      <div className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-center">
-        <span className="text-gray-400 text-sm">
+      <div className="w-full bg-white border border-gray-200 rounded-lg p-3 text-center">
+        <span className="text-gray-500 text-sm">
           {t.payment?.noTokensAvailable || 'No tokens available for current network'}
         </span>
       </div>
@@ -43,19 +43,19 @@ export const TokenDropdown: React.FC<TokenDropdownProps> = ({
       {/* Button that opens the modal */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-left flex items-center justify-between hover:border-gray-600 transition-colors"
+        className="w-full bg-white border border-gray-300 rounded-lg p-3 text-left flex items-center justify-between hover:border-gray-400 transition-colors"
       >
-        <span className="text-white">
+        <span className="text-gray-900">
           {selectedToken ? (
             <div>
               <div className="font-bold">{selectedToken.symbol}</div>
-              <div className="text-gray-400 text-sm">{selectedToken.name}</div>
+              <div className="text-gray-500 text-sm">{selectedToken.name}</div>
             </div>
           ) : t.payment.selectTokenPlaceholder}
         </span>
         <ChevronDown className="h-5 w-5 text-gray-400 transition-transform" />
       </button>
-      
+
       {/* Token Selection Modal */}
       <TokenSelectionModal
         isOpen={isModalOpen}

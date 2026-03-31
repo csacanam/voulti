@@ -54,12 +54,12 @@ export const CheckoutPage: React.FC = () => {
       // Only attempt if not already connected and MetaMask is available
       if (!isConnected && window.ethereum && (window.ethereum as any)?.isMetaMask) {
         console.log('🦊 Checkout: Attempting automatic MetaMask connection...');
-        
+
         try {
           const accounts = await window.ethereum.request({
             method: 'eth_requestAccounts'
           });
-          
+
           if (accounts && accounts.length > 0) {
             console.log('✅ Checkout: MetaMask connected automatically:', accounts[0]);
           } else {
@@ -77,7 +77,7 @@ export const CheckoutPage: React.FC = () => {
 
     // Small delay to ensure page is fully loaded
     const timer = setTimeout(autoConnectMetaMask, 500);
-    
+
     return () => clearTimeout(timer);
     */
   }, [isConnected]);
@@ -87,27 +87,27 @@ export const CheckoutPage: React.FC = () => {
     // Detección híbrida: UserAgent para MetaMask, window.ethereum para el resto
     const userAgent = navigator.userAgent;
     const ethereum = window.ethereum as any;
-    
-    const isWallet = (userAgent.includes('MetaMask') || ethereum?.isMetaMask) || 
-                     ethereum?.isCoinbaseWallet || 
+
+    const isWallet = (userAgent.includes('MetaMask') || ethereum?.isMetaMask) ||
+                     ethereum?.isCoinbaseWallet ||
                      ethereum?.isBaseWallet ||
                      ethereum?.isTrust ||
                      ethereum?.isPhantom ||
                      ethereum?.isRainbow;
-    
+
     // Desktop: siempre conectar directamente (como antes)
     // Mobile: mantener la lógica actual
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     const shouldShowModal = isMobile && !isWallet;
     const finalIsInWalletApp = !shouldShowModal;
-    
+
     setIsInWalletApp(finalIsInWalletApp);
   }, []);
 
   // Update document title when invoice data is available
   useEffect(() => {
     if (invoice) {
-      const title = language === 'es' 
+      const title = language === 'es'
         ? `Paga con Cripto en ${invoice.commerce_name} - Voulti`
         : `Pay with Crypto at ${invoice.commerce_name} - Voulti`;
       document.title = title;
@@ -119,10 +119,10 @@ export const CheckoutPage: React.FC = () => {
     if (!selectedToken || !connectedChainId) {
       return null;
     }
-    
+
     // Use the chain_id directly from the token networks instead of recalculating
     const foundNetwork = selectedToken.networks.find(n => n.chain_id === connectedChainId);
-    
+
     return foundNetwork;
   }, [selectedToken, connectedChainId]);
 
@@ -199,7 +199,7 @@ export const CheckoutPage: React.FC = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
-    
+
     // Format like "COP $ 50,000" to be consistent with pay page
     return `${currency} $ ${formattedNumber}`;
   };
@@ -212,30 +212,30 @@ export const CheckoutPage: React.FC = () => {
   const renderStatusContent = () => {
     if (effectiveStatus === 'Paid') {
       return (
-        <div className="bg-green-900/20 border border-green-700 rounded-lg p-6 text-center">
-          <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-white mb-2">{t.payment.completed}</h2>
-          <p className="text-green-300">{t.payment.completedDescription}</p>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+          <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.payment.completed}</h2>
+          <p className="text-green-700">{t.payment.completedDescription}</p>
         </div>
       );
     }
 
     if (effectiveStatus === 'Expired') {
       return (
-        <div className="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
-          <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-white mb-2">{t.payment.expired}</h2>
-          <p className="text-red-300">{t.payment.expiredDescription}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.payment.expired}</h2>
+          <p className="text-red-700">{t.payment.expiredDescription}</p>
         </div>
       );
     }
 
     if (effectiveStatus === 'Refunded') {
       return (
-        <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-6 text-center">
-          <RefreshCw className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-white mb-2">{t.payment.refunded}</h2>
-          <p className="text-red-300">{t.payment.refundedDescription}</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <RefreshCw className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.payment.refunded}</h2>
+          <p className="text-blue-700">{t.payment.refundedDescription}</p>
         </div>
       );
     }
@@ -271,7 +271,7 @@ export const CheckoutPage: React.FC = () => {
         <div className="space-y-6">
           <button
             onClick={() => setPaymentMode('select')}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors py-2 px-1 min-h-[44px]"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors py-2 px-1 min-h-[44px]"
           >
             ← {t.payByAddress.back}
           </button>
@@ -289,7 +289,7 @@ export const CheckoutPage: React.FC = () => {
               <>
                 {/* Token Selection */}
                 <div>
-                  <label className="block text-white font-medium mb-2">{t.payment.selectToken}</label>
+                  <label className="block text-gray-900 font-medium mb-2">{t.payment.selectToken}</label>
                   <TokenDropdown
                     tokens={groupedTokens}
                     selectedToken={selectedToken}
@@ -312,8 +312,8 @@ export const CheckoutPage: React.FC = () => {
                       fiatCurrency={invoice.fiat_currency}
                     />
 
-                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
-                      <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                         <TokenBalance
                           tokenAddress={selectedTokenNetwork.contract_address}
                           tokenSymbol={selectedToken?.symbol}
@@ -325,12 +325,12 @@ export const CheckoutPage: React.FC = () => {
                       {/* Payment button with balance validation */}
                       {!hasSufficientBalance && amountToPay > 0 ? (
                         <div className="space-y-3">
-                          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                             <div className="flex items-start gap-3">
-                              <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                              <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <p className="text-red-300 font-medium text-sm">{t.balance.insufficient}</p>
-                                <p className="text-red-400/80 text-xs mt-1">
+                                <p className="text-red-700 font-medium text-sm">{t.balance.insufficient}</p>
+                                <p className="text-red-600 text-xs mt-1">
                                   {interpolate(t.balance.insufficientDescription, {
                                     required: amountToPay.toFixed(6),
                                     current: userBalance.toFixed(6),
@@ -343,7 +343,7 @@ export const CheckoutPage: React.FC = () => {
 
                           <button
                             onClick={() => setPaymentMode('address')}
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                           >
                             <QrCode className="h-5 w-5" />
                             <span>{t.paymentMethod.payByAddress}</span>
@@ -371,7 +371,7 @@ export const CheckoutPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto p-4">
         {/* Language Selector - Top Right */}
         <div className="flex justify-end mb-2">
@@ -379,12 +379,12 @@ export const CheckoutPage: React.FC = () => {
         </div>
 
         {/* Header */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-gray-700">
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
               {invoice.commerce_icon_url ? (
-                <img 
-                  src={invoice.commerce_icon_url} 
+                <img
+                  src={invoice.commerce_icon_url}
                   alt={`${invoice.commerce_name} logo`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -394,13 +394,13 @@ export const CheckoutPage: React.FC = () => {
                   }}
                 />
               ) : null}
-              <Store className={`h-6 w-6 text-gray-300 ${invoice.commerce_icon_url ? 'hidden' : ''}`} />
+              <Store className={`h-6 w-6 text-gray-400 ${invoice.commerce_icon_url ? 'hidden' : ''}`} />
             </div>
             <div>
-              <h1 className="text-white font-medium text-lg">{invoice.commerce_name}</h1>
+              <h1 className="text-gray-900 font-medium text-lg">{invoice.commerce_name}</h1>
               {(commerce?.description_spanish || commerce?.description_english) && (
-                <p className="text-gray-400 text-sm">
-                  {language === 'es' 
+                <p className="text-gray-500 text-sm">
+                  {language === 'es'
                     ? (commerce.description_spanish || commerce.description_english)
                     : (commerce.description_english || commerce.description_spanish)
                   }
@@ -411,50 +411,50 @@ export const CheckoutPage: React.FC = () => {
         </div>
 
         {/* Order Information */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">{t.order.title}</h2>
+            <h2 className="text-gray-900 font-semibold">{t.order.title}</h2>
             <StatusBadge status={effectiveStatus || 'Pending'} />
           </div>
-          
+
           <div className="space-y-3">
             {/* Show Order ID when invoice is paid */}
             {effectiveStatus === 'Paid' && (
               <div>
-                <p className="text-gray-400 text-sm">{t.order.orderId}</p>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-gray-500 text-sm">{t.order.orderId}</p>
+                <p className="text-sm font-semibold text-gray-900">
                   {invoice.id}
                 </p>
               </div>
             )}
-            
+
             <div>
-              <p className="text-gray-400 text-sm">{t.order.totalToPay}</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-gray-500 text-sm">{t.order.totalToPay}</p>
+              <p className="text-2xl font-bold text-gray-900">
                 {formatAmount(invoice.amount_fiat, invoice.fiat_currency)}
               </p>
             </div>
-            
+
             {/* Show Blockchain Transaction when invoice is paid */}
             {effectiveStatus === 'Paid' && invoice.paid_tx_hash && invoice.paid_network && (
               <div>
-                <p className="text-gray-400 text-sm">{t.order.blockchainTransaction}</p>
+                <p className="text-gray-500 text-sm">{t.order.blockchainTransaction}</p>
                 {getBlockExplorerUrl(invoice.paid_network, invoice.paid_tx_hash) && (
                   <a
                     href={getBlockExplorerUrl(invoice.paid_network, invoice.paid_tx_hash)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                    className="text-violet-600 hover:text-violet-700 text-sm transition-colors"
                   >
                     {t.order.viewOnExplorer}
                   </a>
                 )}
               </div>
             )}
-            
+
             {effectiveStatus === 'Pending' && (
-              <CountdownTimer 
-                expiresAt={invoice.expires_at} 
+              <CountdownTimer
+                expiresAt={invoice.expires_at}
                 onExpire={() => setForceExpired(true)}
               />
             )}
@@ -462,14 +462,14 @@ export const CheckoutPage: React.FC = () => {
         </div>
 
         {/* Payment Section */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           {effectiveStatus === 'Pending' && (
             <>
               <div className="text-left mb-6">
-                <h2 className="text-xl font-semibold text-white mb-2">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
                   {t.order.pageTitle}
                 </h2>
-                <p className="text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm">
                   {t.order.pageDescription}
                 </p>
               </div>
@@ -481,8 +481,8 @@ export const CheckoutPage: React.FC = () => {
         {/* Powered by Voulti */}
         <div className="text-center mt-4 pb-4">
           <Link to="/" className="inline-block">
-            <p className="text-gray-400 text-sm hover:text-gray-300 transition-colors">
-              {t.poweredBy} <span className="font-bold text-white hover:text-blue-400 transition-colors">Voulti</span>
+            <p className="text-gray-400 text-sm hover:text-gray-500 transition-colors">
+              {t.poweredBy} <span className="font-bold text-gray-900 hover:text-violet-600 transition-colors">Voulti</span>
             </p>
           </Link>
         </div>

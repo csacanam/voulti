@@ -120,19 +120,19 @@ export const NetworkSwitchButton: React.FC<NetworkSwitchButtonProps> = ({
   return (
     <div className={`space-y-3 ${className}`}>
       {/* Network Status Display */}
-      <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div className="bg-white rounded-lg p-4 border border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-white font-medium">
+          <h3 className="text-gray-900 font-medium">
             {t.network?.status || 'Network Status'}
           </h3>
         </div>
         
-        <div className="text-sm text-gray-300 mb-3">
+        <div className="text-sm text-gray-600 mb-3">
           {getNetworkStatusText()}
         </div>
         
         {networkInfo && !networkInfo.isCorrect && (
-          <div className="text-xs text-gray-400 space-y-1">
+          <div className="text-xs text-gray-500 space-y-1">
             <div>
               {t.network?.expected || 'Expected network'}: {networkInfo.expectedName} (ID: {networkInfo.expectedChainId})
             </div>
@@ -151,8 +151,8 @@ export const NetworkSwitchButton: React.FC<NetworkSwitchButtonProps> = ({
           className={`
             w-full px-4 py-3 font-medium rounded-lg transition-colors
             ${isSwitching 
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-              : 'bg-green-600 hover:bg-green-700 text-white'
+              ? 'bg-gray-600 text-gray-500 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700 text-gray-900'
             }
             flex items-center justify-center space-x-2
           `}

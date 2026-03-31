@@ -31,7 +31,7 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
   const formatAmount = (amount: string, decimals: number = 6) => {
     const num = Number(amount);
     if (num === 0) return '0';
-    
+
     // For very large numbers (like cCOP), show fewer decimals
     if (num > 1000) return num.toFixed(2);
     // For normal amounts, show appropriate decimals
@@ -54,27 +54,23 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
       // and then convert to user's local timezone
       const date = new Date(timestamp + 'Z'); // Force UTC interpretation
       const locale = language === 'es' ? 'es-CO' : 'en-US';
-      
+
       if (language === 'es') {
-        // Español: formato 12h con AM/PM, mes en mayúscula
-        // Sin timeZone explícito = usa automáticamente la timezone del usuario
         const formattedDate = date.toLocaleString(locale, {
-          month: 'long', // 'long' para "Agosto" en lugar de "ago"
+          month: 'long',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          hour12: true // true para formato 12h con AM/PM
+          hour12: true
         });
         return formattedDate;
       } else {
-        // Inglés: formato 12h con AM/PM, mes en mayúscula
-        // Sin timeZone explícito = usa automáticamente la timezone del usuario
         const formattedDate = date.toLocaleString(locale, {
-          month: 'short', // 'short' para "Aug" (ya viene en mayúscula en inglés)
+          month: 'short',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          hour12: true // true para formato 12h con AM/PM
+          hour12: true
         });
         return formattedDate;
       }
@@ -93,19 +89,19 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
   };
 
   return (
-    <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
+    <div className="bg-violet-50 border border-violet-200 rounded-lg p-4">
       <div className="flex items-center space-x-2 mb-3">
-        <Calculator className="h-5 w-5 text-blue-400" />
-        <h3 className="text-blue-300 font-medium">{t.payment.amountToPay}</h3>
+        <Calculator className="h-5 w-5 text-violet-600" />
+        <h3 className="text-violet-700 font-medium">{t.payment.amountToPay}</h3>
       </div>
-      
+
       <div className="space-y-3">
         {/* Main amount */}
         <div>
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold text-gray-900">
             {formatAmount(amountToPay, tokenDecimals)} {tokenSymbol}
           </div>
-          <div className="text-gray-400 text-sm">
+          <div className="text-gray-500 text-sm">
             ≈ {formatFiatAmount(amountFiat, fiatCurrency)}
           </div>
         </div>
@@ -113,14 +109,14 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
         {/* Rate info */}
         {rateToUsd && t.payment?.price && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">{interpolate(t.payment.price, { symbol: tokenSymbol })}:</span>
-            <span className="text-gray-300">${formatRate(rateToUsd)} USD</span>
+            <span className="text-gray-500">{interpolate(t.payment.price, { symbol: tokenSymbol })}:</span>
+            <span className="text-gray-600">${formatRate(rateToUsd)} USD</span>
           </div>
         )}
 
         {/* Last updated */}
         {updatedAt && t.payment?.lastUpdated && (
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
+          <div className="flex items-center space-x-1 text-xs text-gray-400">
             <Clock className="h-3 w-3" />
             <span>{interpolate(t.payment.lastUpdated, { time: formatUpdatedTime(updatedAt) })}</span>
           </div>
@@ -128,4 +124,4 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
       </div>
     </div>
   );
-}; 
+};

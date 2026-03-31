@@ -9,17 +9,17 @@ export const HomePage: React.FC = () => {
 
   return (
     <>
-      <MetaTags 
+      <MetaTags
         title="Crypto payments made simple for merchants | Voulti"
         description="Accept crypto payments anywhere: in-store or online. No middlemen. Only 1% fee."
       />
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center">
-            <Link to="/" className="hover:text-blue-300 transition-colors duration-200">
-              <h1 className="text-xl font-bold text-blue-400">{t.header.logo}</h1>
+            <Link to="/" className="hover:text-violet-700 transition-colors duration-200">
+              <h1 className="text-xl font-bold text-violet-600">{t.header.logo}</h1>
             </Link>
           </div>
           <LanguageSelector />
@@ -30,23 +30,23 @@ export const HomePage: React.FC = () => {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           {/* Title */}
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
             {t.home.heroTitle}
           </h1>
-          
+
           {/* Subtitle */}
-          <div className="text-lg md:text-xl text-gray-300 mb-8 space-y-2 leading-relaxed">
+          <div className="text-lg md:text-xl text-gray-600 mb-8 space-y-2 leading-relaxed">
             <p>{t.home.heroSubtitle}</p>
           </div>
-          
+
           {/* CTA Button */}
           <Link
             to="/demo"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-lg shadow-lg hover:shadow-xl"
+            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-lg shadow-lg hover:shadow-xl"
           >
             {t.home.ctaButton}
           </Link>
-          
+
           {/* Subcopy */}
           <p className="text-sm text-gray-400 mt-6">
             {t.home.subcopy}
@@ -57,34 +57,34 @@ export const HomePage: React.FC = () => {
       {/* Why Choose Voulti Section */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
             {t.home.whyChooseTitle}
           </h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {/* Instant Payments */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center hover:border-blue-500/30 transition-colors duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
               <div className="text-4xl mb-6">⚡</div>
-              <h3 className="text-xl font-semibold mb-4 text-white">{t.home.whyChoose.instantPayments.title}</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.whyChoose.instantPayments.title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {t.home.whyChoose.instantPayments.description}
               </p>
             </div>
 
             {/* Low Fees */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center hover:border-blue-500/30 transition-colors duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
               <div className="text-4xl mb-6">💰</div>
-              <h3 className="text-xl font-semibold mb-4 text-white">{t.home.whyChoose.lowFees.title}</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.whyChoose.lowFees.title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {t.home.whyChoose.lowFees.description}
               </p>
             </div>
 
             {/* Real World */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center hover:border-blue-500/30 transition-colors duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
               <div className="text-4xl mb-6">🌍</div>
-              <h3 className="text-xl font-semibold mb-4 text-white">{t.home.whyChoose.realWorld.title}</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.whyChoose.realWorld.title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {t.home.whyChoose.realWorld.description}
               </p>
             </div>
@@ -95,34 +95,34 @@ export const HomePage: React.FC = () => {
       {/* How it works Section */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
             {t.home.howItWorksTitle}
           </h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {/* Step 1 */}
-            <div className="bg-gray-800 rounded-lg border border-gray-600 p-8 text-center hover:border-blue-500/30 transition-colors duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
               <div className="text-5xl mb-6">1️⃣</div>
-              <h3 className="text-xl font-semibold mb-4 text-white">{t.home.step1Title}</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.step1Title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {t.home.step1Description}
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="bg-gray-800 rounded-lg border border-gray-600 p-8 text-center hover:border-blue-500/30 transition-colors duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
               <div className="text-5xl mb-6">2️⃣</div>
-              <h3 className="text-xl font-semibold mb-4 text-white">{t.home.step2Title}</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.step2Title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {t.home.step2Description}
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className="bg-gray-800 rounded-lg border border-gray-600 p-8 text-center hover:border-blue-500/30 transition-colors duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
               <div className="text-5xl mb-6">3️⃣</div>
-              <h3 className="text-xl font-semibold mb-4 text-white">{t.home.step3Title}</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.step3Title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {t.home.step3Description}
               </p>
             </div>
@@ -133,21 +133,21 @@ export const HomePage: React.FC = () => {
       {/* Tagline Section */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-lg border border-blue-500/20 p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">
+          <div className="bg-gradient-to-r from-violet-50 to-violet-100 rounded-xl border border-violet-200 p-8 md:p-12 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">
               {t.home.tagline}
             </h2>
             <div className="flex justify-center space-x-4 mt-6">
-              <div className="flex items-center space-x-2 text-gray-300">
-                <span className="text-green-400">✓</span>
+              <div className="flex items-center space-x-2 text-gray-600">
+                <span className="text-green-600">✓</span>
                 <span className="text-sm">{t.features.noSetupFees}</span>
               </div>
-              <div className="flex items-center space-x-2 text-gray-300">
-                <span className="text-green-400">✓</span>
+              <div className="flex items-center space-x-2 text-gray-600">
+                <span className="text-green-600">✓</span>
                 <span className="text-sm">{t.features.instantSettlement}</span>
               </div>
-              <div className="flex items-center space-x-2 text-gray-300">
-                <span className="text-green-400">✓</span>
+              <div className="flex items-center space-x-2 text-gray-600">
+                <span className="text-green-600">✓</span>
                 <span className="text-sm">{t.features.globalReach}</span>
               </div>
             </div>
@@ -156,15 +156,15 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 border-t border-gray-700 py-6 px-4">
+      <footer className="bg-white border-t border-gray-200 py-6 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-gray-400 text-sm">
             {t.footer.builtWithLove}{' '}
-            <a 
-              href="https://x.com/camilosaka" 
-              target="_blank" 
+            <a
+              href="https://x.com/camilosaka"
+              target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200"
+              className="text-violet-600 hover:text-violet-700 font-medium transition-colors duration-200"
             >
               camilosaka
             </a>
@@ -174,4 +174,4 @@ export const HomePage: React.FC = () => {
     </div>
     </>
   );
-}; 
+};

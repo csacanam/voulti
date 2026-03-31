@@ -33,37 +33,37 @@ export const WalletSelectionModal: React.FC<WalletSelectionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-md w-full p-6 relative">
+      <div className="bg-white border border-gray-200 shadow-xl rounded-xl max-w-md w-full p-6 relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-lg font-semibold text-white mb-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-5">
           {t.wallet?.selectWallet || 'Select Wallet'}
         </h2>
 
         <div className="space-y-3">
           <button
             onClick={() => handleWalletSelect('metamask')}
-            className="w-full p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-orange-500/50 hover:bg-gray-800/80 transition-all flex items-center space-x-3 group"
+            className="w-full p-4 bg-white border border-gray-200 rounded-lg hover:border-orange-400 hover:bg-gray-50 transition-all flex items-center space-x-3 group"
           >
             <div className="w-8 h-8 flex items-center justify-center">
               <MetaMaskLogo size={32} />
             </div>
-            <span className="text-white font-medium">MetaMask</span>
+            <span className="text-gray-900 font-medium">MetaMask</span>
           </button>
 
           <button
             onClick={() => handleWalletSelect('base')}
-            className="w-full p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-blue-500/50 hover:bg-gray-800/80 transition-all flex items-center space-x-3 group"
+            className="w-full p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:bg-gray-50 transition-all flex items-center space-x-3 group"
           >
             <div className="w-8 h-8 flex items-center justify-center">
               <BaseLogo size={40} />
             </div>
-            <span className="text-white font-medium">Base Wallet</span>
+            <span className="text-gray-900 font-medium">Base Wallet</span>
           </button>
         </div>
       </div>

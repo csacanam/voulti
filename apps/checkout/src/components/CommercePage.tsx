@@ -22,7 +22,7 @@ export const CommercePage: React.FC = () => {
   // Update document title when commerce data is available
   useEffect(() => {
     if (commerce) {
-      const title = language === 'es' 
+      const title = language === 'es'
         ? `Paga con Cripto en ${commerce.name} - Voulti`
         : `Pay with Crypto at ${commerce.name} - Voulti`;
       document.title = title;
@@ -34,12 +34,12 @@ export const CommercePage: React.FC = () => {
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAmount(value);
-    
+
     // Clear error when user starts typing
     if (amountError) {
       setAmountError('');
     }
-    
+
     // Validate in real-time if there's a value
     if (value && value.trim() !== '') {
       validateAmountRealTime(value);
@@ -48,12 +48,12 @@ export const CommercePage: React.FC = () => {
 
   const validateAmountRealTime = (value: string) => {
     const numAmount = parseFloat(value);
-    
+
     if (isNaN(numAmount)) {
       setAmountError(t.commerce.amountRequired);
       return false;
     }
-    
+
     if (numAmount <= 0) {
       setAmountError(t.commerce.amountRequired);
       return false;
@@ -61,8 +61,8 @@ export const CommercePage: React.FC = () => {
 
     // Validate minimum amount if provided by API
     if (commerce?.min_amount && numAmount < commerce.min_amount) {
-      setAmountError(interpolate(t.commerce.amountMin, { 
-        min: commerce.min_amount.toLocaleString(), 
+      setAmountError(interpolate(t.commerce.amountMin, {
+        min: commerce.min_amount.toLocaleString(),
         currency: `${commerce.currency} ${commerce.currency_symbol}`
       }));
       return false;
@@ -70,8 +70,8 @@ export const CommercePage: React.FC = () => {
 
     // Validate maximum amount if provided by API
     if (commerce?.max_amount && numAmount > commerce.max_amount) {
-      setAmountError(interpolate(t.commerce.amountMax, { 
-        max: commerce.max_amount.toLocaleString(), 
+      setAmountError(interpolate(t.commerce.amountMax, {
+        max: commerce.max_amount.toLocaleString(),
         currency: `${commerce.currency} ${commerce.currency_symbol}`
       }));
       return false;
@@ -84,17 +84,17 @@ export const CommercePage: React.FC = () => {
 
   const validateAmount = (): boolean => {
     const numAmount = parseFloat(amount);
-    
+
     if (!amount || amount.trim() === '') {
       setAmountError(t.commerce.amountRequired);
       return false;
     }
-    
+
     if (isNaN(numAmount)) {
       setAmountError(t.commerce.amountRequired);
       return false;
     }
-    
+
     if (numAmount <= 0) {
       setAmountError(t.commerce.amountRequired);
       return false;
@@ -102,8 +102,8 @@ export const CommercePage: React.FC = () => {
 
     // Validate minimum amount if provided by API
     if (commerce?.min_amount && numAmount < commerce.min_amount) {
-      setAmountError(interpolate(t.commerce.amountMin, { 
-        min: commerce.min_amount.toLocaleString(), 
+      setAmountError(interpolate(t.commerce.amountMin, {
+        min: commerce.min_amount.toLocaleString(),
         currency: `${commerce.currency} ${commerce.currency_symbol}`
       }));
       return false;
@@ -111,8 +111,8 @@ export const CommercePage: React.FC = () => {
 
     // Validate maximum amount if provided by API
     if (commerce?.max_amount && numAmount > commerce.max_amount) {
-      setAmountError(interpolate(t.commerce.amountMax, { 
-        max: commerce.max_amount.toLocaleString(), 
+      setAmountError(interpolate(t.commerce.amountMax, {
+        max: commerce.max_amount.toLocaleString(),
         currency: `${commerce.currency} ${commerce.currency_symbol}`
       }));
       return false;
@@ -127,7 +127,7 @@ export const CommercePage: React.FC = () => {
     if (!validateAmount()) return;
 
     setIsGenerating(true);
-    
+
     try {
       const response = await createInvoice({
         commerce_id: commerceId || '',
@@ -142,7 +142,7 @@ export const CommercePage: React.FC = () => {
         const errorMessage = response.error || t.commerce.createInvoiceError;
         setAmountError(errorMessage);
       }
-      
+
     } catch (error) {
       console.error('Error creating invoice:', error);
       setAmountError(t.commerce.networkError);
@@ -160,19 +160,19 @@ export const CommercePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto p-4">
         {/* Language Selector - Top Right */}
         <div className="flex justify-end mb-2">
           <LanguageSelector />
         </div>
         {/* Header */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-gray-700">
+            <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
               {commerce.icon_url ? (
-                <img 
-                  src={commerce.icon_url} 
+                <img
+                  src={commerce.icon_url}
                   alt={`${commerce.name} logo`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -181,13 +181,13 @@ export const CommercePage: React.FC = () => {
                   }}
                 />
               ) : null}
-              <Store className={`h-6 w-6 text-gray-300 ${commerce.icon_url ? 'hidden' : ''}`} />
+              <Store className={`h-6 w-6 text-gray-400 ${commerce.icon_url ? 'hidden' : ''}`} />
             </div>
             <div>
-              <h1 className="text-white font-medium text-lg">{commerce.name}</h1>
+              <h1 className="text-gray-900 font-medium text-lg">{commerce.name}</h1>
               {(commerce.description_spanish || commerce.description_english) && (
-                <p className="text-gray-400 text-sm">
-                  {language === 'es' 
+                <p className="text-gray-500 text-sm">
+                  {language === 'es'
                     ? (commerce.description_spanish || commerce.description_english)
                     : (commerce.description_english || commerce.description_spanish)
                   }
@@ -198,9 +198,9 @@ export const CommercePage: React.FC = () => {
         </div>
 
         {/* Payment Section */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <div className="text-left mb-6">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-gray-900">
               {interpolate(t.commerce.title, { name: commerce.name })}
             </h2>
           </div>
@@ -208,7 +208,7 @@ export const CommercePage: React.FC = () => {
           {/* Amount Input */}
           <div className="space-y-4">
             <div>
-              <label className="block text-white font-medium mb-2">
+              <label className="block text-gray-900 font-medium mb-2">
                 {t.commerce.amountLabel} {language === 'es' ? 'en' : 'in'} {commerce.currency}
               </label>
               <div className="relative">
@@ -222,8 +222,8 @@ export const CommercePage: React.FC = () => {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0"
-                  className={`w-full bg-gray-700 border rounded-lg py-3 pl-16 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    amountError ? 'border-red-500' : 'border-gray-600'
+                  className={`w-full bg-white border rounded-lg py-3 pl-16 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                    amountError ? 'border-red-500' : 'border-gray-300'
                   }`}
                   min={commerce?.min_amount || 0}
                   max={commerce?.max_amount || undefined}
@@ -232,12 +232,12 @@ export const CommercePage: React.FC = () => {
 
               </div>
               {amountError && (
-                <div className="flex items-center space-x-2 text-red-400 text-sm mt-2">
+                <div className="flex items-center space-x-2 text-red-500 text-sm mt-2">
                   <AlertCircle className="h-4 w-4" />
                   <span>{amountError}</span>
                 </div>
               )}
-              
+
               {/* Amount limits info */}
               {(commerce?.min_amount || commerce?.max_amount) && (
                 <div className="text-gray-400 text-xs mt-2">
@@ -257,8 +257,8 @@ export const CommercePage: React.FC = () => {
               disabled={isGenerating || !amount || !!amountError}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
                 isGenerating || !amount || !!amountError
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-violet-600 hover:bg-violet-700 text-white'
               }`}
             >
               {isGenerating ? (
@@ -274,13 +274,13 @@ export const CommercePage: React.FC = () => {
 
           {/* Supported Tokens Info */}
           {commerce.supported_tokens && commerce.supported_tokens.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-700 rounded-lg">
-              <h3 className="text-white font-medium mb-2">{t.commerce.supportedTokens}:</h3>
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-gray-900 font-medium mb-2">{t.commerce.supportedTokens}:</h3>
               <div className="flex flex-wrap gap-2">
                 {commerce.supported_tokens.map((token) => (
                   <span
                     key={token}
-                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded"
+                    className="px-2 py-1 bg-violet-50 text-violet-700 border border-violet-200 text-xs rounded"
                   >
                     {token}
                   </span>
@@ -293,12 +293,12 @@ export const CommercePage: React.FC = () => {
         {/* Powered by Voulti */}
         <div className="text-center mt-4 pb-4">
           <Link to="/" className="inline-block">
-            <p className="text-gray-400 text-sm hover:text-gray-300 transition-colors">
-              {t.poweredBy} <span className="font-bold text-white hover:text-blue-400 transition-colors">Voulti</span>
+            <p className="text-gray-400 text-sm hover:text-gray-500 transition-colors">
+              {t.poweredBy} <span className="font-bold text-gray-900 hover:text-violet-600 transition-colors">Voulti</span>
             </p>
           </Link>
         </div>
       </div>
     </div>
   );
-}; 
+};

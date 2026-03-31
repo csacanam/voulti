@@ -20,7 +20,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = 
       <select
         value={language}
         onChange={(e) => setLanguage(e.target.value as Language)}
-        className="appearance-none bg-gray-800/90 backdrop-blur-sm border border-gray-600 text-white text-sm rounded-lg pl-8 pr-4 py-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:bg-gray-700/90 transition-colors"
+        className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-8 pr-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent hover:bg-gray-50 transition-colors"
       >
         {supportedLanguages.map((lang) => (
           <option key={lang} value={lang}>
@@ -31,4 +31,4 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = 
       <Globe className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
     </div>
   );
-}; 
+};

@@ -12,7 +12,7 @@ export function NetworkSelector({ selectedChainId, onSelect }: NetworkSelectorPr
 
   return (
     <div className="space-y-2">
-      <label className="block text-white font-medium">{t.payByAddress.selectNetwork}</label>
+      <label className="block text-gray-900 font-medium">{t.payByAddress.selectNetwork}</label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {enabledChains.map(config => (
           <button
@@ -20,8 +20,8 @@ export function NetworkSelector({ selectedChainId, onSelect }: NetworkSelectorPr
             onClick={() => onSelect(config.chain.id)}
             className={`p-4 rounded-lg text-sm font-medium transition-all border min-h-[52px] active:scale-[0.98] ${
               selectedChainId === config.chain.id
-                ? 'border-purple-500 bg-purple-500/10 text-purple-300'
-                : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600 active:bg-gray-700'
+                ? 'border-violet-500 bg-violet-50 text-violet-700'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 active:bg-gray-100'
             }`}
           >
             {config.chain.name}

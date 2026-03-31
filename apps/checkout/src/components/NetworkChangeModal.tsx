@@ -31,15 +31,15 @@ export const NetworkChangeModal: React.FC<NetworkChangeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg border border-gray-700 max-w-md w-full max-h-[80vh] overflow-y-auto">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h3 className="text-lg font-semibold text-white">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
             {t.wallet?.changeNetwork || 'Cambiar red'}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -47,23 +47,23 @@ export const NetworkChangeModal: React.FC<NetworkChangeModalProps> = ({
 
         {/* Content */}
         <div className="p-4 space-y-3">
-          <p className="text-gray-300 text-sm">
+          <p className="text-gray-600 text-sm">
             {t.wallet?.selectNetwork || 'Selecciona una red compatible:'}
           </p>
-          
+
           {SUPPORTED_CHAINS
             .filter(config => config.enabled)
             .map(config => {
               const isCurrentNetwork = currentChainId === config.chain.id;
-              
+
               return (
                 <div
                   key={config.chain.id}
                   className={`
                     flex items-center justify-between p-3 rounded-lg border transition-all duration-200 cursor-pointer
-                    ${isCurrentNetwork 
-                      ? 'bg-green-900/20 border-green-600 text-green-300' 
-                      : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500'
+                    ${isCurrentNetwork
+                      ? 'bg-green-50 border-green-200 text-green-700'
+                      : 'bg-white border-gray-200 text-gray-900 hover:bg-gray-50 hover:border-gray-300'
                     }
                   `}
                   onClick={() => !isCurrentNetwork && handleNetworkChange(config.chain.id)}
@@ -76,11 +76,11 @@ export const NetworkChangeModal: React.FC<NetworkChangeModalProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {isCurrentNetwork && (
                     <div className="flex items-center space-x-2">
-                      <Check className="w-4 h-4 text-green-400" />
-                      <span className="text-xs text-green-400">
+                      <Check className="w-4 h-4 text-green-600" />
+                      <span className="text-xs text-green-600">
                         {t.wallet?.currentNetwork || 'Actual'}
                       </span>
                     </div>

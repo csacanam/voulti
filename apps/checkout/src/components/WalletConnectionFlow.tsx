@@ -79,14 +79,14 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
   if (!isConnected) {
     return (
       <div className={`space-y-6 ${className}`}>
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 text-center">
-          <div className="w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
-            <Wallet className="w-7 h-7 text-blue-400" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center">
+          <div className="w-14 h-14 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-4">
+            <Wallet className="w-7 h-7 text-violet-600" />
           </div>
-          <h2 className="text-lg font-semibold text-white mb-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
             {t.wallet?.connectFirst || 'Connect your wallet'}
           </h2>
-          <p className="text-sm text-gray-400 mb-5">
+          <p className="text-sm text-gray-500 mb-5">
             Connect your wallet to select a token and complete the payment.
           </p>
 
@@ -95,7 +95,7 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
           ) : (
             <button
               onClick={onOpenWalletSelection}
-              className="w-full max-w-sm mx-auto px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              className="w-full max-w-sm mx-auto px-4 py-3 bg-violet-600 text-white font-medium rounded-lg hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
             >
               <Wallet className="w-5 h-5" />
               {t.payment?.connectWallet || 'Connect Wallet'}
@@ -112,14 +112,14 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
 
     return (
       <div className={`space-y-6 ${className}`}>
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
-            <Globe className="w-7 h-7 text-amber-400" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <Globe className="w-7 h-7 text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold text-white mb-2 text-center">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2 text-center">
             {t.wallet?.wrongNetwork || 'Switch network to continue'}
           </h2>
-          <p className="text-sm text-gray-400 mb-5 text-center">
+          <p className="text-sm text-gray-500 mb-5 text-center">
             {currentNetworkInfo
               ? `You're connected to ${currentNetworkInfo.name}, which is not supported. Please switch to a compatible network.`
               : 'Your current network is not supported. Please switch to a compatible network.'}
@@ -127,13 +127,13 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
 
           {/* Wallet info */}
           {address && (
-            <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg mb-4">
-              <span className="text-sm text-gray-300 font-mono">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-4">
+              <span className="text-sm text-gray-600 font-mono">
                 {address.slice(0, 6)}...{address.slice(-4)}
               </span>
               <button
                 onClick={() => disconnect()}
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-400 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
               >
                 <LogOut className="w-3 h-3" />
                 Disconnect
@@ -164,28 +164,28 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Wallet status bar */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
+      <div className="bg-white border border-gray-200 rounded-lg p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="w-4 h-4 text-green-400" />
+            <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-600" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <button
                   onClick={copyAddress}
-                  className="flex items-center gap-1.5 text-sm text-white font-mono hover:text-purple-300 transition-colors min-h-[32px]"
+                  className="flex items-center gap-1.5 text-sm text-gray-900 font-mono hover:text-violet-600 transition-colors min-h-[32px]"
                   title="Copy address"
                 >
                   {address?.slice(0, 6)}...{address?.slice(-4)}
                   {addressCopied ? (
-                    <Check className="w-3.5 h-3.5 text-green-400" />
+                    <Check className="w-3.5 h-3.5 text-green-600" />
                   ) : (
-                    <Copy className="w-3.5 h-3.5 text-gray-500" />
+                    <Copy className="w-3.5 h-3.5 text-gray-400" />
                   )}
                 </button>
                 {currentNetworkInfo && (
-                  <span className="px-2 py-0.5 bg-gray-700 rounded text-xs text-gray-400 hidden sm:inline">
+                  <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-500 hidden sm:inline">
                     {currentNetworkInfo.name}
                   </span>
                 )}
@@ -195,13 +195,13 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => setIsNetworkChangeModalOpen(true)}
-              className="px-3 py-2 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors min-h-[36px]"
+              className="px-3 py-2 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors min-h-[36px]"
             >
               Switch
             </button>
             <button
               onClick={() => disconnect()}
-              className="px-3 py-2 text-xs text-gray-500 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors min-h-[36px]"
+              className="px-3 py-2 text-xs text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors min-h-[36px]"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

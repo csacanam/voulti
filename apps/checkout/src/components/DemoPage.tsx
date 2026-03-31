@@ -34,7 +34,7 @@ export const DemoPage: React.FC = () => {
 
       // Use html2canvas to capture the exact visual representation
       const html2canvas = (await import('html2canvas')).default;
-      
+
       const canvas = await html2canvas(qrContainer, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher quality
@@ -64,17 +64,17 @@ export const DemoPage: React.FC = () => {
 
   return (
     <>
-      <MetaTags 
+      <MetaTags
         title="Test crypto payments – QR, Links & API | Voulti"
         description="Try Voulti: crypto payments with QR codes, payment links, and API integration. Instant, simple, and 1% fee."
       />
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center">
-            <Link to="/" className="hover:text-blue-300 transition-colors duration-200">
-              <h1 className="text-xl font-bold text-blue-400">{t.header.logo}</h1>
+            <Link to="/" className="hover:text-violet-700 transition-colors duration-200">
+              <h1 className="text-xl font-bold text-violet-600">{t.header.logo}</h1>
             </Link>
           </div>
           <LanguageSelector />
@@ -86,30 +86,30 @@ export const DemoPage: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           {/* Title */}
           <div className="text-left mb-8 md:mb-16">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 text-gray-900">
               {t.demo.title}
             </h1>
-            
+
             {/* Subtitle */}
-            <p className="text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed">
+            <p className="text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed">
               {t.demo.subtitle}
             </p>
           </div>
-          
+
           {/* Demo Options */}
           <div className="space-y-8 md:space-y-16">
             {/* 1. In-store Option */}
-            <div className="bg-gray-800 rounded-lg p-4 md:p-8">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-8">
               <div className="flex flex-col md:flex-row md:items-start md:space-x-6 space-y-4 md:space-y-0">
                 <div className="text-4xl md:text-6xl text-center md:text-left">🏪</div>
                 <div className="flex-1">
                   <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center md:text-left">{t.demo.inStore.title}</h2>
-                  <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed text-center md:text-left">
+                  <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6 leading-relaxed text-center md:text-left">
                     {t.demo.inStore.description}
                   </p>
-                  
+
                   {/* Demo Content */}
-                  <div className="bg-gray-700 rounded-lg p-4 md:p-6">
+                  <div className="bg-gray-50 rounded-lg p-4 md:p-6">
                     <div className="text-center">
                       <div className="bg-white rounded-lg p-4 md:p-6 inline-block shadow-lg max-w-full">
                         <div className="text-center max-w-xs">
@@ -125,16 +125,16 @@ export const DemoPage: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* QR Code */}
                           <div className="mb-3 md:mb-4 qr-code-container">
-                            <QRCodeComponent 
+                            <QRCodeComponent
                               value={`${window.location.origin}/pay/ad4837a4-c66a-43fe-a1f5-0cc63843dee4`}
                               size={120}
                               className="mx-auto md:w-40"
                             />
                           </div>
-                          
+
                           {/* Footer */}
                           <div className="flex items-center justify-center text-xs text-gray-500">
                             <span className="text-xs">{t.poweredBy} Voulti</span>
@@ -143,11 +143,11 @@ export const DemoPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Download QR Button */}
-                  <button 
+                  <button
                     onClick={handleDownloadQR}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-colors duration-200 text-sm md:text-base w-full md:w-auto mt-4"
+                    className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-colors duration-200 text-sm md:text-base w-full md:w-auto mt-4"
                   >
                     📥 {t.demo.inStore.downloadCta}
                   </button>
@@ -156,45 +156,45 @@ export const DemoPage: React.FC = () => {
             </div>
 
             {/* 2. Online Option */}
-            <div className="bg-gray-800 rounded-lg p-4 md:p-8">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-8">
               <div className="flex flex-col md:flex-row md:items-start md:space-x-6 space-y-4 md:space-y-0">
                 <div className="text-4xl md:text-6xl text-center md:text-left">📲</div>
                 <div className="flex-1">
                   <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center md:text-left">{t.demo.online.title}</h2>
-                  <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed text-center md:text-left">
+                  <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6 leading-relaxed text-center md:text-left">
                     {t.demo.online.description}
                   </p>
-                  
+
                   {/* Demo Content */}
-                  <div className="bg-gray-700 rounded-lg p-4 md:p-6 mb-4 md:mb-6">
+                  <div className="bg-gray-50 rounded-lg p-4 md:p-6 mb-4 md:mb-6">
                     <div className="text-center">
                       {/* Link Display */}
-                      <div className="bg-gray-800 rounded-lg p-3 md:p-4 mb-3 md:mb-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4 mb-3 md:mb-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                           <div className="flex-1 text-left">
-                            <p className="text-xs md:text-sm text-gray-300 break-all">
+                            <p className="text-xs md:text-sm text-gray-600 break-all">
                               {`${window.location.origin}/pay/ad4837a4-c66a-43fe-a1f5-0cc63843dee4`}
                             </p>
                           </div>
-                          <button 
+                          <button
                             onClick={handleCopy}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded transition-colors duration-200 w-auto self-end"
+                            className="bg-violet-600 hover:bg-violet-700 text-white text-xs px-3 py-1 rounded transition-colors duration-200 w-auto self-end"
                           >
                             {copied ? t.general.copied : t.general.copy}
                           </button>
                         </div>
                       </div>
                       {copied && (
-                        <div className="text-center text-green-400 text-xs md:text-sm mt-2">
+                        <div className="text-center text-green-600 text-xs md:text-sm mt-2">
                           {t.general.copiedMessage}
                         </div>
                       )}
                     </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={handleOpenLink}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-colors duration-200 text-sm md:text-base w-full md:w-auto"
+                    className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-colors duration-200 text-sm md:text-base w-full md:w-auto"
                   >
                     🔗 {t.demo.online.demoCta}
                   </button>
@@ -203,28 +203,28 @@ export const DemoPage: React.FC = () => {
             </div>
 
             {/* 3. API Option */}
-            <div className="bg-gray-800 rounded-lg p-4 md:p-8">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-8">
               <div className="flex flex-col md:flex-row md:items-start md:space-x-6 space-y-4 md:space-y-0">
                 <div className="text-4xl md:text-6xl text-center md:text-left">🛠️</div>
                 <div className="flex-1">
                   <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-center md:text-left">{t.demo.api.title}</h2>
-                  <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed text-center md:text-left">
+                  <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6 leading-relaxed text-center md:text-left">
                     {t.demo.api.description}
                   </p>
-                  
+
                   {/* Demo Content */}
-                  <div className="bg-gray-700 rounded-lg p-4 md:p-6 mb-4 md:mb-6">
+                  <div className="bg-gray-50 rounded-lg p-4 md:p-6 mb-4 md:mb-6">
                     <div className="space-y-4 md:space-y-6">
                       {/* Instructions */}
                       <div className="text-left">
-                        <h4 className="text-sm md:text-base font-semibold text-gray-300 mb-2">
+                        <h4 className="text-sm md:text-base font-semibold text-gray-700 mb-2">
                           {t.demo.api.step1Title}
                         </h4>
-                        <p className="text-sm md:text-base text-gray-300 leading-relaxed">
+                        <p className="text-sm md:text-base text-gray-600 leading-relaxed">
                           {t.demo.api.step1Description}
                         </p>
                       </div>
-                      
+
                       <div className="text-center space-y-4 md:space-y-6">
                         {/* Request */}
                         <div className="w-full">
@@ -239,17 +239,17 @@ export const DemoPage: React.FC = () => {
                             </pre>
                           </div>
                         </div>
-                        
+
                         {/* Step 2 Instructions */}
                         <div className="text-left">
-                          <h4 className="text-sm md:text-base font-semibold text-gray-300 mb-2">
+                          <h4 className="text-sm md:text-base font-semibold text-gray-700 mb-2">
                             {t.demo.api.step2Title}
                           </h4>
-                          <p className="text-sm md:text-base text-gray-300 leading-relaxed">
+                          <p className="text-sm md:text-base text-gray-600 leading-relaxed">
                             {t.demo.api.step2Description}
                           </p>
                         </div>
-                        
+
                         {/* Response */}
                         <div className="w-full">
                           <div className="bg-gray-900 rounded-lg p-3 md:p-4 text-left w-full overflow-x-auto">
@@ -271,24 +271,24 @@ export const DemoPage: React.FC = () => {
                             </pre>
                           </div>
                         </div>
-                        
+
                         {/* Step 3 Instructions */}
                         <div className="text-left">
-                          <h4 className="text-sm md:text-base font-semibold text-gray-300 mb-2">
+                          <h4 className="text-sm md:text-base font-semibold text-gray-700 mb-2">
                             {t.demo.api.step3Title}
                           </h4>
-                          <p className="text-sm md:text-base text-gray-300 leading-relaxed">
+                          <p className="text-sm md:text-base text-gray-600 leading-relaxed">
                             {t.demo.api.step3Description}
                           </p>
                         </div>
-                        
+
                         {/* Step 3 Example */}
                         <div className="text-left">
-                          <p className="text-sm md:text-base text-gray-300 mb-2">
+                          <p className="text-sm md:text-base text-gray-600 mb-2">
                             {t.demo.api.step3Example}
                           </p>
                           <div className="bg-gray-900 rounded-lg p-3 md:p-4 text-left w-full">
-                            <a 
+                            <a
                               href={`${window.location.origin}/checkout/ab6d5372-d7cf-4f4b-bf56-c7c296062e3e`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -298,11 +298,11 @@ export const DemoPage: React.FC = () => {
                             </a>
                           </div>
                         </div>
-                        
+
                         {/* Note */}
                         <div className="text-left">
-                          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 md:p-4">
-                            <p className="text-blue-300 text-xs md:text-sm leading-relaxed">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+                            <p className="text-blue-700 text-xs md:text-sm leading-relaxed">
                               {t.demo.api.note}
                             </p>
                           </div>
@@ -310,10 +310,10 @@ export const DemoPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     disabled
-                    className="bg-gray-600 text-gray-400 font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg text-sm md:text-base w-full md:w-auto cursor-not-allowed"
+                    className="bg-gray-200 text-gray-400 font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg text-sm md:text-base w-full md:w-auto cursor-not-allowed"
                   >
                     📚 {t.demo.api.demoCta}
                   </button>
@@ -325,15 +325,15 @@ export const DemoPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 border-t border-gray-700 py-6 px-4">
+      <footer className="bg-white border-t border-gray-200 py-6 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-gray-400 text-sm">
             {t.footer.builtWithLove}{' '}
-            <a 
-              href="https://x.com/camilosaka" 
-              target="_blank" 
+            <a
+              href="https://x.com/camilosaka"
+              target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200"
+              className="text-violet-600 hover:text-violet-700 font-medium transition-colors duration-200"
             >
               camilosaka
             </a>
@@ -343,4 +343,4 @@ export const DemoPage: React.FC = () => {
     </div>
     </>
   );
-}; 
+};

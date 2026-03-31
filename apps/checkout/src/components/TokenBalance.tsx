@@ -36,7 +36,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   if (error) {
     return (
-      <div className={`flex items-center space-x-2 text-red-400 text-sm ${className}`}>
+      <div className={`flex items-center space-x-2 text-red-500 text-sm ${className}`}>
         <AlertCircle className="h-4 w-4" />
         <span>{t.balance.error}</span>
       </div>
@@ -45,7 +45,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   if (isLoading) {
     return (
-      <div className={`flex items-center space-x-2 text-gray-400 text-sm animate-pulse ${className}`}>
+      <div className={`flex items-center space-x-2 text-gray-500 text-sm animate-pulse ${className}`}>
         <RefreshCw className="h-4 w-4 animate-spin" />
         <span>{t.balance.loading}</span>
       </div>
@@ -54,7 +54,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   if (!balance) {
     return (
-      <div className={`flex items-center space-x-2 text-gray-400 text-sm ${className}`}>
+      <div className={`flex items-center space-x-2 text-gray-500 text-sm ${className}`}>
         <Wallet className="h-4 w-4" />
         <span>{t.balance.notAvailable}</span>
       </div>
@@ -64,7 +64,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const balanceNumber = Number(balance.formatted);
   const isLowBalance = balanceNumber < 1; // Less than 1 token
   const hasSufficientBalance = requiredAmount ? balanceNumber >= requiredAmount : true;
-  
+
   // Format balance to show fewer decimals for display
   const formatBalance = (value: string) => {
     const num = Number(value);
@@ -76,32 +76,32 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   };
 
   const getBalanceColor = () => {
-    if (!hasBalance) return 'text-red-400';
-    if (requiredAmount && !hasSufficientBalance) return 'text-orange-400';
-    if (isLowBalance) return 'text-yellow-400';
-    return 'text-green-400';
+    if (!hasBalance) return 'text-red-500';
+    if (requiredAmount && !hasSufficientBalance) return 'text-orange-500';
+    if (isLowBalance) return 'text-yellow-600';
+    return 'text-green-600';
   };
 
   const getBalanceIcon = () => {
-    if (!hasBalance) return <XCircle className="h-4 w-4 text-red-400" />;
-    if (requiredAmount && !hasSufficientBalance) return <AlertCircle className="h-4 w-4 text-orange-400" />;
-    if (hasBalance) return <CheckCircle className="h-4 w-4 text-green-400" />;
+    if (!hasBalance) return <XCircle className="h-4 w-4 text-red-500" />;
+    if (requiredAmount && !hasSufficientBalance) return <AlertCircle className="h-4 w-4 text-orange-500" />;
+    if (hasBalance) return <CheckCircle className="h-4 w-4 text-green-600" />;
     return <Wallet className="h-4 w-4 text-gray-400" />;
   };
 
   return (
     <div className={`flex items-center space-x-2 text-sm ${className}`}>
       {getBalanceIcon()}
-      <span className="text-gray-300">{t.balance.label}</span>
+      <span className="text-gray-600">{t.balance.label}</span>
       <span className={`font-medium ${getBalanceColor()}`}>
         {formatBalance(balance.formatted)} {balance.symbol}
       </span>
       {!hasBalance && (
-        <span className="text-red-400 text-xs">{t.balance.noFunds}</span>
+        <span className="text-red-500 text-xs">{t.balance.noFunds}</span>
       )}
       {requiredAmount && hasBalance && !hasSufficientBalance && (
-        <span className="text-orange-400 text-xs">({t.balance.insufficient})</span>
+        <span className="text-orange-500 text-xs">({t.balance.insufficient})</span>
       )}
     </div>
   );
-}; 
+};

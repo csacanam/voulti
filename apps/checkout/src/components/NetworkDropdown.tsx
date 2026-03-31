@@ -32,18 +32,18 @@ export const NetworkDropdown: React.FC<NetworkDropdownProps> = ({
         disabled={disabled}
         className={`w-full border rounded-lg p-3 text-left flex items-center justify-between transition-colors ${
           disabled 
-            ? 'bg-gray-900 border-gray-800 text-gray-500 cursor-not-allowed' 
-            : 'bg-gray-800 border-gray-700 text-white hover:border-gray-600'
+            ? 'bg-gray-50 border-gray-800 text-gray-500 cursor-not-allowed' 
+            : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
         }`}
       >
         <span>{selectedNetwork || t.payment.selectNetwork}</span>
         <ChevronDown className={`h-5 w-5 transition-transform ${
-          disabled ? 'text-gray-600' : 'text-gray-400'
+          disabled ? 'text-gray-600' : 'text-gray-500'
         } ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && !disabled && (
-        <div className={`absolute ${zIndex} w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg`}>
+        <div className={`absolute ${zIndex} w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg`}>
           {networks.map((network) => (
             <button
               key={network}
@@ -51,7 +51,7 @@ export const NetworkDropdown: React.FC<NetworkDropdownProps> = ({
                 onNetworkSelect(network);
                 closeDropdown();
               }}
-              className="w-full text-left p-3 hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg text-white"
+              className="w-full text-left p-3 hover:bg-gray-100 transition-colors first:rounded-t-lg last:rounded-b-lg text-gray-900"
             >
               {network}
             </button>

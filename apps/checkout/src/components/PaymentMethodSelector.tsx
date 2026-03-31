@@ -11,31 +11,31 @@ export function PaymentMethodSelector({ onSelectWallet, onSelectAddress }: Payme
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-400 text-center mb-4">{t.paymentMethod.title}</p>
+      <p className="text-sm text-gray-500 text-center mb-4">{t.paymentMethod.title}</p>
 
       <button
         onClick={onSelectWallet}
-        className="w-full flex items-center gap-4 p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-blue-500 hover:bg-gray-800/80 transition-all text-left group"
+        className="w-full flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-violet-500 hover:bg-gray-50 transition-all text-left group"
       >
-        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
-          <Wallet className="w-6 h-6 text-blue-400" />
+        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
+          <Wallet className="w-6 h-6 text-violet-600" />
         </div>
         <div>
-          <div className="font-medium text-white">{t.paymentMethod.connectWallet}</div>
-          <div className="text-sm text-gray-400">{t.paymentMethod.connectWalletDesc}</div>
+          <div className="font-medium text-gray-900">{t.paymentMethod.connectWallet}</div>
+          <div className="text-sm text-gray-500">{t.paymentMethod.connectWalletDesc}</div>
         </div>
       </button>
 
       <button
         onClick={onSelectAddress}
-        className="w-full flex items-center gap-4 p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-purple-500 hover:bg-gray-800/80 transition-all text-left group"
+        className="w-full flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-violet-500 hover:bg-gray-50 transition-all text-left group"
       >
-        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
-          <QrCode className="w-6 h-6 text-purple-400" />
+        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
+          <QrCode className="w-6 h-6 text-violet-600" />
         </div>
         <div>
-          <div className="font-medium text-white">{t.paymentMethod.payByAddress}</div>
-          <div className="text-sm text-gray-400">{t.paymentMethod.payByAddressDesc}</div>
+          <div className="font-medium text-gray-900">{t.paymentMethod.payByAddress}</div>
+          <div className="text-sm text-gray-500">{t.paymentMethod.payByAddressDesc}</div>
         </div>
       </button>
     </div>
