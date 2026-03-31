@@ -328,15 +328,9 @@ export const DemoPage: React.FC = () => {
       <footer className="bg-white border-t border-gray-200 py-6 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-gray-400 text-sm">
-            {t.footer.builtWithLove}{' '}
-            <a
-              href="https://x.com/camilosaka"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-violet-600 hover:text-violet-700 font-medium transition-colors duration-200"
-            >
-              camilosaka
-            </a>
+            &copy; Voulti {new Date().getFullYear()} &middot; A{' '}
+            <a href="https://sakalabs.xyz" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-violet-600 font-medium transition-colors">Saka Labs</a>{' '}
+            product
           </p>
         </div>
       </footer>

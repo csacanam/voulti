@@ -277,10 +277,10 @@ export const CommercePage: React.FC = () => {
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-gray-900 font-medium mb-2">{t.commerce.supportedTokens}:</h3>
               <div className="flex flex-wrap gap-2">
-                {commerce.supported_tokens.map((token) => (
+                {[...new Set(commerce.supported_tokens)].map((token) => (
                   <span
                     key={token}
-                    className="px-2 py-1 bg-violet-50 text-violet-700 border border-violet-200 text-xs rounded"
+                    className="px-3 py-1 bg-violet-50 text-violet-700 border border-violet-200 text-xs font-medium rounded-full"
                   >
                     {token}
                   </span>
