@@ -78,79 +78,15 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
-      {
-        network: "base",
-        chainId: 8453,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://basescan.org"
-        }
-      },
-      {
-        network: "baseTestnet",
-        chainId: 84531,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://goerli.basescan.org"
-        }
-      },
-      {
-        network: "celo",
-        chainId: 42220,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://celoscan.io"
-        }
-      },
-      {
-        network: "celoTestnet",
-        chainId: 44787,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://alfajores.celoscan.io"
-        }
-      },
-      {
-        network: "arbitrum",
-        chainId: 42161,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://arbiscan.io"
-        }
-      },
-      {
-        network: "bsc",
-        chainId: 56,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://bscscan.com"
-        }
-      },
-      {
-        network: "bscTestnet",
-        chainId: 97,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://testnet.bscscan.com"
-        }
-      },
-      {
-        network: "polygon",
-        chainId: 137,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://polygonscan.com"
-        }
-      },
-      {
-        network: "polygonTestnet",
-        chainId: 80001,
-        urls: {
-          apiURL: "https://api.etherscan.io/v2/api",
-          browserURL: "https://mumbai.polygonscan.com"
-        }
-      }
+      { network: "celo", chainId: 42220, urls: { apiURL: "https://api.etherscan.io/v2/api?chainid=42220", browserURL: "https://celoscan.io" } },
+      { network: "arbitrum", chainId: 42161, urls: { apiURL: "https://api.etherscan.io/v2/api?chainid=42161", browserURL: "https://arbiscan.io" } },
+      { network: "polygon", chainId: 137, urls: { apiURL: "https://api.etherscan.io/v2/api?chainid=137", browserURL: "https://polygonscan.com" } },
+      { network: "base", chainId: 8453, urls: { apiURL: "https://api.etherscan.io/v2/api?chainid=8453", browserURL: "https://basescan.org" } },
+      { network: "bsc", chainId: 56, urls: { apiURL: "https://api.etherscan.io/v2/api?chainid=56", browserURL: "https://bscscan.com" } },
     ]
+  },
+  sourcify: {
+    enabled: true,
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
