@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, Loader2, ArrowDown, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Loader2, ArrowDown } from "lucide-react"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/hooks/use-toast"
@@ -13,11 +13,9 @@ import { ethers } from "ethers"
 import { PROXY_ADDRESSES, DERAMP_PROXY_ABI } from "@/blockchain/contracts"
 import { NETWORKS } from "@/blockchain/networks"
 import { apiClient } from "@/services/api"
-import type { AggregatedBalance } from "@/hooks/use-aggregated-balances"
+import type { TokenBalance } from "@/hooks/use-token-balance"
 
-const NETWORK_PRIORITY = ["celo", "base", "polygon", "arbitrum", "bsc"]
-
-// Minimum gas thresholds per network (same as monitoring)
+// Minimum gas to execute a withdraw tx
 const GAS_THRESHOLDS: Record<string, number> = {
   celo: 0.01,
   arbitrum: 0.0002,
@@ -29,11 +27,12 @@ const GAS_THRESHOLDS: Record<string, number> = {
 interface WithdrawDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  token: AggregatedBalance
+  networkEntry: TokenBalance & { balanceNum: number }
+  symbol: string
   onSuccess: () => void
 }
 
-export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: WithdrawDialogProps) {
+export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuccess }: WithdrawDialogProps) {
   const { commerce } = useCommerce()
   const { toast } = useToast()
   const { wallets } = useWallets()
@@ -42,76 +41,56 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasGas, setHasGas] = useState<boolean | null>(null)
-  const [checkingGas, setCheckingGas] = useState(false)
+  const [checkingGas, setCheckingGas] = useState(true)
   const [fee, setFee] = useState<number>(0)
-  const [resolvedNetwork, setResolvedNetwork] = useState<string | null>(null)
-  const [resolvedEntry, setResolvedEntry] = useState<typeof token.networks[0] | null>(null)
 
-  // Resolve best network and check gas
+  const network = networkEntry.network
+  const balance = networkEntry.balanceNum
+  const netAmount = hasGas === false ? balance - fee : balance
+
+  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+
+  // Check gas and get fee on open
   useEffect(() => {
-    if (!open || !token) return
+    if (!open) return
 
-    const checkGasAndResolve = async () => {
+    const check = async () => {
       setCheckingGas(true)
       setError(null)
       setHasGas(null)
 
-      // Find best network (priority order, with balance)
-      const sorted = [...token.networks].sort((a, b) => {
-        const aIdx = NETWORK_PRIORITY.indexOf(a.network)
-        const bIdx = NETWORK_PRIORITY.indexOf(b.network)
-        return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx)
-      })
-
-      const best = sorted.find(n => n.balanceNum > 0 && PROXY_ADDRESSES[n.network])
-      if (!best) {
-        setError(t.send?.errorNoNetwork || "No network available")
-        setCheckingGas(false)
-        return
-      }
-
-      setResolvedNetwork(best.network)
-      setResolvedEntry(best)
-
-      // Check native gas balance
-      const networkConfig = NETWORKS[best.network]
+      const networkConfig = NETWORKS[network]
       if (!networkConfig) {
         setHasGas(false)
         setCheckingGas(false)
         return
       }
 
+      // Check native gas balance
       try {
         const wallet = wallets.find(w => w.walletClientType === "privy")
-        if (!wallet) {
+        if (wallet) {
+          const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
+            name: networkConfig.name,
+            chainId: networkConfig.chainId,
+          })
+          const bal = await provider.getBalance(wallet.address)
+          const balNum = parseFloat(ethers.formatEther(bal))
+          setHasGas(balNum >= (GAS_THRESHOLDS[network] || 0.001))
+        } else {
           setHasGas(false)
-          setCheckingGas(false)
-          return
         }
-
-        const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-          name: networkConfig.name,
-          chainId: networkConfig.chainId,
-        })
-        const balance = await provider.getBalance(wallet.address)
-        const balanceNum = parseFloat(ethers.formatEther(balance))
-        const threshold = GAS_THRESHOLDS[best.network] || 0.001
-
-        setHasGas(balanceNum >= threshold)
       } catch {
-        // If we can't check, assume no gas
         setHasGas(false)
       }
 
-      // Get fee estimate if needed
+      // Get fee estimate
       try {
         const resp = await apiClient.get<{ success: boolean; data: { fee_token: number } }>(
-          `/commerces/withdraw-fee/${token.symbol}`,
+          `/commerces/withdraw-fee/${symbol}`,
           { skipAuth: true }
         )
-        if (resp.success) {
-          setFee(resp.data.fee_token)
-        }
+        if (resp.success) setFee(resp.data.fee_token)
       } catch {
         setFee(0)
       }
@@ -119,18 +98,11 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
       setCheckingGas(false)
     }
 
-    checkGasAndResolve()
-  }, [open, token, wallets, t])
+    check()
+  }, [open, network, symbol, wallets])
 
-  const netAmount = token.totalBalance - fee
-  const formattedBalance = token.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-  const formattedFee = fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-  const formattedNet = netAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-
-  // Direct withdraw (user has gas)
+  // Direct withdraw (merchant has gas)
   const handleDirectWithdraw = async () => {
-    if (!resolvedNetwork || !resolvedEntry) return
-
     setLoading(true)
     setError(null)
 
@@ -138,7 +110,7 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
       const wallet = wallets.find(w => w.walletClientType === "privy")
       if (!wallet) throw new Error("No embedded wallet found")
 
-      const networkConfig = NETWORKS[resolvedNetwork]
+      const networkConfig = NETWORKS[network]
       if (!networkConfig) throw new Error("Network not configured")
 
       try {
@@ -161,24 +133,21 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
       const ethersProvider = new ethers.BrowserProvider(provider)
       const signer = await ethersProvider.getSigner()
 
-      const proxyAddress = PROXY_ADDRESSES[resolvedNetwork]
-      const proxy = new ethers.Contract(proxyAddress, DERAMP_PROXY_ABI, signer)
-
-      const tx = await proxy.withdraw(resolvedEntry.tokenAddress)
+      const proxy = new ethers.Contract(PROXY_ADDRESSES[network], DERAMP_PROXY_ABI, signer)
+      const tx = await proxy.withdraw(networkEntry.tokenAddress)
       await tx.wait()
 
       toast({
         title: t.send?.transferSent || "Withdrawal sent!",
-        description: `${resolvedEntry.balanceNum} ${token.symbol} via ${resolvedNetwork}`,
+        description: `${fmt(balance)} ${symbol} via ${network}`,
       })
       onSuccess()
-      handleClose()
     } catch (err: any) {
       const msg = err.message || ""
       if (err.code === "ACTION_REJECTED" || msg.includes("rejected")) {
         setError(t.send?.errorRejected || "Transaction cancelled")
       } else if (msg.includes("insufficient funds")) {
-        setError(t.send?.errorGas?.replace("{network}", resolvedNetwork || "") || "Insufficient gas")
+        setError(t.send?.errorGas?.replace("{network}", NETWORKS[network]?.name || network) || "Insufficient gas")
       } else {
         setError(t.send?.errorGeneric || "Something went wrong")
       }
@@ -189,8 +158,7 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
 
   // Gasless withdraw via backend
   const handleGaslessWithdraw = async () => {
-    if (!resolvedNetwork || !resolvedEntry || !commerce) return
-
+    if (!commerce) return
     setLoading(true)
     setError(null)
 
@@ -198,19 +166,18 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
       const resp = await apiClient.post<{ success: boolean; data: { tx_hash: string; net_amount: string } }>(
         `/commerces/${commerce.commerce_id}/withdraw-for`,
         {
-          token_address: resolvedEntry.tokenAddress,
-          amount: resolvedEntry.balanceNum.toString(),
-          network: resolvedNetwork,
+          token_address: networkEntry.tokenAddress,
+          amount: networkEntry.balance,
+          network,
         }
       )
 
       if (resp.success) {
         toast({
           title: t.send?.transferSent || "Withdrawal sent!",
-          description: `${resp.data.net_amount} ${token.symbol} via ${resolvedNetwork}`,
+          description: `${resp.data.net_amount} ${symbol} via ${network}`,
         })
         onSuccess()
-        handleClose()
       }
     } catch (err: any) {
       setError(err.message || "Withdrawal failed")
@@ -219,21 +186,12 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
     }
   }
 
-  const handleClose = () => {
-    if (loading) return
-    setError(null)
-    setHasGas(null)
-    setResolvedNetwork(null)
-    setResolvedEntry(null)
-    onOpenChange(false)
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v) }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {t.send?.withdraw || "Withdraw"} {token.symbol}
+            {t.send?.withdraw || "Withdraw"} {symbol}
           </DialogTitle>
         </DialogHeader>
 
@@ -254,28 +212,26 @@ export function WithdrawDialog({ open, onOpenChange, token, onSuccess }: Withdra
             <div className="bg-muted rounded-lg p-4 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{t.send?.stats?.balance || "Available"}</span>
-                <span className="font-semibold">{formattedBalance} {token.symbol}</span>
+                <span className="font-semibold">{fmt(balance)} {symbol}</span>
               </div>
 
               {hasGas === false && fee > 0 && (
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t.send?.withdrawFee || "Withdrawal fee"}</span>
-                    <span className="font-medium text-amber-600">-{formattedFee} {token.symbol}</span>
+                    <span className="font-medium text-amber-600">-{fmt(fee)} {symbol}</span>
                   </div>
-                  <div className="border-t pt-3 flex justify-between text-sm">
-                    <span className="font-medium">{t.send?.youReceive || "You receive"}</span>
-                    <span className="font-bold text-lg">{formattedNet} {token.symbol}</span>
+                  <div className="border-t pt-3 flex justify-between items-center">
+                    <span className="font-medium text-sm">{t.send?.youReceive || "You receive"}</span>
+                    <span className="font-bold text-lg">{fmt(netAmount)} {symbol}</span>
                   </div>
                 </>
               )}
 
-              {resolvedNetwork && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t.send?.network || "Network"}</span>
-                  <span className="font-medium capitalize">{resolvedNetwork}</span>
-                </div>
-              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{t.send?.network || "Network"}</span>
+                <span className="font-medium capitalize">{network}</span>
+              </div>
             </div>
 
             <Button
