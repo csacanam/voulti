@@ -88,7 +88,7 @@ export const HomePage: React.FC = () => {
       <section id="demos" className="py-16 px-4 bg-white border-y border-gray-200">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4">
-            {language === 'es' ? '3 formas de recibir pagos' : '3 ways to receive payments'}
+            {language === 'es' ? '4 formas de recibir pagos' : '4 ways to receive payments'}
           </h2>
           <p className="text-gray-500 text-center mb-12 max-w-xl mx-auto">
             {language === 'es'
@@ -231,6 +231,44 @@ export const HomePage: React.FC = () => {
 }
 
 → ${baseUrl}/checkout/{id}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. AI Agents */}
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="md:order-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center">4</div>
+                  <h3 className="text-xl font-bold">
+                    {language === 'es' ? 'Agentes de IA' : 'AI Agents'}
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  {language === 'es'
+                    ? 'Tu agente de IA puede crear invoices, generar links de pago y verificar el estado de los pagos. Solo necesita leer un archivo.'
+                    : 'Your AI agent can create invoices, generate payment links, and check payment status. It just needs to read one file.'}
+                </p>
+                <a
+                  href="/skill.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-violet-600 hover:text-violet-700 font-medium text-sm"
+                >
+                  {language === 'es' ? 'Ver skill.md →' : 'View skill.md →'}
+                </a>
+              </div>
+              <div className="md:order-1 flex justify-center">
+                <div className="bg-gray-900 rounded-2xl p-5 max-w-[340px] w-full overflow-hidden">
+                  <p className="text-gray-400 text-xs font-mono mb-3">{'// For your AI agent'}</p>
+                  <pre className="text-green-400 text-xs leading-relaxed overflow-x-auto">
+{`Read voulti.com/skill.md
+
+That's it. The skill file has
+everything: what to ask your
+human, how to create invoices,
+and how to check payments.`}
                   </pre>
                 </div>
               </div>

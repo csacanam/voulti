@@ -3,6 +3,12 @@
   command = "npm run build"
   publish = "dist"
 
+# Serve skill.md as plain text (before SPA catch-all)
+[[headers]]
+  for = "/skill.md"
+  [headers.values]
+    Content-Type = "text/markdown; charset=utf-8"
+
 # Handle React Router client-side routing
 [[redirects]]
   from = "/*"

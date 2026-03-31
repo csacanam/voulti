@@ -71,6 +71,10 @@ export const en = {
     listInvoices: "List all invoices",
     getBalances: "Get balances (all networks)",
     response: "Response:",
+    // AI Agents
+    aiAgentsTitle: "AI Agents",
+    aiAgentsDesc: "Building with an AI agent? Point it to your skill file — it has everything it needs to create invoices and check payments.",
+    aiAgentsSkillUrl: "Your skill file URL",
   },
   send: {
     title: "Send Tokens",

@@ -71,6 +71,10 @@ export const es = {
     listInvoices: "Listar todas las facturas",
     getBalances: "Obtener saldos (todas las redes)",
     response: "Respuesta:",
+    // AI Agents
+    aiAgentsTitle: "Agentes de IA",
+    aiAgentsDesc: "¿Estás construyendo con un agente de IA? Apúntalo a tu archivo skill — tiene todo lo que necesita para crear facturas y verificar pagos.",
+    aiAgentsSkillUrl: "URL de tu archivo skill",
   },
   send: {
     title: "Enviar Tokens",

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2, Save } from "lucide-react"
+import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2, Save, Bot } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { QrModal } from "@/components/qr-modal"
@@ -395,6 +395,17 @@ function DevelopersTab() {
         <p className="text-sm font-semibold">{t.receive.otherEndpoints}</p>
         <CB code={`curl ${apiBase}/invoices/by-commerce/${cid}`} id="list" label={t.receive.listInvoices} />
         <CB code={`curl ${apiBase}/commerces/${cid}/balances`} id="bal" label={t.receive.getBalances} />
+      </Card>
+
+      {/* AI Agents */}
+      <Card className="p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Bot className="w-4 h-4 text-primary" />
+          <p className="text-sm font-semibold">{t.receive.aiAgentsTitle}</p>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">{t.receive.aiAgentsDesc}</p>
+        <p className="text-xs text-muted-foreground mb-1">{t.receive.aiAgentsSkillUrl}</p>
+        <CB code={`${CHECKOUT_BASE_URL}/skill.md`} id="skill" />
       </Card>
     </div>
   )
