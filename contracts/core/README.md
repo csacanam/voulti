@@ -187,3 +187,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Deramp** - Building the future of decentralized payment processing 🚀
+
+## Production Deployed Addresses
+
+See [deployed-addresses/PRODUCTION.md](deployed-addresses/PRODUCTION.md) for all contract addresses across 5 networks.
+
+**Operator Wallet:** `0x21581Cb82D9a66126fBe7639f4AF55DdfEA48E26`
+
+| Network | Proxy | Tokens |
+|---------|-------|--------|
+| Celo | `0xcdbBc0DB...` | USDC, USDT, COPm |
+| Arbitrum | `0xf8553C9D...` | USDC, USD₮0 |
+| Polygon | `0xc7F43131...` | USDC, USDT0 |
+| Base | `0x7D8a7f89...` | USDC |
+| BSC | `0xDf90971E...` | USDC, USDT |
