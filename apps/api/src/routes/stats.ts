@@ -1,23 +1,22 @@
 import { FastifyInstance } from 'fastify';
-import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
-import { NETWORKS } from '../blockchain/config/networks';
-import { CONTRACTS } from '../blockchain/config/contracts';
-import { TOKENS } from '../blockchain/config/tokens';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_KEY!
 );
 
-const STORAGE_ABI = [
-  'function serviceFeeBalances(address token) view returns (uint256)',
-];
-
 export async function statsRoutes(app: FastifyInstance) {
 
   app.get('/', async (req, res) => {
     try {
+      // Get all paid invoices with fee data
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('paid_token, paid_network, fee_amount')
+        .eq('status', 'Paid')
+        .gt('fee_amount', 0);
+
       // Get token rates from DB
       const { data: tokenRates } = await supabase
         .from('tokens')
@@ -29,72 +28,40 @@ export async function statsRoutes(app: FastifyInstance) {
         rates[t.symbol] = t.rate_to_usd || 0;
       }
 
-      const fees: {
-        network: string;
-        chainId: number;
-        symbol: string;
-        feeBalance: string;
-        feeUsd: string;
-      }[] = [];
-
+      // Aggregate fees by token+network
+      const byNetwork: { network: string; symbol: string; feeBalance: string; feeUsd: string }[] = [];
       let totalFeeUsd = 0;
 
-      const promises = Object.entries(CONTRACTS).map(async ([networkName, contracts]) => {
-        if (!contracts.DERAMP_STORAGE || networkName === 'hardhat') return;
+      const agg = new Map<string, { network: string; symbol: string; total: number }>();
 
-        const networkTokens = TOKENS[networkName];
-        if (!networkTokens) return;
-
-        const networkConfig = NETWORKS[networkName as keyof typeof NETWORKS];
-        if (!networkConfig) return;
-
-        try {
-          const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-            name: networkConfig.name,
-            chainId: networkConfig.chainId,
-          });
-
-          const storage = new ethers.Contract(contracts.DERAMP_STORAGE, STORAGE_ABI, provider);
-
-          for (const [, tokenInfo] of Object.entries(networkTokens)) {
-            try {
-              const raw = await storage.serviceFeeBalances(tokenInfo.address);
-              const formatted = ethers.formatUnits(raw, tokenInfo.decimals);
-              const balance = parseFloat(formatted);
-
-              if (balance > 0) {
-                const tokenRate = rates[tokenInfo.symbol] || 0;
-                const usdValue = balance * tokenRate;
-
-                fees.push({
-                  network: networkName,
-                  chainId: networkConfig.chainId,
-                  symbol: tokenInfo.symbol,
-                  feeBalance: formatted,
-                  feeUsd: usdValue.toFixed(6),
-                });
-
-                totalFeeUsd += usdValue;
-              }
-            } catch {
-              // skip token
-            }
-          }
-        } catch {
-          // skip network
+      for (const inv of invoices || []) {
+        if (!inv.paid_token || !inv.fee_amount) continue;
+        const key = `${inv.paid_network}:${inv.paid_token}`;
+        const existing = agg.get(key);
+        if (existing) {
+          existing.total += Number(inv.fee_amount);
+        } else {
+          agg.set(key, { network: inv.paid_network || '', symbol: inv.paid_token, total: Number(inv.fee_amount) });
         }
-      });
+      }
 
-      await Promise.all(promises);
+      for (const [, entry] of agg) {
+        const rate = rates[entry.symbol] || 0;
+        const usd = entry.total * rate;
+        totalFeeUsd += usd;
+        byNetwork.push({
+          network: entry.network,
+          symbol: entry.symbol,
+          feeBalance: entry.total.toFixed(6),
+          feeUsd: usd.toFixed(6),
+        });
+      }
 
       return res.send({
         revenue: {
           totalUsd: totalFeeUsd < 0.01 ? totalFeeUsd.toFixed(6) : totalFeeUsd.toFixed(2),
-          byNetwork: fees,
+          byNetwork,
         },
-        networks: Object.entries(CONTRACTS)
-          .filter(([name, c]) => c.DERAMP_PROXY && name !== 'hardhat')
-          .map(([name]) => name),
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {

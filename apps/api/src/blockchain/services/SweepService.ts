@@ -272,7 +272,11 @@ export class SweepService {
 
         console.log(`[SweepService] PayInvoice: ${payTx.hash}`);
 
-        // Update invoice as paid
+        // Update invoice as paid — calculate fee (default 1% = 100 bps)
+        const paidAmount = parseFloat(deposit.expected_amount);
+        const feePercent = 100; // basis points
+        const feeAmount = (paidAmount * feePercent) / 10000;
+
         await supabase
           .from('invoices')
           .update({
@@ -282,7 +286,9 @@ export class SweepService {
             paid_network: deposit.network,
             paid_tx_hash: payTx.hash,
             wallet_address: deposit.address,
-            paid_amount: parseFloat(deposit.expected_amount),
+            paid_amount: paidAmount,
+            fee_percent: feePercent,
+            fee_amount: feeAmount,
             paid_at: new Date().toISOString(),
           })
           .eq('id', deposit.invoice_id);

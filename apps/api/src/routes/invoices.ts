@@ -515,7 +515,10 @@ export async function invoicesRoutes(app: FastifyInstance) {
           });
         }
   
-        // Prepare update data
+        // Prepare update data — calculate fee (default 1% = 100 bps)
+        const feePercent = 100; // basis points
+        const feeAmount = (paid_amount * feePercent) / 10000;
+
         const updateData: any = {
           status: "Paid",
           paid_token,
@@ -523,6 +526,8 @@ export async function invoicesRoutes(app: FastifyInstance) {
           paid_tx_hash,
           wallet_address,
           paid_amount,
+          fee_percent: feePercent,
+          fee_amount: feeAmount,
           paid_at: new Date().toISOString()
         };
   
