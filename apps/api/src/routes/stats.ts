@@ -1,8 +1,14 @@
 import { FastifyInstance } from 'fastify';
 import { ethers } from 'ethers';
+import { createClient } from '@supabase/supabase-js';
 import { NETWORKS } from '../blockchain/config/networks';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { TOKENS } from '../blockchain/config/tokens';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_KEY!
+);
 
 const STORAGE_ABI = [
   'function serviceFeeBalances(address token) view returns (uint256)',
@@ -10,16 +16,25 @@ const STORAGE_ABI = [
 
 export async function statsRoutes(app: FastifyInstance) {
 
-  // Public stats endpoint — no auth required
   app.get('/', async (req, res) => {
     try {
+      // Get token rates from DB
+      const { data: tokenRates } = await supabase
+        .from('tokens')
+        .select('symbol, rate_to_usd')
+        .eq('is_enabled', true);
+
+      const rates: Record<string, number> = {};
+      for (const t of tokenRates || []) {
+        rates[t.symbol] = t.rate_to_usd || 0;
+      }
+
       const fees: {
         network: string;
         chainId: number;
-        token: string;
         symbol: string;
-        decimals: number;
         feeBalance: string;
+        feeUsd: string;
       }[] = [];
 
       let totalFeeUsd = 0;
@@ -48,17 +63,18 @@ export async function statsRoutes(app: FastifyInstance) {
               const balance = parseFloat(formatted);
 
               if (balance > 0) {
+                const tokenRate = rates[tokenInfo.symbol] || 0;
+                const usdValue = balance * tokenRate;
+
                 fees.push({
                   network: networkName,
                   chainId: networkConfig.chainId,
-                  token: tokenInfo.address,
                   symbol: tokenInfo.symbol,
-                  decimals: tokenInfo.decimals,
                   feeBalance: formatted,
+                  feeUsd: usdValue.toFixed(6),
                 });
 
-                // Rough USD estimate (stablecoins ~= $1)
-                totalFeeUsd += balance;
+                totalFeeUsd += usdValue;
               }
             } catch {
               // skip token
