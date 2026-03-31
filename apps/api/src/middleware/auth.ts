@@ -10,6 +10,7 @@ const privy = new PrivyClient(
 export interface AuthenticatedRequest extends FastifyRequest {
   privyUserId?: string;
   walletAddress?: string;
+  userEmail?: string;
 }
 
 /**
@@ -39,6 +40,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: FastifyReply) 
 
     req.privyUserId = userId;
     req.walletAddress = walletAddress;
+    req.userEmail = user.email?.address || undefined;
   } catch (err: any) {
     if (err.message?.includes('expired')) {
       return res.status(401).send({ error: 'Token expired' });

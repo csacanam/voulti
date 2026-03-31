@@ -275,6 +275,7 @@ export async function commercesRoutes(app: FastifyInstance) {
           wallet: wallet.toLowerCase(),
           name,
           currency: currency || 'USD',
+          confirmation_email: (req as any).userEmail || null,
         })
         .select()
         .single();
