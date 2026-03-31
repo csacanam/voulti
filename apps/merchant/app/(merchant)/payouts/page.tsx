@@ -57,9 +57,12 @@ export default function PayoutsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
 
-  const { aggregated, totalUsd: totalBalance, loading: balanceLoading, refresh: refreshBalances } = useAggregatedBalances(
+  const { aggregated, totalUsd: totalBalance, fiatRates, loading: balanceLoading, refresh: refreshBalances } = useAggregatedBalances(
     commerce?.commerce_id || null
   )
+
+  const currency = commerce?.currency || "USD"
+  const fiatRate = fiatRates[currency] || 1
 
   useEffect(() => {
     const fetchPayouts = async () => {
@@ -116,6 +119,8 @@ export default function PayoutsPage() {
         balance={authenticated ? totalBalance : null}
         totalPaid={authenticated ? totalPaid : null}
         payoutCount={authenticated ? payoutCount : null}
+        currency={currency}
+        fiatRate={fiatRate}
       />
 
       {/* Token balances */}

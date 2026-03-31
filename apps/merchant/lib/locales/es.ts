@@ -100,6 +100,14 @@ export const es = {
     errorGeneric: "Algo salió mal. Inténtalo de nuevo o contacta a soporte.",
     errorFragmented: "Tu {symbol} está distribuido en varias redes ({breakdown}). Ninguna red tiene {amount} {symbol}. Envía un monto menor o consolida primero.",
     errorNoNetwork: "No hay red disponible con saldo suficiente y contrato desplegado",
+    stats: {
+      balance: "Saldo",
+      totalSent: "Total Enviado",
+      totalTransfers: "Total Transferencias",
+      loginBalance: "Inicia sesión para ver tu saldo",
+      loginStats: "Inicia sesión para ver tus estadísticas",
+      loginTransfers: "Inicia sesión para ver tus transferencias",
+    },
   },
   createLink: {
     title: "Nuevo Link de Pago",

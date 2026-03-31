@@ -100,6 +100,14 @@ export const en = {
     errorGeneric: "Something went wrong. Please try again or contact support.",
     errorFragmented: "Your {symbol} is spread across networks ({breakdown}). No single network has {amount} {symbol}. Send a smaller amount or consolidate first.",
     errorNoNetwork: "No network available with sufficient balance and contract deployed",
+    stats: {
+      balance: "Balance",
+      totalSent: "Total Sent",
+      totalTransfers: "Total Transfers",
+      loginBalance: "Please login to view your balance",
+      loginStats: "Please login to view your stats",
+      loginTransfers: "Please login to view your transfers",
+    },
   },
   createLink: {
     title: "New Payment Link",
