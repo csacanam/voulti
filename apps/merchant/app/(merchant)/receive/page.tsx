@@ -92,8 +92,8 @@ function PaymentLinksTab() {
 
         setLinks(invoices.map((inv: any) => {
           let status: "active" | "expired" | "disabled" = "active"
-          if (inv.status === "Expired" || (inv.expires_at && new Date(inv.expires_at) < new Date())) status = "expired"
-          else if (inv.status === "Paid") status = "disabled"
+          if (inv.status === "Paid") status = "disabled"
+          else if (inv.status === "Expired" || (inv.expires_at && new Date(inv.expires_at) < new Date())) status = "expired"
 
           return {
             id: inv.id,

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Download, Printer, X } from "lucide-react"
 import { QRCodeCanvas } from "qrcode.react"
 import { useCommerce } from "@/components/providers/commerce-provider"
+import { useLanguage } from "@/components/providers/language-provider"
 
 interface QrModalProps {
   open: boolean
@@ -15,6 +16,7 @@ interface QrModalProps {
 
 export function QrModal({ open, onOpenChange, url }: QrModalProps) {
   const { commerce } = useCommerce()
+  const { t } = useLanguage()
   const stickerRef = useRef<HTMLDivElement>(null)
 
   const handleDownload = useCallback(async () => {
@@ -208,9 +210,9 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
                 lineHeight: 1.15,
               }}
             >
-              Crypto
+              {t.qrSticker.cryptoAccepted}
               <br />
-              Accepted Here
+              {t.qrSticker.acceptedHere}
             </h2>
             <p
               style={{
@@ -222,7 +224,7 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
                 textTransform: "uppercase",
               }}
             >
-              Scan to Pay
+              {t.qrSticker.scanToPay}
             </p>
           </div>
 
@@ -248,9 +250,9 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
                 lineHeight: 1.6,
               }}
             >
-              <span style={{ fontWeight: 600, color: "#555" }}>Scan</span> with your phone camera
+              <span style={{ fontWeight: 600, color: "#555" }}>{t.qrSticker.scanWithCamera}</span> {t.qrSticker.scanDesc}
               <br />
-              to pay with USDC, USDT & more
+              {t.qrSticker.payWith}
             </p>
 
             {commerce?.name && (
@@ -286,11 +288,11 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
         <div className="px-4 pb-4 pt-3 flex gap-2 bg-background border-t">
           <Button onClick={handleDownload} className="flex-1 gap-2">
             <Download className="w-4 h-4" />
-            Download
+            {t.qrSticker.download}
           </Button>
           <Button onClick={handlePrint} variant="outline" className="flex-1 gap-2">
             <Printer className="w-4 h-4" />
-            Print
+            {t.qrSticker.print}
           </Button>
         </div>
       </DialogContent>

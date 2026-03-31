@@ -23,7 +23,7 @@ export const getCommerce = async (commerceId: string): Promise<CommerceResponse>
     const baseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_BACKEND_URL || '');
     
     // Build the full URL
-    const fullUrl = `${baseUrl}/api/commerces/${commerceId}`;
+    const fullUrl = `${baseUrl}/commerces/${commerceId}`;
     
     // Make API call to backend
     const response = await fetch(fullUrl, {

@@ -157,6 +157,17 @@ export const en = {
     dLeft: "{d}d left",
     expired: "Expired",
   },
+  qrSticker: {
+    cryptoAccepted: "Crypto",
+    acceptedHere: "Accepted Here",
+    scanToPay: "SCAN TO PAY",
+    scanWithCamera: "Scan",
+    scanDesc: "with your phone camera",
+    payWith: "to pay with USDC, USDT & more",
+    poweredBy: "Powered by ",
+    download: "Download",
+    print: "Print",
+  },
   account: {
     title: "Account",
     subtitle: "Your commerce information and settings",
