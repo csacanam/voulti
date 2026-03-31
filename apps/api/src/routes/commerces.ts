@@ -244,14 +244,19 @@ export async function commercesRoutes(app: FastifyInstance) {
   app.post('/:id/withdraw-for', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };
-      const { token_address, amount, network } = req.body as {
+      const { token_address, amount, network, to } = req.body as {
         token_address: string;
         amount: string; // human-readable amount (e.g. "100")
         network: string; // e.g. "celo", "arbitrum"
+        to: string; // recipient address
       };
 
-      if (!token_address || !amount || !network) {
-        return res.status(400).send({ error: 'token_address, amount, and network are required' });
+      if (!token_address || !amount || !network || !to) {
+        return res.status(400).send({ error: 'token_address, amount, network, and to are required' });
+      }
+
+      if (!ethers.isAddress(to)) {
+        return res.status(400).send({ error: 'Invalid recipient address' });
       }
 
       // Verify ownership
@@ -318,7 +323,8 @@ export async function commercesRoutes(app: FastifyInstance) {
         commerce.wallet,
         token_address,
         amountParsed,
-        feeParsed
+        feeParsed,
+        to
       );
       await tx.wait();
 

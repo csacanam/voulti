@@ -20,7 +20,8 @@ interface IWithdrawalManager {
         address commerce,
         address token,
         uint256 amount,
-        uint256 fee
+        uint256 fee,
+        address to
     ) external;
 
     // Withdrawal tracking queries

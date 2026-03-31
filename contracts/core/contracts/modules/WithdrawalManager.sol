@@ -160,17 +160,20 @@ contract WithdrawalManager is Pausable, IWithdrawalManager {
      * @param token The token to withdraw
      * @param amount Total amount to withdraw (fee is deducted from this)
      * @param fee Fee amount charged for the gasless service
+     * @param to Recipient address for the net amount
      * @dev Only callable via proxy by BACKEND_OPERATOR_ROLE.
      *      Fee is capped at MAX_FEE_BPS (5%) and goes to service fee balance.
-     *      Net amount (amount - fee) is transferred to the commerce.
+     *      Net amount (amount - fee) is transferred to the recipient.
      */
     function withdrawFor(
         address commerce,
         address token,
         uint256 amount,
-        uint256 fee
+        uint256 fee,
+        address to
     ) external onlyProxy {
         require(amount > 0, "Amount must be greater than 0 [WM]");
+        require(to != address(0), "Invalid recipient [WM]");
         require(fee < amount, "Fee must be less than amount [WM]");
         require(
             fee <= (amount * MAX_FEE_BPS) / BPS_DENOMINATOR,
@@ -194,7 +197,7 @@ contract WithdrawalManager is Pausable, IWithdrawalManager {
             .WithdrawalRecord({
                 token: token,
                 amount: amount - fee,
-                to: commerce,
+                to: to,
                 initiatedBy: commerce,
                 withdrawalType: IDerampStorage.WithdrawalType.COMMERCE,
                 createdAt: block.timestamp,

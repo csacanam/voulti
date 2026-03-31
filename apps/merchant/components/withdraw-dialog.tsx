@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2, ArrowDown } from "lucide-react"
 import { useCommerce } from "@/components/providers/commerce-provider"
@@ -15,7 +17,6 @@ import { NETWORKS } from "@/blockchain/networks"
 import { apiClient } from "@/services/api"
 import type { TokenBalance } from "@/hooks/use-token-balance"
 
-// Minimum gas to execute a withdraw tx
 const GAS_THRESHOLDS: Record<string, number> = {
   celo: 0.01,
   arbitrum: 0.0002,
@@ -38,6 +39,7 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
   const { wallets } = useWallets()
   const { t } = useLanguage()
 
+  const [recipient, setRecipient] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasGas, setHasGas] = useState<boolean | null>(null)
@@ -47,36 +49,31 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
   const network = networkEntry.network
   const balance = networkEntry.balanceNum
   const netAmount = hasGas === false ? balance - fee : balance
+  const validRecipient = recipient && ethers.isAddress(recipient)
 
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 
-  // Check gas and get fee on open
   useEffect(() => {
     if (!open) return
 
+    setRecipient("")
+    setError(null)
+
     const check = async () => {
       setCheckingGas(true)
-      setError(null)
       setHasGas(null)
 
       const networkConfig = NETWORKS[network]
-      if (!networkConfig) {
-        setHasGas(false)
-        setCheckingGas(false)
-        return
-      }
+      if (!networkConfig) { setHasGas(false); setCheckingGas(false); return }
 
-      // Check native gas balance
       try {
         const wallet = wallets.find(w => w.walletClientType === "privy")
         if (wallet) {
           const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-            name: networkConfig.name,
-            chainId: networkConfig.chainId,
+            name: networkConfig.name, chainId: networkConfig.chainId,
           })
           const bal = await provider.getBalance(wallet.address)
-          const balNum = parseFloat(ethers.formatEther(bal))
-          setHasGas(balNum >= (GAS_THRESHOLDS[network] || 0.001))
+          setHasGas(parseFloat(ethers.formatEther(bal)) >= (GAS_THRESHOLDS[network] || 0.001))
         } else {
           setHasGas(false)
         }
@@ -84,11 +81,9 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
         setHasGas(false)
       }
 
-      // Get fee estimate
       try {
         const resp = await apiClient.get<{ success: boolean; data: { fee_token: number } }>(
-          `/commerces/withdraw-fee/${symbol}`,
-          { skipAuth: true }
+          `/commerces/withdraw-fee/${symbol}`, { skipAuth: true }
         )
         if (resp.success) setFee(resp.data.fee_token)
       } catch {
@@ -101,8 +96,9 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     check()
   }, [open, network, symbol, wallets])
 
-  // Direct withdraw (merchant has gas)
+  // Direct withdraw — merchant has gas, uses withdrawTo
   const handleDirectWithdraw = async () => {
+    if (!validRecipient) return
     setLoading(true)
     setError(null)
 
@@ -119,28 +115,20 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
         const wp = await wallet.getEthereumProvider()
         await wp.request({
           method: "wallet_addEthereumChain",
-          params: [{
-            chainId: `0x${networkConfig.chainId.toString(16)}`,
-            chainName: networkConfig.name,
-            nativeCurrency: networkConfig.nativeCurrency,
-            rpcUrls: [networkConfig.rpcUrl],
-          }],
+          params: [{ chainId: `0x${networkConfig.chainId.toString(16)}`, chainName: networkConfig.name, nativeCurrency: networkConfig.nativeCurrency, rpcUrls: [networkConfig.rpcUrl] }],
         })
         await wallet.switchChain(networkConfig.chainId)
       }
 
       const provider = await wallet.getEthereumProvider()
-      const ethersProvider = new ethers.BrowserProvider(provider)
-      const signer = await ethersProvider.getSigner()
-
+      const signer = await new ethers.BrowserProvider(provider).getSigner()
       const proxy = new ethers.Contract(PROXY_ADDRESSES[network], DERAMP_PROXY_ABI, signer)
-      const tx = await proxy.withdraw(networkEntry.tokenAddress)
+
+      const parsedAmount = ethers.parseUnits(networkEntry.balance, networkEntry.decimals)
+      const tx = await proxy.withdrawTo(networkEntry.tokenAddress, parsedAmount, recipient)
       await tx.wait()
 
-      toast({
-        title: t.send?.transferSent || "Withdrawal sent!",
-        description: `${fmt(balance)} ${symbol} via ${network}`,
-      })
+      toast({ title: t.send?.transferSent || "Withdrawal sent!", description: `${fmt(balance)} ${symbol} → ${recipient.slice(0, 6)}...${recipient.slice(-4)}` })
       onSuccess()
     } catch (err: any) {
       const msg = err.message || ""
@@ -156,27 +144,20 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     }
   }
 
-  // Gasless withdraw via backend
+  // Gasless withdraw — backend pays gas, charges fee
   const handleGaslessWithdraw = async () => {
-    if (!commerce) return
+    if (!commerce || !validRecipient) return
     setLoading(true)
     setError(null)
 
     try {
       const resp = await apiClient.post<{ success: boolean; data: { tx_hash: string; net_amount: string } }>(
         `/commerces/${commerce.commerce_id}/withdraw-for`,
-        {
-          token_address: networkEntry.tokenAddress,
-          amount: networkEntry.balance,
-          network,
-        }
+        { token_address: networkEntry.tokenAddress, amount: networkEntry.balance, network, to: recipient }
       )
 
       if (resp.success) {
-        toast({
-          title: t.send?.transferSent || "Withdrawal sent!",
-          description: `${resp.data.net_amount} ${symbol} via ${network}`,
-        })
+        toast({ title: t.send?.transferSent || "Withdrawal sent!", description: `${resp.data.net_amount} ${symbol} → ${recipient.slice(0, 6)}...${recipient.slice(-4)}` })
         onSuccess()
       }
     } catch (err: any) {
@@ -209,6 +190,13 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
               </Alert>
             )}
 
+            {/* Recipient address */}
+            <div className="space-y-2">
+              <Label>{t.send?.recipientAddress || "Recipient Address"}</Label>
+              <Input placeholder="0x..." value={recipient} onChange={(e) => setRecipient(e.target.value)} />
+            </div>
+
+            {/* Summary */}
             <div className="bg-muted rounded-lg p-4 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{t.send?.stats?.balance || "Available"}</span>
@@ -244,7 +232,7 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
               onClick={hasGas ? handleDirectWithdraw : handleGaslessWithdraw}
               className="w-full gap-2"
               size="lg"
-              disabled={loading || netAmount <= 0}
+              disabled={loading || netAmount <= 0 || !validRecipient}
             >
               {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> {t.send?.sendingProgress || "Processing..."}</>
