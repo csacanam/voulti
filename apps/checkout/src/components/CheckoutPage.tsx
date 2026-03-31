@@ -478,13 +478,13 @@ export const CheckoutPage: React.FC = () => {
           {renderStatusContent()}
         </div>
 
-        {/* Powered by Voulti */}
-        <div className="text-center mt-4 pb-4">
-          <Link to="/" className="inline-block">
-            <p className="text-gray-400 text-sm hover:text-gray-500 transition-colors">
-              {t.poweredBy} <span className="font-bold text-gray-900 hover:text-violet-600 transition-colors">Voulti</span>
-            </p>
-          </Link>
+        {/* Footer */}
+        <div className="text-center mt-6 pb-4">
+          <p className="text-gray-400 text-xs">
+            {t.poweredBy} <Link to="/" className="font-bold text-violet-600 hover:text-violet-700 transition-colors">Voulti</Link>
+            <span className="mx-1">&middot;</span>
+            <a href="https://sakalabs.xyz" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-violet-600 transition-colors">Saka Labs</a>
+          </p>
         </div>
 
         {/* Wallet Selection Modal */}

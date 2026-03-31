@@ -10,8 +10,8 @@ const supabase = createClient(
 );
 
 export async function invoicesRoutes(app: FastifyInstance) {
-  // Create invoice in Supabase (authenticated + verify user owns the commerce)
-  app.post('/', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+  // Create invoice in Supabase (public — commerce page + authenticated merchant dashboard)
+  app.post('/', async (req: AuthenticatedRequest, res) => {
     try {
       const { commerce_id, amount_fiat, expires_at } = req.body as any;
 
@@ -33,11 +33,6 @@ export async function invoicesRoutes(app: FastifyInstance) {
         return res.status(404).send({
           error: 'Commerce not found'
         });
-      }
-
-      // Verify the authenticated user owns this commerce
-      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
-        return res.status(403).send({ error: 'Not authorized' });
       }
 
       // Use commerce currency
