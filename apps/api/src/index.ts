@@ -11,6 +11,7 @@ import { notificationsRoutes } from './routes/notifications';
 import { payoutsRoutes } from './routes/payouts';
 import { depositRoutes } from './routes/deposit';
 import { statsRoutes } from './routes/stats';
+import { cronRoutes } from './routes/cron';
 import { sweepService } from './blockchain/services/SweepService';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -58,6 +59,7 @@ async function main() {
   app.register(payoutsRoutes, { prefix: '/payouts' });
   app.register(depositRoutes, { prefix: '/deposit' });
   app.register(statsRoutes, { prefix: '/stats' });
+  app.register(cronRoutes, { prefix: '/cron' });
 
   const port = Number(process.env.PORT || 3000);
   // Use 0.0.0.0 only if port is 8080 (typical for DigitalOcean), otherwise 127.0.0.1

@@ -25,7 +25,7 @@ export const NETWORKS = {
   polygon: {
     chainId: 137,
     name: "Polygon",
-    rpcUrl: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
+    rpcUrl: process.env.POLYGON_RPC_URL || "https://polygon-bor-rpc.publicnode.com",
     blockExplorer: "https://polygonscan.com",
     nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
   },
