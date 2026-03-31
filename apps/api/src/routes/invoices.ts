@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
+import { ethers } from 'ethers';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { NETWORKS } from '../blockchain/config/networks';
+import { CONTRACTS } from '../blockchain/config/contracts';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const supabase = createClient(
@@ -502,21 +504,44 @@ export async function invoicesRoutes(app: FastifyInstance) {
           });
         }
   
-        // Check if invoice exists
+        // Check if invoice exists and get commerce wallet
         const { data: existingInvoice, error: fetchError } = await supabase
           .from("invoices")
-          .select("id, status, paid_token, paid_network, paid_tx_hash, wallet_address, paid_amount, paid_at")
+          .select("id, status, commerce_id, paid_token, paid_network, paid_tx_hash, wallet_address, paid_amount, paid_at")
           .eq("id", id)
           .single();
-  
+
         if (fetchError || !existingInvoice) {
           return res.status(404).send({
             error: "Invoice not found"
           });
         }
-  
-        // Prepare update data — calculate fee (default 1% = 100 bps)
-        const feePercent = 100; // basis points
+
+        // Read fee % from contract for this commerce
+        let feePercent = 100; // default 1%
+        try {
+          const { data: commerce } = await supabase
+            .from('commerces')
+            .select('wallet')
+            .eq('id', existingInvoice.commerce_id)
+            .single();
+
+          if (commerce?.wallet && paid_network) {
+            const networkConfig = NETWORKS[paid_network as keyof typeof NETWORKS];
+            const contracts = CONTRACTS[paid_network];
+            if (networkConfig && contracts) {
+              const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
+                name: networkConfig.name, chainId: networkConfig.chainId,
+              });
+              const accessManager = new ethers.Contract(contracts.ACCESS_MANAGER, [
+                'function getCommerceFee(address commerce) view returns (uint256)',
+              ], provider);
+              feePercent = Number(await accessManager.getCommerceFee(commerce.wallet));
+            }
+          }
+        } catch {
+          // fallback to default
+        }
         const feeAmount = (paid_amount * feePercent) / 10000;
 
         const updateData: any = {

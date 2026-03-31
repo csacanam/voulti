@@ -272,9 +272,31 @@ export class SweepService {
 
         console.log(`[SweepService] PayInvoice: ${payTx.hash}`);
 
-        // Update invoice as paid — calculate fee (default 1% = 100 bps)
+        // Update invoice as paid — read fee from contract
         const paidAmount = parseFloat(deposit.expected_amount);
-        const feePercent = 100; // basis points
+        let feePercent = 100; // default 1%
+        try {
+          const contracts = CONTRACTS[network];
+          if (contracts?.ACCESS_MANAGER) {
+            const networkConfig = NETWORKS[network];
+            const readProvider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
+              name: networkConfig.name, chainId: networkConfig.chainId,
+            });
+            const am = new ethers.Contract(contracts.ACCESS_MANAGER, [
+              'function getCommerceFee(address commerce) view returns (uint256)',
+            ], readProvider);
+            const { data: commerce } = await supabase
+              .from('commerces')
+              .select('wallet')
+              .eq('id', invoice.commerce_id)
+              .single();
+            if (commerce?.wallet) {
+              feePercent = Number(await am.getCommerceFee(commerce.wallet));
+            }
+          }
+        } catch {
+          // fallback to default
+        }
         const feeAmount = (paidAmount * feePercent) / 10000;
 
         await supabase
