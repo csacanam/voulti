@@ -30,7 +30,7 @@ export const HomePage: React.FC = () => {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           {/* Title */}
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-gray-900 whitespace-pre-line">
             {t.home.heroTitle}
           </h1>
 
@@ -39,16 +39,24 @@ export const HomePage: React.FC = () => {
             <p>{t.home.heroSubtitle}</p>
           </div>
 
-          {/* CTA Button */}
-          <Link
-            to="/demo"
-            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-lg shadow-lg hover:shadow-xl"
-          >
-            {t.home.ctaButton}
-          </Link>
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://app.voulti.com"
+              className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-lg shadow-lg hover:shadow-xl"
+            >
+              {t.home.ctaButton}
+            </a>
+            <a
+              href="#how-it-works"
+              className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-violet-300 text-gray-700 font-semibold py-4 px-8 rounded-lg transition-colors duration-200 text-lg"
+            >
+              {t.home.ctaSecondary}
+            </a>
+          </div>
 
-          {/* Subcopy */}
-          <p className="text-sm text-gray-400 mt-6">
+          {/* Networks */}
+          <p className="text-sm text-gray-400 mt-6 tracking-wide">
             {t.home.subcopy}
           </p>
         </div>
@@ -64,7 +72,7 @@ export const HomePage: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Instant Payments */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
-              <div className="text-4xl mb-6">⚡</div>
+              <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center mx-auto mb-6"><span className="text-2xl">⚡</span></div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.whyChoose.instantPayments.title}</h3>
               <p className="text-gray-600 leading-relaxed">
                 {t.home.whyChoose.instantPayments.description}
@@ -73,7 +81,7 @@ export const HomePage: React.FC = () => {
 
             {/* Low Fees */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
-              <div className="text-4xl mb-6">💰</div>
+              <div className="w-14 h-14 rounded-xl bg-violet-50 flex items-center justify-center mx-auto mb-6"><span className="text-2xl">💰</span></div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.whyChoose.lowFees.title}</h3>
               <p className="text-gray-600 leading-relaxed">
                 {t.home.whyChoose.lowFees.description}
@@ -82,7 +90,7 @@ export const HomePage: React.FC = () => {
 
             {/* Real World */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
-              <div className="text-4xl mb-6">🌍</div>
+              <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-6"><span className="text-2xl">🌍</span></div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.whyChoose.realWorld.title}</h3>
               <p className="text-gray-600 leading-relaxed">
                 {t.home.whyChoose.realWorld.description}
@@ -93,7 +101,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* How it works Section */}
-      <section className="py-20 px-4">
+      <section id="how-it-works" className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
             {t.home.howItWorksTitle}
@@ -102,7 +110,7 @@ export const HomePage: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Step 1 */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
-              <div className="text-5xl mb-6">1️⃣</div>
+              <div className="w-12 h-12 rounded-full bg-violet-100 text-violet-700 font-bold text-xl flex items-center justify-center mx-auto mb-6">1</div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.step1Title}</h3>
               <p className="text-gray-600 leading-relaxed">
                 {t.home.step1Description}
@@ -111,7 +119,7 @@ export const HomePage: React.FC = () => {
 
             {/* Step 2 */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
-              <div className="text-5xl mb-6">2️⃣</div>
+              <div className="w-12 h-12 rounded-full bg-violet-100 text-violet-700 font-bold text-xl flex items-center justify-center mx-auto mb-6">2</div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.step2Title}</h3>
               <p className="text-gray-600 leading-relaxed">
                 {t.home.step2Description}
@@ -120,7 +128,7 @@ export const HomePage: React.FC = () => {
 
             {/* Step 3 */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center hover:border-violet-300 transition-colors duration-300">
-              <div className="text-5xl mb-6">3️⃣</div>
+              <div className="w-12 h-12 rounded-full bg-violet-100 text-violet-700 font-bold text-xl flex items-center justify-center mx-auto mb-6">3</div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">{t.home.step3Title}</h3>
               <p className="text-gray-600 leading-relaxed">
                 {t.home.step3Description}

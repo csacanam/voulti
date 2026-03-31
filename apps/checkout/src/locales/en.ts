@@ -160,7 +160,7 @@ export const en = {
   features: {
     noSetupFees: 'No setup fees',
     instantSettlement: 'Instant settlement',
-    globalReach: 'Global reach'
+    globalReach: '5 networks supported'
   },
 
   // Commerce
@@ -183,31 +183,32 @@ export const en = {
 
   // Home
   home: {
-    heroTitle: '💸 Crypto payments made simple for merchants',
-    heroSubtitle: 'Accept crypto payments anywhere: in-store or online. No middlemen. Only 1% fee.',
-    ctaButton: 'Try the Demo Now',
-    subcopy: 'Supports cCOP, cUSD, cEUR and more coming soon.',
-    howItWorksTitle: '🚀 How it works',
-    step1Title: 'Generate a payment link',
-    step1Description: 'Create a unique payment link from the API or dashboard.',
-    step2Title: 'Display or share it',
-    step2Description: 'Display the QR code at your store or share the link online.',
-    step3Title: 'Receive crypto payments',
-    step3Description: 'Get paid instantly. No middlemen. Only 1% fee.',
-    tagline: 'The easiest way to accept crypto. Anywhere.',
-    whyChooseTitle: 'Why merchants choose Voulti?',
+    heroTitle: 'Accept stablecoins.\nSettle instantly.',
+    heroSubtitle: 'USDC, USDT and stablecoins on 5 networks. Two ways to pay: connect wallet or send to an address. Self-custody, 1% fee.',
+    ctaButton: 'Create Free Account',
+    ctaSecondary: 'See How It Works',
+    subcopy: 'Celo · Arbitrum · Polygon · Base · BSC',
+    howItWorksTitle: 'How it works',
+    step1Title: 'Create your account',
+    step1Description: 'Connect your wallet, name your business, and start accepting payments in minutes.',
+    step2Title: 'Share your payment link',
+    step2Description: 'Generate a link or QR code. Display it at your store, share it online, or integrate via API.',
+    step3Title: 'Get paid in stablecoins',
+    step3Description: 'Customers pay with USDC or USDT. Funds go directly to your wallet. Withdraw anytime.',
+    tagline: 'The simplest way to accept crypto payments.',
+    whyChooseTitle: 'Built for real businesses',
     whyChoose: {
       instantPayments: {
-        title: 'Get paid instantly',
-        description: 'Receive payments instantly, no waiting or intermediaries.'
+        title: 'Instant settlement',
+        description: 'No waiting periods. Funds arrive in your wallet the moment your customer pays.'
       },
       lowFees: {
-        title: 'Low fees, no surprises',
-        description: 'Only 1% fee. No hidden costs or custody.'
+        title: '1% flat fee',
+        description: 'No setup costs, no monthly fees, no hidden charges. Just 1% per transaction.'
       },
       realWorld: {
-        title: 'Designed for the real world',
-        description: 'Perfect for physical stores, online sales and custom APIs.'
+        title: '5 networks, 1 dashboard',
+        description: 'Accept payments on Celo, Arbitrum, Polygon, Base and BSC. Manage everything from one place.'
       }
     }
   },

@@ -160,7 +160,7 @@ export const es = {
   features: {
     noSetupFees: 'Sin costos de configuración',
     instantSettlement: 'Liquidación instantánea',
-    globalReach: 'Alcance global'
+    globalReach: '5 redes soportadas'
   },
 
   // Commerce
@@ -183,31 +183,32 @@ export const es = {
 
   // Home
   home: {
-    heroTitle: '💸 Pagos con cripto simples para comercios',
-    heroSubtitle: 'Acepta pagos en cripto en cualquier lugar: tienda física u online. Sin intermediarios. Solo 1% de comisión.',
-    ctaButton: 'Probar el demo ahora',
-    subcopy: 'Soportamos cCOP, cUSD, cEUR y más próximamente.',
-    howItWorksTitle: '🚀 Cómo funciona',
-    step1Title: 'Genera un link de pago',
-    step1Description: 'Desde la API o el dashboard, crea un link único para tu comercio.',
-    step2Title: 'Muéstralo o compártelo',
-    step2Description: 'Pon el QR en tu tienda física o envía el link por chat a tus clientes.',
-    step3Title: 'Recibe pagos en cripto',
-    step3Description: 'Recibe el pago al instante. Sin intermediarios. Solo 1% de comisión.',
-    tagline: 'La forma más fácil de aceptar cripto. En cualquier lugar.',
-    whyChooseTitle: '¿Por qué los comercios eligen Voulti?',
+    heroTitle: 'Acepta stablecoins.\nLiquida al instante.',
+    heroSubtitle: 'USDC, USDT y stablecoins en 5 redes. Dos formas de pagar: conectar wallet o enviar a una dirección. Auto-custodia, 1% de comisión.',
+    ctaButton: 'Crear Cuenta Gratis',
+    ctaSecondary: 'Ver Cómo Funciona',
+    subcopy: 'Celo · Arbitrum · Polygon · Base · BSC',
+    howItWorksTitle: 'Cómo funciona',
+    step1Title: 'Crea tu cuenta',
+    step1Description: 'Conecta tu wallet, nombra tu negocio y empieza a recibir pagos en minutos.',
+    step2Title: 'Comparte tu link de pago',
+    step2Description: 'Genera un link o código QR. Ponlo en tu tienda, compártelo online o intégralo por API.',
+    step3Title: 'Recibe stablecoins',
+    step3Description: 'Tus clientes pagan con USDC o USDT. Los fondos van directo a tu wallet. Retira cuando quieras.',
+    tagline: 'La forma más simple de aceptar pagos con crypto.',
+    whyChooseTitle: 'Hecho para negocios reales',
     whyChoose: {
       instantPayments: {
-        title: 'Recibe pagos al instante',
-        description: 'Recibe pagos al instante, sin esperas ni intermediarios.'
+        title: 'Liquidación instantánea',
+        description: 'Sin tiempos de espera. Los fondos llegan a tu wallet en el momento que tu cliente paga.'
       },
       lowFees: {
-        title: 'Solo 1% de comisión',
-        description: 'Solo 1% de comisión. Sin costos ocultos ni custodia.'
+        title: '1% de comisión fija',
+        description: 'Sin costos de setup, sin mensualidades, sin cargos ocultos. Solo 1% por transacción.'
       },
       realWorld: {
-        title: 'Diseñado para el mundo real',
-        description: 'Perfecto para tiendas físicas, ventas online y APIs personalizadas.'
+        title: '5 redes, 1 dashboard',
+        description: 'Acepta pagos en Celo, Arbitrum, Polygon, Base y BSC. Administra todo desde un solo lugar.'
       }
     }
   },
