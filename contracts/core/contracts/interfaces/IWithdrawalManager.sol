@@ -16,6 +16,13 @@ interface IWithdrawalManager {
         address to
     ) external;
 
+    function withdrawFor(
+        address commerce,
+        address token,
+        uint256 amount,
+        uint256 fee
+    ) external;
+
     // Withdrawal tracking queries
     function getWithdrawalCount() external view returns (uint256);
 

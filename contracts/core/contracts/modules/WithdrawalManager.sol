@@ -47,6 +47,10 @@ contract WithdrawalManager is Pausable, IWithdrawalManager {
         proxy = _proxy;
     }
 
+    // Max fee: 5% (500 basis points)
+    uint256 public constant MAX_FEE_BPS = 500;
+    uint256 public constant BPS_DENOMINATOR = 10000;
+
     // === COMMERCE WITHDRAWALS ===
 
     function withdraw(address commerce, address token) external onlyProxy {
@@ -148,6 +152,59 @@ contract WithdrawalManager is Pausable, IWithdrawalManager {
 
         // Token transfer handled by proxy
         emit IDerampStorage.CommerceWithdrawal(commerce, token, amount);
+    }
+
+    /**
+     * @notice Withdraw on behalf of a commerce (backend-only, gasless withdrawal).
+     * @param commerce The commerce wallet address
+     * @param token The token to withdraw
+     * @param amount Total amount to withdraw (fee is deducted from this)
+     * @param fee Fee amount charged for the gasless service
+     * @dev Only callable via proxy by BACKEND_OPERATOR_ROLE.
+     *      Fee is capped at MAX_FEE_BPS (5%) and goes to service fee balance.
+     *      Net amount (amount - fee) is transferred to the commerce.
+     */
+    function withdrawFor(
+        address commerce,
+        address token,
+        uint256 amount,
+        uint256 fee
+    ) external onlyProxy {
+        require(amount > 0, "Amount must be greater than 0 [WM]");
+        require(fee < amount, "Fee must be less than amount [WM]");
+        require(
+            fee <= (amount * MAX_FEE_BPS) / BPS_DENOMINATOR,
+            "Fee exceeds max 5% [WM]"
+        );
+        require(
+            storageContract.balances(commerce, token) >= amount,
+            "Insufficient balance [WM]"
+        );
+
+        // Deduct full amount from commerce balance
+        storageContract.subtractFromBalance(commerce, token, amount);
+
+        // Add fee to service fee balance (same as payment fees)
+        if (fee > 0) {
+            storageContract.addToServiceFeeBalance(token, fee);
+        }
+
+        // Create withdrawal record
+        IDerampStorage.WithdrawalRecord memory record = IDerampStorage
+            .WithdrawalRecord({
+                token: token,
+                amount: amount - fee,
+                to: commerce,
+                initiatedBy: commerce,
+                withdrawalType: IDerampStorage.WithdrawalType.COMMERCE,
+                createdAt: block.timestamp,
+                invoiceId: bytes32(0)
+            });
+
+        uint256 index = storageContract.addWithdrawalRecord(record);
+        storageContract.addCommerceWithdrawal(commerce, index);
+
+        emit IDerampStorage.Withdrawn(commerce, token, amount - fee);
     }
 
     // === WITHDRAWAL QUERIES ===

@@ -356,6 +356,40 @@ contract DerampProxy is Ownable, Pausable, ReentrancyGuard {
         IERC20(token).safeTransfer(to, amount);
     }
 
+    /**
+     * @notice Withdraw on behalf of a commerce (gasless, backend pays gas, charges fee).
+     * @dev Only BACKEND_OPERATOR_ROLE or admin can call this.
+     *      Fee goes to service fee balance. Net amount goes to commerce.
+     */
+    function withdrawFor(
+        address commerce,
+        address token,
+        uint256 amount,
+        uint256 fee
+    ) external whenNotPaused nonReentrant onlyBackendOperatorOrAdmin {
+        require(amount > 0, "Amount must be greater than 0 [PX]");
+        require(
+            IDerampStorage(storageContract).balances(commerce, token) >= amount,
+            "Insufficient balance [PX]"
+        );
+
+        uint256 netAmount = amount - fee;
+
+        // Delegate to WithdrawalManager to update balances and record
+        _delegateToWithdrawalManager(
+            abi.encodeWithSignature(
+                "withdrawFor(address,address,uint256,uint256)",
+                commerce,
+                token,
+                amount,
+                fee
+            )
+        );
+
+        // Transfer net amount to commerce
+        IERC20(token).safeTransfer(commerce, netAmount);
+    }
+
     // === TREASURY MANAGER FUNCTIONS ===
 
     function addTreasuryWallet(

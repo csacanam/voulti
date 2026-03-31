@@ -13,7 +13,7 @@ Operator Wallet: `0x21581Cb82D9a66126fBe7639f4AF55DdfEA48E26`
 | InvoiceManager | `0x3c46D60709145C6EC781D5FA2bc6A172eA7Af37A` |
 | PaymentProcessor | `0x3C2f18E20E6E3cDFf1dAb14CcF3639e56Ed57421` |
 | TreasuryManager | `0xD5255c4195648B57607F0e86357B16ce02aC881B` |
-| WithdrawalManager | `0xEF8A95f78566591E1D15218565812Ef952B857d9` |
+| WithdrawalManager | `0xE2c5Da5A7e31621f30EaCe149f3d0A9f844e82F0` |
 
 **Tokens:** USDC (6 dec), USD₮ (6 dec), COPm (18 dec)
 
@@ -27,7 +27,7 @@ Operator Wallet: `0x21581Cb82D9a66126fBe7639f4AF55DdfEA48E26`
 | InvoiceManager | `0x8bc1E1A71BDFA56cF8fC86282C3fb2e93202F847` |
 | PaymentProcessor | `0x271101C3E1e97C93a38F6588914Dc409a5C7bf08` |
 | TreasuryManager | `0xc5c2a7b0B450092e3939246860efFA5C2a6Ec491` |
-| WithdrawalManager | `0xe1CD68813Da3172CC3CCe3445cFc255497925932` |
+| WithdrawalManager | `0xc7c8092b6ca15a0b4E52D7691EfE8657Cc1D367d` |
 
 **Tokens:** USDC (6 dec), USD₮0 (6 dec)
 
@@ -41,7 +41,7 @@ Operator Wallet: `0x21581Cb82D9a66126fBe7639f4AF55DdfEA48E26`
 | InvoiceManager | `0xAd24bdAc4eE6681A01D2a5B93A2a8eeeA024C5Fc` |
 | PaymentProcessor | `0x6368b0509a566478049e37e9C8dBfA596ad6eBA3` |
 | TreasuryManager | `0xcAdfE13436Be54e1FCABcb75B52EC85C46fFB4eC` |
-| WithdrawalManager | `0x835414bD4a9cFCA2BC753a0c820903CD535A0c83` |
+| WithdrawalManager | `0x842939bE2e1B3b23a0cc24877E7d7b3a8b453714` |
 
 **Tokens:** USDC (6 dec), USDT0 (6 dec)
 
@@ -55,7 +55,7 @@ Operator Wallet: `0x21581Cb82D9a66126fBe7639f4AF55DdfEA48E26`
 | InvoiceManager | `0xD3038EF4cC94BA00b8578379aB3cec15D1863a1a` |
 | PaymentProcessor | `0xE2c5Da5A7e31621f30EaCe149f3d0A9f844e82F0` |
 | TreasuryManager | `0xDDa64f4AafA052bbB009e623eF1388A4cf6792e0` |
-| WithdrawalManager | `0x7Ce6fE6e4FE173a38500DC83Ed7D5B897D4E96BA` |
+| WithdrawalManager | `0x162E4C7cA7a603891Ac807ABBd90c8C46D62C659` |
 
 **Tokens:** USDC (6 dec)
 
@@ -69,7 +69,7 @@ Operator Wallet: `0x21581Cb82D9a66126fBe7639f4AF55DdfEA48E26`
 | InvoiceManager | `0x3f2CF115AE719f25Cf7c47097A89FfeB535cAe7A` |
 | PaymentProcessor | `0x0132A3C3049D5697738278B397dd4C54855f2371` |
 | TreasuryManager | `0x45b864640827FD6357e44624203ab4Da48AB95c0` |
-| WithdrawalManager | `0x67480557Cc257dc3aa15e62A22F8EbE9B03CB368` |
+| WithdrawalManager | `0x8eB2F62f6f9ee795B28292b8Db56eD3b4396aF6B` |
 
 **Tokens:** USDC (18 dec), USDT (18 dec)
 
