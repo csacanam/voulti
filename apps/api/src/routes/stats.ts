@@ -89,7 +89,7 @@ export async function statsRoutes(app: FastifyInstance) {
 
       return res.send({
         revenue: {
-          totalUsd: totalFeeUsd.toFixed(2),
+          totalUsd: totalFeeUsd < 0.01 ? totalFeeUsd.toFixed(6) : totalFeeUsd.toFixed(2),
           byNetwork: fees,
         },
         networks: Object.entries(CONTRACTS)
