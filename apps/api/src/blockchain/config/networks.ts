@@ -1,5 +1,8 @@
 // src/blockchain/config/networks.ts
 
+const ALCHEMY_KEY = process.env.ALCHEMY_API_KEY || "";
+const alchemyUrl = (net: string) => ALCHEMY_KEY ? `https://${net}.g.alchemy.com/v2/${ALCHEMY_KEY}` : "";
+
 export const NETWORKS = {
   hardhat: {
     chainId: 31337,
@@ -11,28 +14,28 @@ export const NETWORKS = {
   celo: {
     chainId: 42220,
     name: "Celo",
-    rpcUrl: process.env.CELO_RPC_URL || "https://forno.celo.org",
+    rpcUrl: process.env.CELO_RPC_URL || alchemyUrl("celo-mainnet") || "https://forno.celo.org",
     blockExplorer: "https://celoscan.io",
     nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   },
   arbitrum: {
     chainId: 42161,
     name: "Arbitrum One",
-    rpcUrl: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
+    rpcUrl: process.env.ARBITRUM_RPC_URL || alchemyUrl("arb-mainnet") || "https://arb1.arbitrum.io/rpc",
     blockExplorer: "https://arbiscan.io",
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   },
   polygon: {
     chainId: 137,
     name: "Polygon",
-    rpcUrl: process.env.POLYGON_RPC_URL || "https://polygon-bor-rpc.publicnode.com",
+    rpcUrl: process.env.POLYGON_RPC_URL || alchemyUrl("polygon-mainnet") || "https://polygon-bor-rpc.publicnode.com",
     blockExplorer: "https://polygonscan.com",
     nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
   },
   base: {
     chainId: 8453,
     name: "Base",
-    rpcUrl: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+    rpcUrl: process.env.BASE_RPC_URL || alchemyUrl("base-mainnet") || "https://mainnet.base.org",
     blockExplorer: "https://basescan.org",
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   },
