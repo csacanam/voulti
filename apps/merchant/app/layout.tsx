@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { Analytics } from '@vercel/analytics/next'
+// import { Analytics } from '@vercel/analytics/next'
 import PrivyProviderWrapper from '@/components/providers/privy-provider'
 import { LanguageProvider } from '@/components/providers/language-provider'
 import { AuthTokenProvider } from '@/components/providers/auth-token-provider'
@@ -43,7 +43,7 @@ export default function RootLayout({
             </LanguageProvider>
           </AuthTokenProvider>
         </PrivyProviderWrapper>
-        <Analytics />
+        {/* <Analytics /> */}
       </body>
     </html>
   )

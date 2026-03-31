@@ -92,7 +92,7 @@ function Dashboard() {
           <Spinner className="w-6 h-6" />
         ) : (
           <p className="text-3xl font-bold">
-            {fiatSymbol}{totalFiat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 0 })}
+            {fiatSymbol}{Math.round(totalFiat).toLocaleString()}
             <span className="text-lg font-normal text-muted-foreground ml-2">{currency}</span>
           </p>
         )}
