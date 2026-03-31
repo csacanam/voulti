@@ -221,10 +221,16 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
                     <span className="text-muted-foreground">{t.send?.withdrawFee || "Withdrawal fee"}</span>
                     <span className="font-medium text-amber-600">-{fmt(fee)} {symbol}</span>
                   </div>
-                  <div className="border-t pt-3 flex justify-between items-center">
-                    <span className="font-medium text-sm">{t.send?.youReceive || "You receive"}</span>
-                    <span className="font-bold text-lg">{fmt(netAmount)} {symbol}</span>
-                  </div>
+                  {netAmount > 0 ? (
+                    <div className="border-t pt-3 flex justify-between items-center">
+                      <span className="font-medium text-sm">{t.send?.youReceive || "You receive"}</span>
+                      <span className="font-bold text-lg">{fmt(netAmount)} {symbol}</span>
+                    </div>
+                  ) : (
+                    <div className="border-t pt-3">
+                      <p className="text-sm text-destructive">{t.send?.balanceTooSmall || "Balance too small to cover the withdrawal fee."}</p>
+                    </div>
+                  )}
                 </>
               )}
 

@@ -116,6 +116,7 @@ export const en = {
     withdrawFee: "Withdrawal fee",
     youReceive: "You receive",
     checkingGas: "Checking...",
+    balanceTooSmall: "Balance too small to cover the withdrawal fee.",
   },
   createLink: {
     title: "New Payment Link",

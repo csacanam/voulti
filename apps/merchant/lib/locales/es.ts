@@ -116,6 +116,7 @@ export const es = {
     withdrawFee: "Comisión por retiro",
     youReceive: "Recibes",
     checkingGas: "Verificando...",
+    balanceTooSmall: "Saldo insuficiente para cubrir la comisión de retiro.",
   },
   createLink: {
     title: "Nuevo Link de Pago",
