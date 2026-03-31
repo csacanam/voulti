@@ -32,7 +32,8 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
     const num = Number(amount);
     if (num === 0) return '0';
 
-    // For very large numbers (like cCOP), show fewer decimals
+    // For very large numbers (like COPm), show no decimals
+    if (num > 10000) return num.toFixed(0);
     if (num > 1000) return num.toFixed(2);
     // For normal amounts, show appropriate decimals
     if (num > 1) return num.toFixed(Math.min(4, decimals));
@@ -98,7 +99,7 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
       <div className="space-y-3">
         {/* Main amount */}
         <div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-gray-900 break-all">
             {formatAmount(amountToPay, tokenDecimals)} {tokenSymbol}
           </div>
           <div className="text-gray-500 text-sm">

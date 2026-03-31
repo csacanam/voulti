@@ -6,7 +6,7 @@ import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Lock, Loader2, Info, Copy, Save, Check } from "lucide-react"
+import { Lock, Loader2, Copy, Save, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -189,12 +189,6 @@ export default function AccountPage() {
           </div>
 
           <Separator />
-
-          {/* Info */}
-          <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
-            <Info className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-muted-foreground">{t.account.editSoon}</p>
-          </div>
         </div>
       </Card>
     </div>

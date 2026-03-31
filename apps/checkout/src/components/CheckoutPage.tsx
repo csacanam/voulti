@@ -256,7 +256,7 @@ export const CheckoutPage: React.FC = () => {
         <PayByAddressFlow
           invoice={invoice}
           onBack={() => setPaymentMode('select')}
-          onSuccess={() => refetch()}
+          onSuccess={() => { setPaymentMode('select'); refetch(); }}
         />
       );
     }

@@ -303,7 +303,15 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                   className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-gray-300 active:bg-gray-100 transition-all min-h-[48px]"
                   title={t.payByAddress.tapToCopy}
                 >
-                  <span className="text-2xl font-bold text-gray-900">{deposit.expectedAmount}</span>
+                  <span className="text-2xl font-bold text-gray-900 break-all">{
+                    (() => {
+                      const num = Number(deposit.expectedAmount);
+                      if (num > 10000) return num.toFixed(0);
+                      if (num > 1000) return num.toFixed(2);
+                      if (num > 1) return num.toFixed(4);
+                      return num.toFixed(6);
+                    })()
+                  }</span>
                   <span className="text-lg text-gray-500">{deposit.tokenSymbol}</span>
                   {copied === 'amount' ? (
                     <Check className="w-5 h-5 text-green-600" />
@@ -344,7 +352,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                   {[
                     <>{t.payByAddress.checkToken} <strong className="text-gray-900">{deposit.tokenSymbol}</strong> {t.payByAddress.checkNotAnother}</>,
                     <>{t.payByAddress.checkNetwork} <strong className="text-gray-900">{networkName}</strong></>,
-                    <>{t.payByAddress.checkAmount} <strong className="text-gray-900">{deposit.expectedAmount} {deposit.tokenSymbol}</strong></>,
+                    <>{t.payByAddress.checkAmount} <strong className="text-gray-900">{(() => { const n = Number(deposit.expectedAmount); return n > 10000 ? n.toFixed(0) : n > 1000 ? n.toFixed(2) : n > 1 ? n.toFixed(4) : n.toFixed(6); })()} {deposit.tokenSymbol}</strong></>,
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <div className="w-5 h-5 rounded-full border border-amber-300 flex items-center justify-center flex-shrink-0 mt-0.5">

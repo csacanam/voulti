@@ -209,7 +209,9 @@ export async function invoicesRoutes(app: FastifyInstance) {
       const token = addr.tokens as any;
 
       const amountInToken = amountInUSD / Number(token.rate_to_usd);
-      const amountFormatted = amountInToken.toFixed(addr.decimals);
+      // Cap display decimals: tokens like COPm have 18 decimals but showing all is useless
+      const displayDecimals = Math.min(addr.decimals, amountInToken >= 1000 ? 2 : 6);
+      const amountFormatted = amountInToken.toFixed(displayDecimals);
 
       return {
         symbol: token.symbol,
