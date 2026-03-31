@@ -83,16 +83,35 @@ pnpm dev:merchant
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/commerces | Privy | Register commerce |
-| GET | /api/commerces/:id | Public | Commerce info |
-| GET | /api/commerces/:id/balances | Privy | Multi-chain balances |
-| POST | /api/invoices | Privy | Create invoice |
-| GET | /api/invoices/:id | Public | Invoice details + tokens |
-| POST | /api/blockchain/create | Public | Create on-chain invoice |
-| GET | /api/blockchain/status/:id | Public | On-chain invoice status |
-| POST | /api/deposit/generate | Public | Generate HD deposit address |
-| GET | /api/deposit/status/:id | Public | Deposit monitoring status |
-| GET | /api/stats | Public | Revenue stats (building in public) |
+| POST | /commerces | Privy | Register commerce |
+| GET | /commerces/:id | Public | Commerce info |
+| GET | /commerces/:id/balances | Privy | Multi-chain balances |
+| POST | /invoices | Privy | Create invoice |
+| GET | /invoices/:id | Public | Invoice details + tokens |
+| POST | /blockchain/create | Public | Create on-chain invoice |
+| GET | /blockchain/status/:id | Public | On-chain invoice status |
+| POST | /deposit/generate | Public | Generate HD deposit address |
+| GET | /deposit/status/:id | Public | Deposit monitoring status |
+| GET | /stats | Public | Revenue stats (building in public) |
+| GET | /prices/rates | Public | Fiat + token rates from DB |
+| POST | /prices/update-fiat-rates | Cron | Update fiat rates (OpenExchangeRates) |
+| POST | /prices/update-token-prices | Cron | Update token prices (CoinGecko) |
+
+## Cron Jobs
+
+Configure these as scheduled jobs in DigitalOcean (or any scheduler):
+
+| Job | URL | Schedule | Description |
+|-----|-----|----------|-------------|
+| Fiat rates | `POST /prices/update-fiat-rates` | Every hour | Updates USD→COP/EUR/BRL/MXN/ARS rates from OpenExchangeRates |
+| Token prices | `POST /prices/update-token-prices` | Every hour | Updates USDC/USDT/COPm rates from CoinGecko |
+| Expire invoices | `POST /orders/expire-orders` | Every minute | Marks expired invoices as Expired |
+| Process emails | `POST /notifications/process-emails` | Every minute | Sends payment confirmation emails via Resend |
+| Process webhooks | `POST /notifications/process-url-confirmations` | Every minute | Calls commerce confirmation URLs |
+
+Base URL: `https://api.voulti.com`
+
+Requires env vars: `OPENEXCHANGERATE_APPID`, `COINGECKO_APIKEY`, `RESEND_APIKEY`.
 
 ## Environment Variables
 
