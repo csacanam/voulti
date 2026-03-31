@@ -166,37 +166,6 @@ export const CommercePage: React.FC = () => {
         <div className="flex justify-end mb-2">
           <LanguageSelector />
         </div>
-        {/* Header */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
-              {commerce.icon_url ? (
-                <img
-                  src={commerce.icon_url}
-                  alt={`${commerce.name} logo`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
-              ) : null}
-              <Store className={`h-6 w-6 text-gray-400 ${commerce.icon_url ? 'hidden' : ''}`} />
-            </div>
-            <div>
-              <h1 className="text-gray-900 font-medium text-lg">{commerce.name}</h1>
-              {(commerce.description_spanish || commerce.description_english) && (
-                <p className="text-gray-500 text-sm">
-                  {language === 'es'
-                    ? (commerce.description_spanish || commerce.description_english)
-                    : (commerce.description_english || commerce.description_spanish)
-                  }
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Payment Section */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <div className="text-left mb-6">
@@ -294,8 +263,7 @@ export const CommercePage: React.FC = () => {
         <div className="text-center mt-6 pb-4">
           <p className="text-gray-400 text-xs">
             {t.poweredBy} <Link to="/" className="font-bold text-violet-600 hover:text-violet-700 transition-colors">Voulti</Link>
-            <span className="mx-1">&middot;</span>
-            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-violet-600 transition-colors">Saka Labs</a>
+            
           </p>
         </div>
       </div>

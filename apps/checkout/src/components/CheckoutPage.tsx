@@ -378,42 +378,13 @@ export const CheckoutPage: React.FC = () => {
           <LanguageSelector />
         </div>
 
-        {/* Header */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
-              {invoice.commerce_icon_url ? (
-                <img
-                  src={invoice.commerce_icon_url}
-                  alt={`${invoice.commerce_name} logo`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // If image fails to load, show default icon
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
-              ) : null}
-              <Store className={`h-6 w-6 text-gray-400 ${invoice.commerce_icon_url ? 'hidden' : ''}`} />
-            </div>
-            <div>
-              <h1 className="text-gray-900 font-medium text-lg">{invoice.commerce_name}</h1>
-              {(commerce?.description_spanish || commerce?.description_english) && (
-                <p className="text-gray-500 text-sm">
-                  {language === 'es'
-                    ? (commerce.description_spanish || commerce.description_english)
-                    : (commerce.description_english || commerce.description_spanish)
-                  }
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Order Information */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-gray-900 font-semibold">{t.order.title}</h2>
+            <div className="flex items-center gap-2">
+              <Store className="w-4 h-4 text-gray-400" />
+              <h2 className="text-gray-900 font-semibold">{invoice.commerce_name}</h2>
+            </div>
             <StatusBadge status={effectiveStatus || 'Pending'} />
           </div>
 
@@ -482,8 +453,7 @@ export const CheckoutPage: React.FC = () => {
         <div className="text-center mt-6 pb-4">
           <p className="text-gray-400 text-xs">
             {t.poweredBy} <Link to="/" className="font-bold text-violet-600 hover:text-violet-700 transition-colors">Voulti</Link>
-            <span className="mx-1">&middot;</span>
-            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-violet-600 transition-colors">Saka Labs</a>
+            
           </p>
         </div>
 

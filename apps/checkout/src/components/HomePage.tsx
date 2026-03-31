@@ -122,12 +122,28 @@ export const HomePage: React.FC = () => {
                 </a>
               </div>
               <div className="flex justify-center">
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center max-w-[240px]">
-                  <p className="text-xs text-gray-400 mb-3 uppercase tracking-wide font-medium">
-                    {language === 'es' ? 'Escanea para pagar' : 'Scan to pay'}
-                  </p>
-                  <QRCodeComponent value={commerceUrl} size={160} />
-                  <p className="text-xs text-gray-500 mt-3">Peewah</p>
+                <div className="max-w-[220px] overflow-hidden rounded-2xl shadow-sm border border-gray-200">
+                  {/* Purple header */}
+                  <div className="bg-gradient-to-br from-violet-600 to-purple-700 px-5 pt-5 pb-4 text-center">
+                    <p className="text-white text-lg font-extrabold leading-tight">
+                      {language === 'es' ? 'Aceptamos' : 'Crypto'}<br/>
+                      {language === 'es' ? 'Cripto Aquí' : 'Accepted Here'}
+                    </p>
+                    <p className="text-white/60 text-[9px] font-semibold mt-1 uppercase tracking-widest">
+                      {language === 'es' ? 'Escanea para pagar' : 'Scan to pay'}
+                    </p>
+                  </div>
+                  {/* QR */}
+                  <div className="bg-white p-4 text-center">
+                    <div className="inline-block p-2 bg-gray-50 rounded-xl border border-gray-100">
+                      <QRCodeComponent value={commerceUrl} size={120} />
+                    </div>
+                    <p className="text-xs text-gray-700 font-semibold mt-2">Peewah</p>
+                  </div>
+                  {/* Footer */}
+                  <div className="bg-gray-50 border-t border-gray-100 py-2 text-center">
+                    <p className="text-[9px] text-gray-400">Powered by <span className="font-bold text-gray-900">Voulti</span></p>
+                  </div>
                 </div>
               </div>
             </div>
