@@ -1,0 +1,14 @@
+{
+  "network": "arbitrum",
+  "networkName": "arbitrum",
+  "deployedAt": "2026-03-30T22:31:13.019Z",
+  "addresses": {
+    "storage": "0xc7E192D0ec4953F4eb49cD7A489AD76c8c03E195",
+    "proxy": "0xf8553C9Df40057b2920A245637B8C0581EC75767",
+    "accessManager": "0x19EA5d8DEd7CAD3f133516CAAC8620DD7003cE2E",
+    "invoiceManager": "0x8bc1E1A71BDFA56cF8fC86282C3fb2e93202F847",
+    "paymentProcessor": "0x271101C3E1e97C93a38F6588914Dc409a5C7bf08",
+    "treasuryManager": "0xc5c2a7b0B450092e3939246860efFA5C2a6Ec491",
+    "withdrawalManager": "0xe1CD68813Da3172CC3CCe3445cFc255497925932"
+  }
+}

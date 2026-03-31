@@ -1,0 +1,13 @@
+{
+  "network": "celo",
+  "deployedAt": "2026-03-30T22:29:34.114Z",
+  "addresses": {
+    "storage": "0x7409D7b82259e3Ce652eD1e15890Ea8401aEEeDC",
+    "proxy": "0xcdbBc0DB75bCE387Bdc9Ea2248c5f92b1f8D88C1",
+    "accessManager": "0xd5aBA8310dC3fB5D0B22C8492222E5446EB1abe8",
+    "invoiceManager": "0x3c46D60709145C6EC781D5FA2bc6A172eA7Af37A",
+    "paymentProcessor": "0x3C2f18E20E6E3cDFf1dAb14CcF3639e56Ed57421",
+    "treasuryManager": "0xD5255c4195648B57607F0e86357B16ce02aC881B",
+    "withdrawalManager": "0xEF8A95f78566591E1D15218565812Ef952B857d9"
+  }
+}

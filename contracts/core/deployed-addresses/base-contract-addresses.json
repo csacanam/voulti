@@ -1,0 +1,13 @@
+{
+  "network": "base",
+  "deployedAt": "2026-03-31T00:17:51.977Z",
+  "addresses": {
+    "storage": "0x8734Cb91Bfe02Fd2De4abD8F2965447DF8d03987",
+    "proxy": "0x7D8a7f89c3A9A058A0F8f1a882188B1D42ba9B95",
+    "accessManager": "0x8cCb89B6b4B4218869B19F86a5CAC32076E2e834",
+    "invoiceManager": "0xD3038EF4cC94BA00b8578379aB3cec15D1863a1a",
+    "paymentProcessor": "0xE2c5Da5A7e31621f30EaCe149f3d0A9f844e82F0",
+    "treasuryManager": "0xDDa64f4AafA052bbB009e623eF1388A4cf6792e0",
+    "withdrawalManager": "0x7Ce6fE6e4FE173a38500DC83Ed7D5B897D4E96BA"
+  }
+}

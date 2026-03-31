@@ -1,0 +1,14 @@
+{
+  "network": "bsc",
+  "networkName": "BSC Mainnet",
+  "deployedAt": "2026-03-30T23:47:41.864Z",
+  "addresses": {
+    "storage": "0xafCf44caFb5a654Eec2eD68B787910A357dec120",
+    "proxy": "0xDf90971E8A1370dFE4BD5A9321e8bB90b4d1a08F",
+    "accessManager": "0xA8F2F528B6987bD3F5188EB92673cC7228EC5696",
+    "invoiceManager": "0x3f2CF115AE719f25Cf7c47097A89FfeB535cAe7A",
+    "paymentProcessor": "0x0132A3C3049D5697738278B397dd4C54855f2371",
+    "treasuryManager": "0x45b864640827FD6357e44624203ab4Da48AB95c0",
+    "withdrawalManager": "0x67480557Cc257dc3aa15e62A22F8EbE9B03CB368"
+  }
+}

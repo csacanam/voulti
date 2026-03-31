@@ -1,0 +1,13 @@
+{
+  "network": "polygon",
+  "deployedAt": "2026-03-30T23:51:15.387Z",
+  "addresses": {
+    "storage": "0xF96B7A8ef6480f8A83e71a563F83043625817290",
+    "proxy": "0xc7F4313179532680Fc731DAD955221e901A582D9",
+    "accessManager": "0x9dcB5c3ad14F58f53B2662c16e8FA3dDeE782e1D",
+    "invoiceManager": "0xAd24bdAc4eE6681A01D2a5B93A2a8eeeA024C5Fc",
+    "paymentProcessor": "0x6368b0509a566478049e37e9C8dBfA596ad6eBA3",
+    "treasuryManager": "0xcAdfE13436Be54e1FCABcb75B52EC85C46fFB4eC",
+    "withdrawalManager": "0x835414bD4a9cFCA2BC753a0c820903CD535A0c83"
+  }
+}

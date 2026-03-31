@@ -113,6 +113,9 @@ async function deployAndSetupToNetwork(network: string) {
     console.log(`Account: ${deployer.address}`);
     console.log(`Balance: ${ethers.formatEther(await provider.getBalance(deployer.address))} ETH`);
 
+    // Helper: wait for nonce to sync on public RPCs
+    const waitForSync = () => new Promise(resolve => setTimeout(resolve, 3000));
+
     // 1. Deploy DerampStorage
     console.log("\n📦 Deploying DerampStorage...");
     const DerampStorage = await ethers.getContractFactory("DerampStorage");
@@ -120,6 +123,7 @@ async function deployAndSetupToNetwork(network: string) {
     await storage.waitForDeployment();
     const storageAddress = await storage.getAddress();
     console.log("✅ DerampStorage deployed to:", storageAddress);
+    await waitForSync();
 
     // 2. Deploy DerampProxy
     console.log("\n🔄 Deploying DerampProxy...");
@@ -128,6 +132,7 @@ async function deployAndSetupToNetwork(network: string) {
     await proxy.waitForDeployment();
     const proxyAddress = await proxy.getAddress();
     console.log("✅ DerampProxy deployed to:", proxyAddress);
+    await waitForSync();
 
     // 3. Deploy AccessManager
     console.log("\n🔐 Deploying AccessManager...");
@@ -139,6 +144,7 @@ async function deployAndSetupToNetwork(network: string) {
     await accessManager.waitForDeployment();
     const accessManagerAddress = await accessManager.getAddress();
     console.log("✅ AccessManager deployed to:", accessManagerAddress);
+    await waitForSync();
 
     // 4. Deploy InvoiceManager
     console.log("\n📋 Deploying InvoiceManager...");
@@ -151,6 +157,7 @@ async function deployAndSetupToNetwork(network: string) {
     await invoiceManager.waitForDeployment();
     const invoiceManagerAddress = await invoiceManager.getAddress();
     console.log("✅ InvoiceManager deployed to:", invoiceManagerAddress);
+    await waitForSync();
 
     // 5. Deploy PaymentProcessor
     console.log("\n💳 Deploying PaymentProcessor...");
@@ -163,6 +170,7 @@ async function deployAndSetupToNetwork(network: string) {
     await paymentProcessor.waitForDeployment();
     const paymentProcessorAddress = await paymentProcessor.getAddress();
     console.log("✅ PaymentProcessor deployed to:", paymentProcessorAddress);
+    await waitForSync();
 
     // 6. Deploy TreasuryManager
     console.log("\n🏦 Deploying TreasuryManager...");
@@ -175,6 +183,7 @@ async function deployAndSetupToNetwork(network: string) {
     await treasuryManager.waitForDeployment();
     const treasuryManagerAddress = await treasuryManager.getAddress();
     console.log("✅ TreasuryManager deployed to:", treasuryManagerAddress);
+    await waitForSync();
 
     // 7. Deploy WithdrawalManager
     console.log("\n💰 Deploying WithdrawalManager...");
@@ -187,24 +196,36 @@ async function deployAndSetupToNetwork(network: string) {
     await withdrawalManager.waitForDeployment();
     const withdrawalManagerAddress = await withdrawalManager.getAddress();
     console.log("✅ WithdrawalManager deployed to:", withdrawalManagerAddress);
+    await waitForSync();
 
     // 8. Configure Proxy with all modules
     console.log("\n🔗 Configuring Proxy with modules...");
-    await proxy.setStorageContract(storageAddress);
-    await proxy.setAccessManager(accessManagerAddress);
-    await proxy.setInvoiceManager(invoiceManagerAddress);
-    await proxy.setPaymentProcessor(paymentProcessorAddress);
-    await proxy.setTreasuryManager(treasuryManagerAddress);
-    await proxy.setWithdrawalManager(withdrawalManagerAddress);
+    await (await proxy.setStorageContract(storageAddress)).wait();
+    await waitForSync();
+    await (await proxy.setAccessManager(accessManagerAddress)).wait();
+    await waitForSync();
+    await (await proxy.setInvoiceManager(invoiceManagerAddress)).wait();
+    await waitForSync();
+    await (await proxy.setPaymentProcessor(paymentProcessorAddress)).wait();
+    await waitForSync();
+    await (await proxy.setTreasuryManager(treasuryManagerAddress)).wait();
+    await waitForSync();
+    await (await proxy.setWithdrawalManager(withdrawalManagerAddress)).wait();
+    await waitForSync();
     console.log("✅ Proxy modules configured");
 
     // 9. Authorize managers in storage
     console.log("\n🔐 Authorizing managers in storage...");
-    await storage.setModule("AccessManager", accessManagerAddress);
-    await storage.setModule("InvoiceManager", invoiceManagerAddress);
-    await storage.setModule("PaymentProcessor", paymentProcessorAddress);
-    await storage.setModule("WithdrawalManager", withdrawalManagerAddress);
-    await storage.setModule("TreasuryManager", treasuryManagerAddress);
+    await (await storage.setModule("AccessManager", accessManagerAddress)).wait();
+    await waitForSync();
+    await (await storage.setModule("InvoiceManager", invoiceManagerAddress)).wait();
+    await waitForSync();
+    await (await storage.setModule("PaymentProcessor", paymentProcessorAddress)).wait();
+    await waitForSync();
+    await (await storage.setModule("WithdrawalManager", withdrawalManagerAddress)).wait();
+    await waitForSync();
+    await (await storage.setModule("TreasuryManager", treasuryManagerAddress)).wait();
+    await waitForSync();
     console.log("✅ Storage modules authorized");
 
     // 10. Setup production configuration
@@ -223,23 +244,25 @@ async function deployAndSetupToNetwork(network: string) {
       console.log(`🔧 Backend wallet: not configured (BACKEND_OPERATOR_ROLE will not be assigned)`);
     }
 
-    // Setup production tokens
+    // Setup production tokens (per network)
     console.log("🪙 Setting up production tokens...");
+    const configModule = require("./config");
+    const networkTokens = configModule.TOKENS_BY_NETWORK?.[network] || configModule.PRODUCTION_TOKENS || [];
     let tokensAdded = 0;
-    for (const tokenAddress of baseConfig.PRODUCTION_TOKENS) {
+    for (const tokenAddress of networkTokens) {
       if (tokenAddress && tokenAddress !== baseConfig.VALIDATION.EMPTY_ADDRESS) {
         try {
           await accessManager.addTokenToWhitelist(tokenAddress);
-          console.log(`✅ Token added to whitelist: ${tokenAddress}`);
+          console.log(`✅ Token whitelisted: ${tokenAddress}`);
           tokensAdded++;
         } catch (error: any) {
           console.log(`⚠️  Failed to add token ${tokenAddress}: ${error.message}`);
         }
       }
     }
-    
+
     if (tokensAdded === 0) {
-      console.log("⚠️  No production tokens configured");
+      console.log("⚠️  No tokens configured for this network");
     }
 
     // Setup treasury wallet (uses admin wallet by default)
