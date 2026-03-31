@@ -58,9 +58,23 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   )
 }
 
+// USD to fiat conversion rates (approximate)
+const FIAT_RATES: Record<string, { rate: number; symbol: string }> = {
+  USD: { rate: 1, symbol: "$" },
+  EUR: { rate: 0.92, symbol: "€" },
+  COP: { rate: 4200, symbol: "$" },
+  MXN: { rate: 18, symbol: "$" },
+  BRL: { rate: 5.3, symbol: "R$" },
+  ARS: { rate: 1180, symbol: "$" },
+}
+
 function Dashboard() {
   const { commerce } = useCommerce()
   const { aggregated, totalUsd, loading: balancesLoading, refresh } = useAggregatedBalances(commerce?.commerce_id || null)
+
+  const currency = commerce?.currency || "USD"
+  const fiat = FIAT_RATES[currency] || FIAT_RATES.USD
+  const totalFiat = totalUsd * fiat.rate
   const { t } = useLanguage()
 
   return (
@@ -83,7 +97,8 @@ function Dashboard() {
           <Spinner className="w-6 h-6" />
         ) : (
           <p className="text-3xl font-bold">
-            ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {fiat.symbol}{totalFiat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span className="text-lg font-normal text-muted-foreground ml-2">{currency}</span>
           </p>
         )}
       </Card>

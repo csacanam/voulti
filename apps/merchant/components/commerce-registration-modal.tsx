@@ -12,12 +12,12 @@ import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 
 const CURRENCIES = [
-  { value: "USD", label: "USD - US Dollar" },
-  { value: "COP", label: "COP - Colombian Peso" },
-  { value: "BRL", label: "BRL - Brazilian Real" },
-  { value: "MXN", label: "MXN - Mexican Peso" },
-  { value: "EUR", label: "EUR - Euro" },
-  { value: "ARS", label: "ARS - Argentine Peso" },
+  { value: "USD", label: "USD — US Dollar" },
+  { value: "EUR", label: "EUR — Euro" },
+  { value: "ARS", label: "ARS — Argentine Peso" },
+  { value: "BRL", label: "BRL — Brazilian Real" },
+  { value: "COP", label: "COP — Colombian Peso" },
+  { value: "MXN", label: "MXN — Mexican Peso" },
 ]
 
 export function CommerceRegistrationModal() {
