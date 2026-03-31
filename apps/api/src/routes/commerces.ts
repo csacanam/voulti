@@ -178,6 +178,38 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
+  // Update webhook URL (authenticated + verify ownership)
+  app.put('/:id/webhook', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const { confirmation_url } = req.body as { confirmation_url: string | null };
+
+      // Verify ownership
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const { error } = await supabase
+        .from('commerces')
+        .update({ confirmation_url: confirmation_url || null })
+        .eq('id', id);
+
+      if (error) {
+        return res.status(500).send({ error: 'Failed to update webhook URL' });
+      }
+
+      return res.send({ success: true });
+    } catch (error: any) {
+      return res.status(500).send({ error: error.message || 'Failed to update' });
+    }
+  });
+
   // Get commerce by wallet address (authenticated + verify own wallet)
   app.get('/by-wallet/:wallet', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {

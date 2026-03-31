@@ -179,6 +179,46 @@ export const ApiDocsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Webhook */}
+        <div className="mb-12">
+          <h2 className="text-lg font-bold mb-4">
+            {isEs ? 'Webhook (opcional)' : 'Webhook (optional)'}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {isEs
+              ? 'Configura una URL en tu cuenta y recibirás un POST automático cuando un invoice se pague. Así no necesitas hacer polling.'
+              : 'Set a URL in your account and you\'ll receive an automatic POST when an invoice is paid. No polling needed.'}
+          </p>
+
+          <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
+            <p className="text-sm text-gray-600 mb-3">
+              {isEs ? 'Configúralo en:' : 'Set it up at:'}{' '}
+              <a href="https://app.voulti.com/account" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">
+                app.voulti.com/account → Webhook URL
+              </a>
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-400 mb-2">{isEs ? 'Payload que recibirás:' : 'Payload you\'ll receive:'}</p>
+          <div className="bg-gray-900 rounded-xl p-5">
+            <pre className="text-blue-400 text-sm overflow-x-auto">
+{`POST https://yourdomain.com/webhook
+
+{
+  "invoice_id": "9c99f194-...",
+  "amount_fiat": 25000,
+  "fiat_currency": "COP",
+  "status": "Paid",
+  "paid_token": "USDC",
+  "paid_network": "Celo",
+  "paid_tx_hash": "0xabc123...",
+  "paid_amount": 6.12,
+  "paid_at": "2026-03-31T05:23:00Z"
+}`}
+            </pre>
+          </div>
+        </div>
+
         {/* Status Flow */}
         <div className="mb-12">
           <h2 className="text-lg font-bold mb-4">{isEs ? 'Estados del invoice' : 'Invoice statuses'}</h2>

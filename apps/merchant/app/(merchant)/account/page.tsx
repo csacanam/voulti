@@ -1,13 +1,71 @@
 "use client"
 
+import { useState } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Lock, Loader2, Info, Copy } from "lucide-react"
+import { Lock, Loader2, Info, Copy, Save, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { API_CONFIG } from "@/services/config"
+import { getAuthToken } from "@/services/api"
+
+function WebhookSection({ commerceId, currentUrl }: { commerceId: string; currentUrl: string | null }) {
+  const [url, setUrl] = useState(currentUrl || '')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const { toast } = useToast()
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/webhook`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ confirmation_url: url || null }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      toast({ title: saved ? '' : 'Webhook URL saved' })
+    } catch {
+      toast({ title: 'Failed to save', variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-foreground mb-2">Webhook URL</h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        We'll POST payment data to this URL when an invoice is paid.
+      </p>
+      <div className="flex gap-2">
+        <Input
+          placeholder="https://yourdomain.com/webhook"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="font-mono text-sm"
+        />
+        <Button onClick={handleSave} disabled={saving} variant="outline" className="gap-1.5 shrink-0">
+          {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+          {saved ? 'Saved' : 'Save'}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mt-2">
+        Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount {'}'}
+      </p>
+    </div>
+  )
+}
 
 export default function AccountPage() {
   const { authenticated } = usePrivy()
@@ -118,6 +176,11 @@ export default function AccountPage() {
               </div>
             </div>
           </div>
+
+          <Separator />
+
+          {/* Webhook URL */}
+          <WebhookSection commerceId={commerce.commerce_id} currentUrl={commerce.confirmation_url} />
 
           <Separator />
 
