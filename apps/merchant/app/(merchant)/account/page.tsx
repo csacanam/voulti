@@ -79,6 +79,13 @@ export default function AccountPage() {
                 <p className="text-foreground mt-1">{commerce.name}</p>
               </div>
 
+              {commerce.confirmation_email && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-foreground mt-1">{commerce.confirmation_email}</p>
+                </div>
+              )}
+
               <div>
                 <label className="text-sm font-medium text-muted-foreground">{t.account.wallet}</label>
                 <div className="flex items-center gap-2 mt-1">
