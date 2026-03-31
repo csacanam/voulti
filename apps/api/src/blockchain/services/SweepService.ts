@@ -307,6 +307,7 @@ export class SweepService {
           .update({
             pay_invoice_tx_hash: payTx.hash,
             status: 'swept',
+            sweep_error: null,
             refund_tx_hash: refundTxHash,
           })
           .eq('id', deposit.id);
