@@ -221,11 +221,12 @@ export const HomePage: React.FC = () => {
   "amount_fiat": 25000
 }
 
-→ 200 OK
+→ 201 Created
 {
-  "id": "inv_abc123",
-  "checkout": "${baseUrl}/checkout/inv_abc123"
-}`}
+  "id": "9c99f194-18ea-..."
+}
+
+→ ${baseUrl}/checkout/{id}`}
                   </pre>
                 </div>
               </div>

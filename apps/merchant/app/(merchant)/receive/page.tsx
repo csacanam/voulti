@@ -292,7 +292,7 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
 // ─── Developers Tab ───
 function DevelopersTab() {
   const { commerce } = useCommerce()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [copied, setCopied] = useState<string | null>(null)
 
   const copy = (text: string, id: string) => {
