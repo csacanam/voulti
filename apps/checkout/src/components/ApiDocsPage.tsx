@@ -277,7 +277,7 @@ export const ApiDocsPage: React.FC = () => {
         <div className="text-center mt-12 pt-8 border-t border-gray-200">
           <p className="text-gray-400 text-xs">
             &copy; Voulti {new Date().getFullYear()} &middot; A{' '}
-            <a href="https://sakalabs.xyz" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 hover:text-violet-700">Saka Labs</a>{' '}
+            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 hover:text-violet-700">Saka Labs</a>{' '}
             product
           </p>
         </div>

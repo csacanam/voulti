@@ -296,7 +296,7 @@ export const HomePage: React.FC = () => {
         <div className="max-w-5xl mx-auto text-center">
           <p className="text-gray-400 text-xs">
             &copy; Voulti {new Date().getFullYear()} &middot; A{' '}
-            <a href="https://sakalabs.xyz" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 hover:text-violet-700 transition-colors">Saka Labs</a>{' '}
+            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 hover:text-violet-700 transition-colors">Saka Labs</a>{' '}
             product
           </p>
         </div>

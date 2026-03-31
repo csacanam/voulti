@@ -295,7 +295,7 @@ export const CommercePage: React.FC = () => {
           <p className="text-gray-400 text-xs">
             {t.poweredBy} <Link to="/" className="font-bold text-violet-600 hover:text-violet-700 transition-colors">Voulti</Link>
             <span className="mx-1">&middot;</span>
-            <a href="https://sakalabs.xyz" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-violet-600 transition-colors">Saka Labs</a>
+            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-violet-600 transition-colors">Saka Labs</a>
           </p>
         </div>
       </div>

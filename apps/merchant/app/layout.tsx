@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Voulti — Accept Crypto Payments',
   description: 'Crypto payment gateway for merchants. Accept USDC, USDT and stablecoins on 5 networks. Self-custody, instant settlement.',
   keywords: ['crypto payments', 'USDC', 'USDT', 'stablecoin', 'payment gateway', 'merchant', 'Celo', 'Arbitrum', 'Polygon', 'Base', 'BSC'],
-  authors: [{ name: 'Saka Labs', url: 'https://sakalabs.xyz' }],
+  authors: [{ name: 'Saka Labs', url: 'https://sakalabs.io' }],
   openGraph: {
     title: 'Voulti — Accept Crypto Payments',
     description: 'Let your customers pay with USDC, USDT and stablecoins on 5 networks.',
