@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { CheckoutPage } from './components/CheckoutPage';
 import { CommercePage } from './components/CommercePage';
 import { HomePage } from './components/HomePage';
+import { ApiDocsPage } from './components/ApiDocsPage';
 import { LanguageProvider } from './contexts/LanguageContext';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/checkout/:invoiceId" element={<CheckoutPage />} />
           <Route path="/pay/:commerceId" element={<CommercePage />} />
+          <Route path="/docs" element={<ApiDocsPage />} />
           <Route path="/demo" element={<Navigate to="/" replace />} />
           <Route path="/checkout" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

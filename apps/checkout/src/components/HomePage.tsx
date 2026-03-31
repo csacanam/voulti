@@ -188,7 +188,7 @@ export const HomePage: React.FC = () => {
                     : 'Integrate crypto payments directly into your website, app, or system. Create invoices via API and redirect to checkout. Receive webhooks when payment is confirmed.'}
                 </p>
                 <a
-                  href="https://app.voulti.com/receive"
+                  href="/docs"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-violet-600 hover:text-violet-700 font-medium text-sm"
