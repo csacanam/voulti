@@ -58,8 +58,14 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   )
 }
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: "$", EUR: "€", COP: "$", MXN: "$", BRL: "R$", ARS: "$", GBP: "£",
+const CURRENCY_CONFIG: Record<string, { symbol: string; decimals: number }> = {
+  USD: { symbol: "$", decimals: 2 },
+  EUR: { symbol: "€", decimals: 2 },
+  GBP: { symbol: "£", decimals: 2 },
+  COP: { symbol: "$", decimals: 0 },
+  MXN: { symbol: "$", decimals: 2 },
+  BRL: { symbol: "R$", decimals: 2 },
+  ARS: { symbol: "$", decimals: 0 },
 }
 
 function Dashboard() {
@@ -68,7 +74,7 @@ function Dashboard() {
 
   const currency = commerce?.currency || "USD"
   const fiatRate = fiatRates[currency] || 1
-  const fiatSymbol = CURRENCY_SYMBOLS[currency] || "$"
+  const config = CURRENCY_CONFIG[currency] || { symbol: "$", decimals: 2 }
   const totalFiat = totalUsd * fiatRate
   const { t } = useLanguage()
 
@@ -92,7 +98,7 @@ function Dashboard() {
           <Spinner className="w-6 h-6" />
         ) : (
           <p className="text-3xl font-bold">
-            {fiatSymbol}{Math.round(totalFiat).toLocaleString()}
+            {config.symbol}{totalFiat.toLocaleString(undefined, { minimumFractionDigits: config.decimals, maximumFractionDigits: config.decimals })}
             <span className="text-lg font-normal text-muted-foreground ml-2">{currency}</span>
           </p>
         )}
