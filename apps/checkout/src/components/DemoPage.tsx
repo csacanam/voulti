@@ -17,13 +17,13 @@ export const DemoPage: React.FC = () => {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/pay/ad4837a4-c66a-43fe-a1f5-0cc63843dee4`);
+    navigator.clipboard.writeText(`${window.location.origin}/pay/43f5294f-3ed7-4850-9376-7de4fef763d7`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleOpenLink = () => {
-    window.open(`${window.location.origin}/pay/ad4837a4-c66a-43fe-a1f5-0cc63843dee4`, '_blank');
+    window.open(`${window.location.origin}/pay/43f5294f-3ed7-4850-9376-7de4fef763d7`, '_blank');
   };
 
   const handleDownloadQR = async () => {
@@ -129,7 +129,7 @@ export const DemoPage: React.FC = () => {
                           {/* QR Code */}
                           <div className="mb-3 md:mb-4 qr-code-container">
                             <QRCodeComponent
-                              value={`${window.location.origin}/pay/ad4837a4-c66a-43fe-a1f5-0cc63843dee4`}
+                              value={`${window.location.origin}/pay/43f5294f-3ed7-4850-9376-7de4fef763d7`}
                               size={120}
                               className="mx-auto md:w-40"
                             />
@@ -173,7 +173,7 @@ export const DemoPage: React.FC = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                           <div className="flex-1 text-left">
                             <p className="text-xs md:text-sm text-gray-600 break-all">
-                              {`${window.location.origin}/pay/ad4837a4-c66a-43fe-a1f5-0cc63843dee4`}
+                              {`${window.location.origin}/pay/43f5294f-3ed7-4850-9376-7de4fef763d7`}
                             </p>
                           </div>
                           <button
@@ -230,11 +230,11 @@ export const DemoPage: React.FC = () => {
                         <div className="w-full">
                           <div className="bg-gray-900 rounded-lg p-3 md:p-4 text-left w-full overflow-x-auto">
                             <pre className="text-green-400 text-xs md:text-sm whitespace-pre-wrap">
-{`POST /api/invoice
+{`POST /invoices
 {
   "amount": 1000,
   "currency": "COP",
-  "commerce_id": "ad4837a4-c66a-43fe-a1f5-0cc63843dee4"
+  "commerce_id": "43f5294f-3ed7-4850-9376-7de4fef763d7"
 }`}
                             </pre>
                           </div>
@@ -258,7 +258,7 @@ export const DemoPage: React.FC = () => {
   "success": true,
   "data": {
     "id": "ab6d5372-d7cf-4f4b-bf56-c7c296062e3e",
-    "commerce_id": "ad4837a4-c66a-43fe-a1f5-0cc63843dee4",
+    "commerce_id": "43f5294f-3ed7-4850-9376-7de4fef763d7",
     "amount_fiat": 1000,
     "fiat_currency": "COP",
     "status": "Pending",
