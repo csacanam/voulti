@@ -1,19 +1,9 @@
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useCommerceBalances, type TokenBalance } from "./use-token-balance"
+import { API_CONFIG } from "@/services/config"
+import { getAuthToken } from "@/services/api"
 
 const DUST_THRESHOLD = 0.01
-
-// Approximate USD value per token unit
-// USD-pegged stablecoins = 1, fiat-pegged = 1/rate
-const TOKEN_USD_RATE: Record<string, number> = {
-  USDC: 1,
-  USDT: 1,
-  COPm: 1 / 4200,   // ~4200 COP per USD
-  USDm: 1,
-  EURm: 1.08,       // ~1.08 USD per EUR
-  BRLm: 1 / 5.3,    // ~5.3 BRL per USD
-  GBPm: 1.26,       // ~1.26 USD per GBP
-}
 
 export interface AggregatedBalance {
   symbol: string
@@ -23,8 +13,27 @@ export interface AggregatedBalance {
   networks: (TokenBalance & { balanceNum: number })[]
 }
 
+interface Rates {
+  fiat: Record<string, number>   // e.g. { COP: 4200, EUR: 0.92 }
+  tokens: Record<string, number> // e.g. { USDC: 1, COPm: 0.000238 }
+}
+
+function useRates() {
+  const [rates, setRates] = useState<Rates>({ fiat: {}, tokens: {} })
+
+  useEffect(() => {
+    fetch(`${API_CONFIG.BASE_URL}/prices/rates`)
+      .then(r => r.json())
+      .then(data => setRates(data))
+      .catch(() => {})
+  }, [])
+
+  return rates
+}
+
 export function useAggregatedBalances(commerceId: string | null) {
   const { balances, loading, error, refresh } = useCommerceBalances(commerceId)
+  const rates = useRates()
 
   const aggregated = useMemo(() => {
     const map = new Map<string, AggregatedBalance>()
@@ -33,8 +42,9 @@ export function useAggregatedBalances(commerceId: string | null) {
       const num = parseFloat(b.balance)
       if (num <= 0) continue
 
-      const usdRate = TOKEN_USD_RATE[b.symbol] || 1
-      const usdValue = num * usdRate
+      // Get token rate to USD from DB rates
+      const tokenRate = rates.tokens[b.symbol] || 1
+      const usdValue = num * tokenRate
 
       const existing = map.get(b.symbol)
       if (existing) {
@@ -60,12 +70,12 @@ export function useAggregatedBalances(commerceId: string | null) {
     return Array.from(map.values())
       .filter((a) => a.totalBalance >= DUST_THRESHOLD)
       .sort((a, b) => b.totalUsdValue - a.totalUsdValue)
-  }, [balances])
+  }, [balances, rates])
 
   const totalUsd = useMemo(
     () => aggregated.reduce((sum, a) => sum + a.totalUsdValue, 0),
     [aggregated]
   )
 
-  return { aggregated, totalUsd, loading, error, refresh }
+  return { aggregated, totalUsd, fiatRates: rates.fiat, loading, error, refresh }
 }
