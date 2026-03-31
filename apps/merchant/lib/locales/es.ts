@@ -108,6 +108,10 @@ export const es = {
       loginStats: "Inicia sesión para ver tus estadísticas",
       loginTransfers: "Inicia sesión para ver tus transferencias",
     },
+    withdraw: "Retirar",
+    withdrawFee: "Comisión por retiro",
+    youReceive: "Recibes",
+    checkingGas: "Verificando...",
   },
   createLink: {
     title: "Nuevo Link de Pago",

@@ -6,6 +6,7 @@ import { CONTRACTS } from '../blockchain/config/contracts';
 import { TOKENS } from '../blockchain/config/tokens';
 import { getWallet } from '../blockchain/utils/web3';
 import AccessManagerABI from '../blockchain/abi/AccessManager.json';
+import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const supabase = createClient(
@@ -207,6 +208,136 @@ export async function commercesRoutes(app: FastifyInstance) {
       return res.send({ success: true });
     } catch (error: any) {
       return res.status(500).send({ error: error.message || 'Failed to update' });
+    }
+  });
+
+  // Get withdrawal fee estimate for a token
+  app.get('/withdraw-fee/:tokenSymbol', async (req, res) => {
+    try {
+      const { tokenSymbol } = req.params as { tokenSymbol: string };
+
+      const { data: tokenRate } = await supabase
+        .from('tokens')
+        .select('rate_to_usd')
+        .eq('symbol', tokenSymbol)
+        .single();
+
+      const rateToUsd = tokenRate?.rate_to_usd || 1;
+      const feeUsd = 1;
+      const feeInToken = feeUsd / rateToUsd;
+
+      return res.send({
+        success: true,
+        data: {
+          fee_usd: feeUsd,
+          fee_token: feeInToken,
+          token_symbol: tokenSymbol,
+          rate_to_usd: rateToUsd,
+        }
+      });
+    } catch (error: any) {
+      return res.status(500).send({ error: error.message || 'Failed to get fee estimate' });
+    }
+  });
+
+  // Gasless withdraw: backend executes withdrawFor on behalf of commerce
+  app.post('/:id/withdraw-for', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const { token_address, amount, network } = req.body as {
+        token_address: string;
+        amount: string; // human-readable amount (e.g. "100")
+        network: string; // e.g. "celo", "arbitrum"
+      };
+
+      if (!token_address || !amount || !network) {
+        return res.status(400).send({ error: 'token_address, amount, and network are required' });
+      }
+
+      // Verify ownership
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const contracts = CONTRACTS[network];
+      if (!contracts) {
+        return res.status(400).send({ error: `Network ${network} not supported` });
+      }
+
+      // Find token info to get decimals and rate
+      const networkTokens = TOKENS[network];
+      if (!networkTokens) {
+        return res.status(400).send({ error: `No tokens configured for ${network}` });
+      }
+
+      const tokenInfo = Object.values(networkTokens).find(
+        t => t.address.toLowerCase() === token_address.toLowerCase()
+      );
+      if (!tokenInfo) {
+        return res.status(400).send({ error: 'Token not found on this network' });
+      }
+
+      // Get token rate to calculate $1 USD fee
+      const { data: tokenRate } = await supabase
+        .from('tokens')
+        .select('rate_to_usd')
+        .eq('symbol', tokenInfo.symbol)
+        .single();
+
+      const rateToUsd = tokenRate?.rate_to_usd || 1;
+      const feeUsd = 1; // $1 USD flat fee
+      const feeInToken = feeUsd / rateToUsd;
+
+      const amountParsed = ethers.parseUnits(amount, tokenInfo.decimals);
+      const feeParsed = ethers.parseUnits(feeInToken.toFixed(tokenInfo.decimals), tokenInfo.decimals);
+
+      if (feeParsed >= amountParsed) {
+        return res.status(400).send({ error: 'Amount too small to cover the withdrawal fee' });
+      }
+
+      // Execute withdrawFor via backend wallet
+      const backendKey = process.env.BACKEND_PRIVATE_KEY;
+      if (!backendKey) {
+        return res.status(500).send({ error: 'Backend wallet not configured' });
+      }
+
+      const signer = getWallet(backendKey, network, false);
+      const proxyContract = new ethers.Contract(
+        contracts.DERAMP_PROXY,
+        DerampProxyABI.abi || DerampProxyABI,
+        signer
+      );
+
+      const tx = await proxyContract.withdrawFor(
+        commerce.wallet,
+        token_address,
+        amountParsed,
+        feeParsed
+      );
+      await tx.wait();
+
+      const netAmount = ethers.formatUnits(amountParsed - feeParsed, tokenInfo.decimals);
+
+      return res.send({
+        success: true,
+        data: {
+          tx_hash: tx.hash,
+          network,
+          token: tokenInfo.symbol,
+          amount_withdrawn: amount,
+          fee: ethers.formatUnits(feeParsed, tokenInfo.decimals),
+          net_amount: netAmount,
+        }
+      });
+    } catch (error: any) {
+      console.error('WithdrawFor error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to execute withdrawal' });
     }
   });
 

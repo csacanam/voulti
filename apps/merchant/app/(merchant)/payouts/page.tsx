@@ -127,7 +127,7 @@ export default function PayoutsPage() {
       {authenticated && aggregated.length > 0 && (
         <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {aggregated.map((token) => (
-            <TokenBalanceCard key={token.symbol} token={token} />
+            <TokenBalanceCard key={token.symbol} token={token} onWithdrawSuccess={refreshBalances} />
           ))}
         </div>
       )}

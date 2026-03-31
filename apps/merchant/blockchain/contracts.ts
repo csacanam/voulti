@@ -16,4 +16,5 @@ export const PROXY_ADDRESSES: Record<string, string> = {
 
 export const DERAMP_PROXY_ABI = [
   "function withdrawTo(address token, uint256 amount, address to) external",
+  "function withdraw(address token) external",
 ] as const
