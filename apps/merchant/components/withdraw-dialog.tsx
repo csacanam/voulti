@@ -128,6 +128,16 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
       const tx = await proxy.withdrawTo(networkEntry.tokenAddress, parsedAmount, recipient)
       await tx.wait()
 
+      // Record withdrawal in history
+      if (commerce) {
+        await apiClient.post('/payouts', {
+          commerce_id: commerce.commerce_id,
+          to_address: recipient,
+          amount: balance,
+          token: symbol,
+        }).catch(() => {}) // non-critical
+      }
+
       toast({ title: t.send?.transferSent || "Withdrawal sent!", description: `${fmt(balance)} ${symbol} → ${recipient.slice(0, 6)}...${recipient.slice(-4)}` })
       onSuccess()
     } catch (err: any) {

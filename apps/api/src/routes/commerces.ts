@@ -330,6 +330,17 @@ export async function commercesRoutes(app: FastifyInstance) {
 
       const netAmount = ethers.formatUnits(amountParsed - feeParsed, tokenInfo.decimals);
 
+      // Record withdrawal in payouts table
+      await supabase.from('payouts').insert({
+        commerce_id: id,
+        to_address: to,
+        to_name: to.slice(0, 6) + '...' + to.slice(-4),
+        to_amount: parseFloat(netAmount),
+        to_currency: tokenInfo.symbol,
+        status: 'Claimed',
+        claimed_at: new Date().toISOString(),
+      });
+
       return res.send({
         success: true,
         data: {
