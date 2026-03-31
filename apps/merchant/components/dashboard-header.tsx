@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Wallet, LogIn, LogOut, User, Building2 } from "lucide-react"
+import { Wallet, LogOut, User, Building2 } from "lucide-react"
 import { usePrivy } from "@privy-io/react-auth"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -10,26 +10,32 @@ import { LanguageSelector } from "@/components/language-selector"
 import { MainNav } from "@/components/main-nav"
 
 export function DashboardHeader() {
-  const { ready, authenticated, login, logout, user } = usePrivy()
+  const { ready, authenticated, login, logout } = usePrivy()
   const { commerce } = useCommerce()
   const { t } = useLanguage()
 
   return (
-    <header className="border-b border-border bg-card sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 max-w-7xl">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Voulti</h1>
-              <p className="text-sm text-muted-foreground">{t.header.tagline}</p>
-            </div>
+    <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 max-w-7xl">
+        <div className="flex items-center justify-between">
+          {/* Logo + Nav */}
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">V</span>
+              </div>
+              <span className="text-lg font-bold text-foreground">Voulti</span>
+            </Link>
+
+            {authenticated && <MainNav />}
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Right side */}
+          <div className="flex items-center gap-2">
             {authenticated && commerce && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted">
-                <Building2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">{commerce.name}</span>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground">
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">{commerce.name}</span>
               </div>
             )}
 
@@ -37,38 +43,26 @@ export function DashboardHeader() {
 
             {authenticated && (
               <Link href="/account">
-                <Button variant="outline" size="lg" className="gap-2 cursor-pointer">
-                  <User className="w-5 h-5" />
-                  {t.header.account}
+                <Button variant="ghost" size="sm" className="gap-1.5">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.header.account}</span>
                 </Button>
               </Link>
             )}
 
             {authenticated ? (
-              <Button
-                onClick={logout}
-                size="lg"
-                variant="outline"
-                className="gap-2 cursor-pointer"
-              >
-                <LogOut className="w-5 h-5" />
-                {t.header.logout}
+              <Button onClick={logout} variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">{t.header.logout}</span>
               </Button>
             ) : (
-              <Button
-                onClick={login}
-                size="lg"
-                className="gap-2 cursor-pointer"
-                disabled={!ready}
-              >
-                <Wallet className="w-5 h-5" />
+              <Button onClick={login} size="sm" className="gap-2" disabled={!ready}>
+                <Wallet className="w-4 h-4" />
                 {ready ? t.header.getStarted : t.header.loading}
               </Button>
             )}
           </div>
         </div>
-        
-        {authenticated && <MainNav />}
       </div>
     </header>
   )

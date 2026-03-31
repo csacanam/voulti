@@ -9,9 +9,22 @@ import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Voulti Payouts',
-  description: 'Global payouts in PYUSD, settled instantly in local stablecoins',
-  generator: 'v0.app',
+  title: 'Voulti — Accept Crypto Payments',
+  description: 'Crypto payment gateway for merchants. Accept USDC, USDT and stablecoins on 5 networks. Self-custody, instant settlement.',
+  keywords: ['crypto payments', 'USDC', 'USDT', 'stablecoin', 'payment gateway', 'merchant', 'Celo', 'Arbitrum', 'Polygon', 'Base', 'BSC'],
+  authors: [{ name: 'Saka Labs', url: 'https://sakalabs.xyz' }],
+  openGraph: {
+    title: 'Voulti — Accept Crypto Payments',
+    description: 'Let your customers pay with USDC, USDT and stablecoins on 5 networks.',
+    url: 'https://voulti.com',
+    siteName: 'Voulti',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Voulti — Accept Crypto Payments',
+    description: 'Crypto payment gateway for merchants. 5 networks, instant settlement.',
+  },
 }
 
 export default function RootLayout({
@@ -21,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} min-h-screen flex flex-col`}>
         <PrivyProviderWrapper>
           <AuthTokenProvider>
             <LanguageProvider>
