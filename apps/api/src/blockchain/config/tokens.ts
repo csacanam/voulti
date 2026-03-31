@@ -1,4 +1,5 @@
 // src/blockchain/config/tokens.ts
+// Production token addresses — verified on-chain 2026-03-30
 
 interface Token {
   address: string;
@@ -16,20 +17,6 @@ interface TokenConfig {
 }
 
 export const TOKENS: TokenConfig = {
-  hardhat: {
-    USDC: {
-      address: process.env.HARDHAT_USDC_ADDRESS || "",
-      symbol: "USDC",
-      name: "Mock USDC",
-      decimals: 6,
-    },
-    USDT: {
-      address: process.env.HARDHAT_USDT_ADDRESS || "",
-      symbol: "USDT",
-      name: "Mock USDT",
-      decimals: 6,
-    },
-  },
   celo: {
     USDC: {
       address: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
@@ -43,28 +30,10 @@ export const TOKENS: TokenConfig = {
       name: "Tether USD",
       decimals: 6,
     },
-    CUSD: {
-      address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
-      symbol: "cUSD",
-      name: "Celo Dollar",
-      decimals: 18,
-    },
-    CCOP: {
+    COPM: {
       address: "0x8A567e2aE79CA692Bd748aB832081C45de4041eA",
-      symbol: "cCOP",
-      name: "Celo Colombian Peso",
-      decimals: 18,
-    },
-    CREAL: {
-      address: "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787",
-      symbol: "cREAL",
-      name: "Celo Brazilian Real",
-      decimals: 18,
-    },
-    BRLA: {
-      address: "0xfecb3f7c54e2caae9dc6ac9060a822d47e053760",
-      symbol: "BRLA",
-      name: "Brazilian Digital Real",
+      symbol: "COPm",
+      name: "Mento Colombian Peso",
       decimals: 18,
     },
   },
@@ -75,10 +44,10 @@ export const TOKENS: TokenConfig = {
       name: "USD Coin",
       decimals: 6,
     },
-    USDT: {
+    USDT0: {
       address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-      symbol: "USDT",
-      name: "Tether USD",
+      symbol: "USD₮0",
+      name: "Tether Zero",
       decimals: 6,
     },
   },
@@ -89,10 +58,10 @@ export const TOKENS: TokenConfig = {
       name: "USD Coin",
       decimals: 6,
     },
-    USDT: {
+    USDT0: {
       address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-      symbol: "USDT",
-      name: "Tether USD",
+      symbol: "USDT0",
+      name: "Tether Zero",
       decimals: 6,
     },
   },
@@ -118,4 +87,21 @@ export const TOKENS: TokenConfig = {
       decimals: 18,
     },
   },
+  // Hardhat local — only when env vars are set
+  ...(process.env.HARDHAT_USDC_ADDRESS ? {
+    hardhat: {
+      USDC: {
+        address: process.env.HARDHAT_USDC_ADDRESS,
+        symbol: "USDC",
+        name: "Mock USDC",
+        decimals: 6,
+      },
+      USDT: {
+        address: process.env.HARDHAT_USDT_ADDRESS || "",
+        symbol: "USDT",
+        name: "Mock USDT",
+        decimals: 6,
+      },
+    },
+  } : {}),
 };
