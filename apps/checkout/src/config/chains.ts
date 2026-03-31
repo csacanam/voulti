@@ -91,7 +91,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     },
     tokens: {
       USDC: { address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", symbol: "USDC", name: "USD Coin", decimals: 6 },
-      USDT0: { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", symbol: "USD₮0", name: "Tether Zero", decimals: 6 },
+      USDT: { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", symbol: "USDT", name: "Tether USD", decimals: 6 },
     },
     rpcUrls: ['https://arb1.arbitrum.io/rpc'],
     blockExplorer: 'https://arbiscan.io',
@@ -111,7 +111,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     },
     tokens: {
       USDC: { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", symbol: "USDC", name: "USD Coin", decimals: 6 },
-      USDT0: { address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT0", name: "Tether Zero", decimals: 6 },
+      USDT: { address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT", name: "Tether USD", decimals: 6 },
     },
     rpcUrls: ['https://polygon-rpc.com'],
     blockExplorer: 'https://polygonscan.com',

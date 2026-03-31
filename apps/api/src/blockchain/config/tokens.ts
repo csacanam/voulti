@@ -44,10 +44,10 @@ export const TOKENS: TokenConfig = {
       name: "USD Coin",
       decimals: 6,
     },
-    USDT0: {
+    USDT: {
       address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-      symbol: "USD₮0",
-      name: "Tether Zero",
+      symbol: "USDT",
+      name: "Tether USD",
       decimals: 6,
     },
   },
@@ -58,10 +58,10 @@ export const TOKENS: TokenConfig = {
       name: "USD Coin",
       decimals: 6,
     },
-    USDT0: {
+    USDT: {
       address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-      symbol: "USDT0",
-      name: "Tether Zero",
+      symbol: "USDT",
+      name: "Tether USD",
       decimals: 6,
     },
   },

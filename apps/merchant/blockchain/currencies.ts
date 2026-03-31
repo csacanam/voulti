@@ -18,10 +18,10 @@ export const SUPPORTED_TOKENS: TokenConfig[] = [
   { address: "0x8A567e2aE79CA692Bd748aB832081C45de4041eA", symbol: "COPm", name: "Mento Colombian Peso", decimals: 18, network: "celo", chainId: 42220 },
   // Arbitrum
   { address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", symbol: "USDC", name: "USD Coin", decimals: 6, network: "arbitrum", chainId: 42161 },
-  { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", symbol: "USD₮0", name: "Tether Zero", decimals: 6, network: "arbitrum", chainId: 42161 },
+  { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", symbol: "USDT", name: "Tether USD", decimals: 6, network: "arbitrum", chainId: 42161 },
   // Polygon
   { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", symbol: "USDC", name: "USD Coin", decimals: 6, network: "polygon", chainId: 137 },
-  { address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT0", name: "Tether Zero", decimals: 6, network: "polygon", chainId: 137 },
+  { address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT", name: "Tether USD", decimals: 6, network: "polygon", chainId: 137 },
   // Base
   { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", name: "USD Coin", decimals: 6, network: "base", chainId: 8453 },
   // BSC
