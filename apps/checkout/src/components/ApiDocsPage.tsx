@@ -186,15 +186,15 @@ export const ApiDocsPage: React.FC = () => {
           </h2>
           <p className="text-gray-600 mb-4">
             {isEs
-              ? 'Configura una URL en tu cuenta y recibirás un POST automático cuando un invoice se pague. Así no necesitas hacer polling.'
-              : 'Set a URL in your account and you\'ll receive an automatic POST when an invoice is paid. No polling needed.'}
+              ? 'Configura una URL y recibirás un POST automático cuando un invoice se pague. Puedes usar webhook en vez de polling, o ambos.'
+              : 'Set a URL and you\'ll receive an automatic POST when an invoice is paid. Use webhook instead of polling, or both.'}
           </p>
 
           <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
             <p className="text-sm text-gray-600 mb-3">
               {isEs ? 'Configúralo en:' : 'Set it up at:'}{' '}
-              <a href="https://app.voulti.com/account" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">
-                app.voulti.com/account → Webhook URL
+              <a href="https://app.voulti.com/receive" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">
+                app.voulti.com → Receive → Developers
               </a>
             </p>
           </div>

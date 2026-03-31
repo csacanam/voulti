@@ -179,11 +179,6 @@ export default function AccountPage() {
 
           <Separator />
 
-          {/* Webhook URL */}
-          <WebhookSection commerceId={commerce.commerce_id} currentUrl={commerce.confirmation_url} />
-
-          <Separator />
-
           {/* Currency Settings */}
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">{t.account.currencySettings}</h3>

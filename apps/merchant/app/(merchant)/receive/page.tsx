@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2 } from "lucide-react"
+import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2, Save } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { QrModal } from "@/components/qr-modal"
@@ -246,6 +247,48 @@ function CommerceLinkTab() {
   )
 }
 
+// ─── Webhook Input ───
+function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentUrl: string | null }) {
+  const [url, setUrl] = useState(currentUrl || '')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const { toast } = useToast()
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const { getAuthToken } = await import("@/services/api")
+      const token = getAuthToken()
+      const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/webhook`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ confirmation_url: url || null }),
+      })
+      if (!res.ok) throw new Error()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      toast({ title: 'Webhook URL saved' })
+    } catch {
+      toast({ title: 'Failed to save', variant: 'destructive' as const })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Input placeholder="https://yourdomain.com/webhook" value={url} onChange={(e) => setUrl(e.target.value)} className="font-mono text-sm" />
+      <Button onClick={handleSave} disabled={saving} variant="outline" size="sm" className="gap-1.5 shrink-0">
+        {saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
+        {saved ? 'Saved' : 'Save'}
+      </Button>
+    </div>
+  )
+}
+
 // ─── Developers Tab ───
 function DevelopersTab() {
   const { commerce } = useCommerce()
@@ -331,6 +374,20 @@ function DevelopersTab() {
           </p>
           <CB code={`curl ${apiBase}/invoices/{invoice_id}`} id="get" />
         </div>
+      </Card>
+
+      {/* Webhook */}
+      <Card className="p-5">
+        <p className="text-sm font-semibold mb-2">Webhook URL</p>
+        <p className="text-xs text-muted-foreground mb-3">
+          {language === 'es'
+            ? 'Recibirás un POST automático cuando un invoice se pague.'
+            : 'You\'ll receive an automatic POST when an invoice is paid.'}
+        </p>
+        <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
+        <p className="text-xs text-muted-foreground mt-2">
+          Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount {'}'}
+        </p>
       </Card>
 
       {/* Other */}
