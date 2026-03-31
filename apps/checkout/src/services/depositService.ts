@@ -38,7 +38,7 @@ export interface DepositStatusData {
 
 export const depositService = {
   async generateAddress(params: GenerateDepositRequest): Promise<DepositData> {
-    const res = await fetch(`${API_URL}/api/deposit/generate`, {
+    const res = await fetch(`${API_URL}/deposit/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -54,7 +54,7 @@ export const depositService = {
   },
 
   async getStatus(invoiceId: string): Promise<DepositStatusData> {
-    const res = await fetch(`${API_URL}/api/deposit/status/${invoiceId}`);
+    const res = await fetch(`${API_URL}/deposit/status/${invoiceId}`);
 
     if (!res.ok) {
       throw new Error('Failed to fetch deposit status');

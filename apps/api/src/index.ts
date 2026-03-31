@@ -49,15 +49,15 @@ async function main() {
     };
   });
   
-  app.register(invoicesRoutes, { prefix: '/api/invoices' });
-  app.register(blockchainRoutes, { prefix: '/api/blockchain' });
-  app.register(commercesRoutes, { prefix: '/api/commerces' });
-  app.register(pricesRoutes, { prefix: '/api/prices' });
-  app.register(ordersRoutes, { prefix: '/api/orders' });
-  app.register(notificationsRoutes, { prefix: '/api/notifications' });
-  app.register(payoutsRoutes, { prefix: '/api/payouts' });
-  app.register(depositRoutes, { prefix: '/api/deposit' });
-  app.register(statsRoutes, { prefix: '/api/stats' });
+  app.register(invoicesRoutes, { prefix: '/invoices' });
+  app.register(blockchainRoutes, { prefix: '/blockchain' });
+  app.register(commercesRoutes, { prefix: '/commerces' });
+  app.register(pricesRoutes, { prefix: '/prices' });
+  app.register(ordersRoutes, { prefix: '/orders' });
+  app.register(notificationsRoutes, { prefix: '/notifications' });
+  app.register(payoutsRoutes, { prefix: '/payouts' });
+  app.register(depositRoutes, { prefix: '/deposit' });
+  app.register(statsRoutes, { prefix: '/stats' });
 
   const port = Number(process.env.PORT || 3000);
   // Use 0.0.0.0 only if port is 8080 (typical for DigitalOcean), otherwise 127.0.0.1

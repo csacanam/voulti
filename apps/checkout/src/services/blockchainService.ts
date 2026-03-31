@@ -18,7 +18,7 @@ console.log('🔍 BlockchainService Config:', {
 export class BlockchainService {
   static async getStatus(invoiceId: string, chainId: number): Promise<BlockchainStatusResponse> {
     try {
-      const url = `${baseUrl}/api/blockchain/status/${invoiceId}?chainId=${chainId}`;
+      const url = `${baseUrl}/blockchain/status/${invoiceId}?chainId=${chainId}`;
       console.log('🌐 BlockchainService.getStatus - Making request to:', url);
       console.log('🌐 Base URL:', baseUrl);
       console.log('🌐 Invoice ID:', invoiceId);
@@ -55,7 +55,7 @@ export class BlockchainService {
 
   static async createInvoice(request: BlockchainCreateRequest): Promise<BlockchainCreateResponse> {
     try {
-      const response = await fetch(`${baseUrl}/api/blockchain/create`, {
+      const response = await fetch(`${baseUrl}/blockchain/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export class BlockchainService {
     }
   ): Promise<any> {
     try {
-      const response = await fetch(`${baseUrl}/api/invoices/${invoiceId}/payment-data`, {
+      const response = await fetch(`${baseUrl}/invoices/${invoiceId}/payment-data`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

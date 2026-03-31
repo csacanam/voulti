@@ -24,7 +24,7 @@ export const createInvoice = async (request: CreateInvoiceRequest): Promise<Crea
     // Use proxy in development, direct URL in production
     const baseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_BACKEND_URL || '');
 
-    const response = await fetch(`${baseUrl}/api/invoices`, {
+    const response = await fetch(`${baseUrl}/invoices`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export const getInvoice = async (invoiceId: string): Promise<InvoiceResponse> =>
     const baseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_BACKEND_URL || '');
 
     // Make API call to backend
-    const response = await fetch(`${baseUrl}/api/invoices/${invoiceId}`, {
+    const response = await fetch(`${baseUrl}/invoices/${invoiceId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
