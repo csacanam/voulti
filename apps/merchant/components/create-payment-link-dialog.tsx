@@ -215,7 +215,7 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
               </Button>
               <Button onClick={handleCreate} disabled={loading} className="gap-2">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? t.createLink.creating : t.createLink.createInvoice}
+                {loading ? t.createLink.creating : t.createLink.createLink}
               </Button>
             </DialogFooter>
           </>

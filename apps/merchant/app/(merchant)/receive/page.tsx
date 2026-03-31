@@ -141,8 +141,8 @@ function PaymentLinksTab() {
         <Card className="p-8 text-center">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <LinkIcon className="w-8 h-8" />
-            <p className="text-sm">{t.receive.noInvoices}</p>
-            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" size="sm">{t.receive.createInvoice}</Button>
+            <p className="text-sm">{t.receive.noLinks}</p>
+            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" size="sm">{t.receive.createLink}</Button>
           </div>
         </Card>
       ) : (
