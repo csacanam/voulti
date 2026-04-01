@@ -23,7 +23,7 @@ const THRESHOLDS: Record<string, { warning: number; critical: number }> = {
   bsc:      { warning: 0.005, critical: 0.001  },
 };
 
-const STATUS_REPORT_INTERVAL = 144; // cycles (5 min × 144 = 12 hours)
+const STATUS_REPORT_INTERVAL = 24; // cycles (5 min × 24 = 2 hours)
 
 // ─── Module-level state ────────────────────────────────────────────────
 
