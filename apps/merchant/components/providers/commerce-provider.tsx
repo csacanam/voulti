@@ -105,6 +105,17 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
       setCommerce(newCommerce)
       setNeedsRegistration(false)
     } catch (err) {
+      // 409 = already exists — just load the existing commerce
+      if (err instanceof ApiError && err.status === 409) {
+        try {
+          const existing = await authService.getCommerce(user.wallet.address)
+          setCommerce(existing)
+          setNeedsRegistration(false)
+          return
+        } catch {
+          // fall through to error
+        }
+      }
       if (err instanceof ApiError) {
         setError(`Error ${err.status}: ${err.message}`)
       } else {

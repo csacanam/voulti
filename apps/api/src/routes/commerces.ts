@@ -483,13 +483,10 @@ export async function commercesRoutes(app: FastifyInstance) {
         console.error('Token enable error:', err.message);
       }
 
-      // Whitelist on all chains (non-blocking)
-      let chainResults: { network: string; success: boolean; error?: string }[] = [];
-      try {
-        chainResults = await whitelistCommerceOnChain(wallet.toLowerCase());
-      } catch (err: any) {
+      // Whitelist on all chains in background (don't block the response)
+      whitelistCommerceOnChain(wallet.toLowerCase()).catch((err: any) => {
         console.error('On-chain whitelist error:', err.message);
-      }
+      });
 
       return res.status(201).send({
         success: true,
@@ -498,7 +495,6 @@ export async function commercesRoutes(app: FastifyInstance) {
           name: commerce.name,
           wallet: commerce.wallet,
           currency: commerce.currency,
-          chains: chainResults,
         }
       });
 
