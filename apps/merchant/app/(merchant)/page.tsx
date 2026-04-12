@@ -169,14 +169,15 @@ function Dashboard() {
       {/* Wallet address */}
       {commerce?.wallet && (
         <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground mb-1">{t.dashboard.yourWallet}</p>
-              <p className="text-sm font-mono">{commerce.wallet}</p>
+              <p className="text-sm font-mono break-all">{commerce.wallet}</p>
             </div>
             <Button
               variant="ghost"
               size="sm"
+              className="flex-shrink-0"
               onClick={() => navigator.clipboard.writeText(commerce.wallet)}
             >
               {t.dashboard.copy}

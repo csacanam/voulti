@@ -21,8 +21,11 @@ export function BottomNav() {
   ]
 
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t border-border">
-      <div className="flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom)]">
+    <nav
+      className="sm:hidden fixed inset-x-0 bottom-0 z-[100] bg-card border-t border-border shadow-lg"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <div className="flex items-center justify-around h-16">
         {items.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
@@ -36,7 +39,7 @@ export function BottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Icon className={cn("w-5 h-5", isActive && "fill-primary/10")} />
+              <Icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           )
