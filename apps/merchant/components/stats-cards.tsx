@@ -84,7 +84,7 @@ export function StatsCards({ balance, totalPaid, payoutCount, currency = "USD", 
             <span className="text-sm font-medium">{t.send.stats?.balance || "Balance"}</span>
           </div>
           <div className="space-y-1">
-            <h2 className="text-3xl font-bold tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight break-all">
               {formatAmount(balance)}
               <span className="text-lg font-normal text-primary-foreground/70 ml-2">{currency}</span>
             </h2>
@@ -99,7 +99,7 @@ export function StatsCards({ balance, totalPaid, payoutCount, currency = "USD", 
             <span className="text-sm font-medium">{t.send.stats?.totalSent || "Total Sent"}</span>
           </div>
           <div className="space-y-1">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground break-all">
               {formatAmount(totalPaid)}
               <span className="text-lg font-normal text-muted-foreground ml-2">{currency}</span>
             </h2>
@@ -114,7 +114,7 @@ export function StatsCards({ balance, totalPaid, payoutCount, currency = "USD", 
             <span className="text-sm font-medium">{t.send.stats?.totalTransfers || "Total Transfers"}</span>
           </div>
           <div className="space-y-1">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">{payoutCount.toLocaleString()}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground break-all">{payoutCount.toLocaleString()}</h2>
           </div>
         </div>
       </Card>

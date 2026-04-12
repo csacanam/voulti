@@ -12,7 +12,7 @@ export default function MerchantLayout({
     <CommerceProvider>
       <div className="min-h-screen flex flex-col bg-background">
         <DashboardHeader />
-        <main className="container mx-auto px-4 py-8 max-w-7xl flex-1">
+        <main className="container mx-auto px-4 py-4 sm:py-8 max-w-7xl flex-1">
           {children}
         </main>
         <Footer />

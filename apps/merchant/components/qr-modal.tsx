@@ -182,7 +182,7 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[340px] p-0 overflow-hidden border-0 rounded-[28px] gap-0">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-[340px] p-0 overflow-hidden border-0 rounded-[28px] gap-0">
         {/* Close */}
         <button
           onClick={() => onOpenChange(false)}

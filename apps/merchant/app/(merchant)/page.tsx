@@ -87,7 +87,7 @@ function Dashboard() {
       </div>
 
       {/* Total balance card */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm text-muted-foreground">{t.dashboard.totalBalance}</p>
           <button onClick={refresh} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -97,9 +97,9 @@ function Dashboard() {
         {balancesLoading ? (
           <Spinner className="w-6 h-6" />
         ) : (
-          <p className="text-3xl font-bold">
+          <p className="text-2xl sm:text-3xl font-bold break-all">
             {config.symbol}{totalFiat.toLocaleString(undefined, { minimumFractionDigits: config.decimals, maximumFractionDigits: config.decimals })}
-            <span className="text-lg font-normal text-muted-foreground ml-2">{currency}</span>
+            <span className="text-base sm:text-lg font-normal text-muted-foreground ml-2">{currency}</span>
           </p>
         )}
       </Card>

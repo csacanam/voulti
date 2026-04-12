@@ -179,7 +179,7 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v) }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {t.send?.withdraw || "Withdraw"} {symbol}

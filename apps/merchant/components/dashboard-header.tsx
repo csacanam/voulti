@@ -19,12 +19,12 @@ export function DashboardHeader() {
       <div className="container mx-auto px-4 py-3 max-w-7xl">
         <div className="flex items-center justify-between">
           {/* Logo + Nav */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">V</span>
               </div>
-              <span className="text-lg font-bold text-foreground">Voulti</span>
+              <span className="hidden sm:inline text-lg font-bold text-foreground">Voulti</span>
             </Link>
 
             {authenticated && <MainNav />}

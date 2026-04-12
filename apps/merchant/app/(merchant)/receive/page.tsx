@@ -147,46 +147,74 @@ function PaymentLinksTab() {
           </div>
         </Card>
       ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-border bg-muted/50">
-                <tr>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.amount}</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.status}</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.created}</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.expires}</th>
-                  <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {links.map((link) => {
-                  const statusInfo = statusConfig[link.status]
-                  return (
-                    <tr key={link.id} className="hover:bg-muted/50">
-                      <td className="p-3">
-                        <div className="font-medium text-foreground">{link.currency} {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{link.id.slice(0, 8)}...</div>
-                      </td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>{statusInfo.label}</span>
-                      </td>
-                      <td className="p-3 text-sm text-muted-foreground">
-                        {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                      </td>
-                      <td className="p-3 text-sm text-muted-foreground">{link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</td>
-                      <td className="p-3">
-                        <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
-                          <Copy className="w-4 h-4" /> {t.receive.copyUrl}
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        <>
+          {/* Desktop: table */}
+          <Card className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-border bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.amount}</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.status}</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.created}</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.expires}</th>
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {links.map((link) => {
+                    const statusInfo = statusConfig[link.status]
+                    return (
+                      <tr key={link.id} className="hover:bg-muted/50">
+                        <td className="p-3">
+                          <div className="font-medium text-foreground">{link.currency} {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                          <div className="text-xs text-muted-foreground font-mono">{link.id.slice(0, 8)}...</div>
+                        </td>
+                        <td className="p-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>{statusInfo.label}</span>
+                        </td>
+                        <td className="p-3 text-sm text-muted-foreground">
+                          {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </td>
+                        <td className="p-3 text-sm text-muted-foreground">{link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</td>
+                        <td className="p-3">
+                          <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
+                            <Copy className="w-4 h-4" /> {t.receive.copyUrl}
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Mobile: cards */}
+          <div className="grid gap-3 md:hidden">
+            {links.map((link) => {
+              const statusInfo = statusConfig[link.status]
+              return (
+                <Card key={link.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-foreground">{link.currency} {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                      <div className="text-xs text-muted-foreground font-mono truncate">{link.id.slice(0, 12)}...</div>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${statusInfo.className}`}>{statusInfo.label}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1 mb-3">
+                    <div>{t.receive.created}: {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+                    <div>{t.receive.expires}: {link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5 w-full">
+                    <Copy className="w-4 h-4" /> {t.receive.copyUrl}
+                  </Button>
+                </Card>
+              )
+            })}
           </div>
-        </Card>
+        </>
       )}
 
       <CreatePaymentLinkDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} onCreateLink={handleCreateLink} />
@@ -434,15 +462,15 @@ export default function ReceivePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">{t.receive.title}</h1>
-        <p className="text-muted-foreground">{t.receive.subtitle}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t.receive.title}</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">{t.receive.subtitle}</p>
       </div>
 
       <Tabs defaultValue="links" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="links" className="gap-2"><LinkIcon className="w-4 h-4" /> {t.receive.paymentLinks}</TabsTrigger>
-          <TabsTrigger value="commerce" className="gap-2"><QrCode className="w-4 h-4" /> {t.receive.commerceLink}</TabsTrigger>
-          <TabsTrigger value="developers" className="gap-2"><Code className="w-4 h-4" /> {t.receive.developers}</TabsTrigger>
+          <TabsTrigger value="links" className="gap-1 sm:gap-2 px-2 sm:px-3"><LinkIcon className="w-4 h-4 flex-shrink-0" /> <span className="hidden sm:inline">{t.receive.paymentLinks}</span><span className="sm:hidden text-xs">Links</span></TabsTrigger>
+          <TabsTrigger value="commerce" className="gap-1 sm:gap-2 px-2 sm:px-3"><QrCode className="w-4 h-4 flex-shrink-0" /> <span className="hidden sm:inline">{t.receive.commerceLink}</span><span className="sm:hidden text-xs">QR</span></TabsTrigger>
+          <TabsTrigger value="developers" className="gap-1 sm:gap-2 px-2 sm:px-3"><Code className="w-4 h-4 flex-shrink-0" /> <span className="hidden sm:inline">{t.receive.developers}</span><span className="sm:hidden text-xs">API</span></TabsTrigger>
         </TabsList>
         <TabsContent value="links" className="mt-4"><PaymentLinksTab /></TabsContent>
         <TabsContent value="commerce" className="mt-4"><CommerceLinkTab /></TabsContent>
