@@ -27,14 +27,14 @@ export function MainNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline">{item.label}</span>
+            {item.label}
           </Link>
         )
       })}

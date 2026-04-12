@@ -24,10 +24,14 @@ export function DashboardHeader() {
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">V</span>
               </div>
-              <span className="hidden sm:inline text-lg font-bold text-foreground">Voulti</span>
+              <span className="text-lg font-bold text-foreground">Voulti</span>
             </Link>
 
-            {authenticated && <MainNav />}
+            {authenticated && (
+              <div className="hidden sm:block">
+                <MainNav />
+              </div>
+            )}
           </div>
 
           {/* Right side */}
