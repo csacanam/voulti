@@ -41,13 +41,32 @@ async function main() {
 
   // Ping endpoint
   app.get('/ping', async (request, reply) => {
-    return { 
-      pong: true, 
+    return {
+      pong: true,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       memory: process.memoryUsage(),
       version: process.version
     };
+  });
+
+  // Debug endpoint — verify Supabase key role
+  app.get('/debug/supabase-role', async (request, reply) => {
+    try {
+      const key = process.env.SUPABASE_KEY || '';
+      const parts = key.split('.');
+      if (parts.length !== 3) return { error: 'invalid key format', length: key.length };
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      return {
+        role: payload.role,
+        iss: payload.iss,
+        ref: payload.ref,
+        keyLength: key.length,
+        keyLastChars: key.slice(-10),
+      };
+    } catch (err: any) {
+      return { error: err.message };
+    }
   });
   
   app.register(invoicesRoutes, { prefix: '/invoices' });
