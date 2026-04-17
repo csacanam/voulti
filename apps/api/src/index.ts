@@ -50,30 +50,6 @@ async function main() {
     };
   });
 
-  // Debug endpoint — verify Supabase key role and test query
-  app.get('/debug/supabase-role', async (request, reply) => {
-    try {
-      const key = process.env.SUPABASE_KEY || '';
-      const parts = key.split('.');
-      if (parts.length !== 3) return { role: 'invalid' };
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-
-      // Test a real query
-      const { createClient } = await import('@supabase/supabase-js');
-      const client = createClient(process.env.SUPABASE_URL!, key);
-      const { data, error } = await client.from('tokens').select('symbol').limit(5);
-
-      return {
-        role: payload.role,
-        tokenCount: data?.length ?? 0,
-        queryError: error?.message || null,
-        supabaseUrl: process.env.SUPABASE_URL?.substring(0, 40) + '...',
-      };
-    } catch (err: any) {
-      return { role: 'error', message: err.message };
-    }
-  });
-  
   app.register(invoicesRoutes, { prefix: '/invoices' });
   app.register(blockchainRoutes, { prefix: '/blockchain' });
   app.register(commercesRoutes, { prefix: '/commerces' });
