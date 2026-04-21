@@ -57,6 +57,16 @@ export async function invoicesRoutes(app: FastifyInstance) {
       const expirationTime = expires_at || new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       // Create invoice in database
+      // Block invoice creation if commerce is not active on any network on-chain
+      const { getCommerceNetworkStatus } = await import('../business/commerceNetworks');
+      const networkStatus = await getCommerceNetworkStatus(commerce.wallet);
+      const anyActive = networkStatus.some(n => n.active && n.tokens.some(t => t.whitelisted));
+      if (!anyActive) {
+        return res.status(400).send({
+          error: 'Commerce is not enabled on any network. Please enable at least one network in your account settings.'
+        });
+      }
+
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -205,28 +215,44 @@ export async function invoicesRoutes(app: FastifyInstance) {
       return res.status(500).send({ error: 'Error fetching enabled tokens' });
     }
 
-    // 4. Build token response
-    const tokens = tokensEnabled.map((tokenEnabled) => {
-      const addr = tokenEnabled.tokens_addresses as any;
-      const token = addr.tokens as any;
+    // 3.5. Read actual on-chain whitelist status per network
+    const { getCommerceNetworkStatus } = await import('../business/commerceNetworks');
+    const networkStatus = await getCommerceNetworkStatus(commerce.wallet);
+    // Build a set of allowed (network, tokenAddress) for fast lookup
+    const allowed = new Set<string>();
+    for (const ns of networkStatus) {
+      if (!ns.active) continue;
+      for (const t of ns.tokens) {
+        if (t.whitelisted) allowed.add(`${ns.network}:${t.address.toLowerCase()}`);
+      }
+    }
 
-      const amountInToken = amountInUSD / Number(token.rate_to_usd);
-      // Cap display decimals: tokens like COPm have 18 decimals but showing all is useless
-      const displayDecimals = Math.min(addr.decimals, amountInToken >= 1000 ? 2 : 6);
-      const amountFormatted = amountInToken.toFixed(displayDecimals);
+    // 4. Build token response — only include tokens actually whitelisted on-chain
+    const tokens = tokensEnabled
+      .map((tokenEnabled) => {
+        const addr = tokenEnabled.tokens_addresses as any;
+        const token = addr.tokens as any;
 
-      return {
-        symbol: token.symbol,
-        name: token.name,
-        network: addr.network,
-        contract_address: addr.contract_address,
-        decimals: addr.decimals,
-        rate_to_usd: token.rate_to_usd,
-        amount_to_pay: amountFormatted,
-        updated_at: token.updated_at,
-        logo: token.logo
-      };
-    });
+        const key = `${addr.network}:${addr.contract_address.toLowerCase()}`;
+        if (!allowed.has(key)) return null;
+
+        const amountInToken = amountInUSD / Number(token.rate_to_usd);
+        const displayDecimals = Math.min(addr.decimals, amountInToken >= 1000 ? 2 : 6);
+        const amountFormatted = amountInToken.toFixed(displayDecimals);
+
+        return {
+          symbol: token.symbol,
+          name: token.name,
+          network: addr.network,
+          contract_address: addr.contract_address,
+          decimals: addr.decimals,
+          rate_to_usd: token.rate_to_usd,
+          amount_to_pay: amountFormatted,
+          updated_at: token.updated_at,
+          logo: token.logo
+        };
+      })
+      .filter(Boolean);
 
     // 5. Respond with all data
     return res.send({

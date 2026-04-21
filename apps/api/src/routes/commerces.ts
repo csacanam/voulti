@@ -8,6 +8,7 @@ import { getWallet } from '../blockchain/utils/web3';
 import AccessManagerABI from '../blockchain/abi/AccessManager.json';
 import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -237,6 +238,78 @@ export async function commercesRoutes(app: FastifyInstance) {
       });
     } catch (error: any) {
       return res.status(500).send({ error: error.message || 'Failed to get fee estimate' });
+    }
+  });
+
+  // Get commerce network/token whitelist status (authenticated + ownership)
+  app.get('/:id/networks', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const networks = await getCommerceNetworkStatus(commerce.wallet);
+      return res.send({ success: true, data: networks });
+    } catch (error: any) {
+      console.error('Get networks error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to get networks' });
+    }
+  });
+
+  // Enable a network for a commerce (whitelist commerce + tokens)
+  app.post('/:id/networks/:network/enable', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, network } = req.params as { id: string; network: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const txHash = await enableCommerceOnNetwork(commerce.wallet, network);
+      return res.send({ success: true, data: { tx_hash: txHash, network } });
+    } catch (error: any) {
+      console.error('Enable network error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to enable network' });
+    }
+  });
+
+  // Disable a network for a commerce
+  app.post('/:id/networks/:network/disable', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, network } = req.params as { id: string; network: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const txHash = await disableCommerceOnNetwork(commerce.wallet, network);
+      return res.send({ success: true, data: { tx_hash: txHash, network } });
+    } catch (error: any) {
+      console.error('Disable network error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to disable network' });
     }
   });
 

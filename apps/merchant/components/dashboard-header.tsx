@@ -20,10 +20,7 @@ export function DashboardHeader() {
         <div className="flex items-center justify-between">
           {/* Logo + Nav */}
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">V</span>
-              </div>
+            <Link href="/" className="flex-shrink-0">
               <span className="text-lg font-bold text-foreground">Voulti</span>
             </Link>
 

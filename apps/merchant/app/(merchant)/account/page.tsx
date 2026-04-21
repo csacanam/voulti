@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { API_CONFIG } from "@/services/config"
 import { getAuthToken } from "@/services/api"
+import { NetworksSection } from "@/components/networks-section"
 
 function WebhookSection({ commerceId, currentUrl }: { commerceId: string; currentUrl: string | null }) {
   const [url, setUrl] = useState(currentUrl || '')
@@ -191,6 +192,8 @@ export default function AccountPage() {
           <Separator />
         </div>
       </Card>
+
+      <NetworksSection commerceId={commerce.commerce_id} />
     </div>
   )
 }

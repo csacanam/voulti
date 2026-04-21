@@ -27,18 +27,12 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
     return null;
   }
 
-  // Format the amount to pay with appropriate decimals
-  const formatAmount = (amount: string, decimals: number = 6) => {
-    const num = Number(amount);
-    if (num === 0) return '0';
-
-    // For very large numbers (like COPm), show no decimals
-    if (num > 10000) return num.toFixed(0);
-    if (num > 1000) return num.toFixed(2);
-    // For normal amounts, show appropriate decimals
-    if (num > 1) return num.toFixed(Math.min(4, decimals));
-    // For small amounts, show more decimals
-    return num.toFixed(Math.min(8, decimals));
+  // Display the exact amount the contract expects — never truncate.
+  // Strip trailing zeros for cleanliness (e.g. "102.847700" -> "102.8477").
+  const formatAmount = (amount: string) => {
+    if (!amount) return '0';
+    const trimmed = amount.replace(/\.?0+$/, '');
+    return trimmed || '0';
   };
 
   // Format the rate
@@ -100,7 +94,7 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
         {/* Main amount */}
         <div>
           <div className="text-2xl font-bold text-gray-900 break-all">
-            {formatAmount(amountToPay, tokenDecimals)} {tokenSymbol}
+            {formatAmount(amountToPay)} {tokenSymbol}
           </div>
           <div className="text-gray-500 text-sm">
             ≈ {formatFiatAmount(amountFiat, fiatCurrency)}
