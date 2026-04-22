@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   other: {
     // MiniPay detection hints
     'minipay:version': '1',
+    // Talent Protocol domain verification
+    'talentapp:project_verification': 'a99e86d66d940fc1229d03f403f8ff080f62d3ae1d6ac786064671b2b0dc950b81971841dd3f00e14cb70a12d7af6cc026d1319c8ddbc244a1f3b4a6c2c5e2f9',
   },
 }
 
