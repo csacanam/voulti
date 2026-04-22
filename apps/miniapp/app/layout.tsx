@@ -3,13 +3,10 @@ import { Providers } from '@/components/providers'
 import './globals.css'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://pay.voulti.com'),
   title: 'Voulti Pay — Get paid in crypto',
   description: 'Create payment links and get paid in USDC, USDT or COPm from any wallet.',
   manifest: '/manifest.json',
-  icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
-  },
   openGraph: {
     title: 'Voulti Pay',
     description: 'Create payment links and get paid in USDC, USDT or COPm.',

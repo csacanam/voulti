@@ -178,7 +178,7 @@ export default function AccountPage() {
 
         {/* Logout */}
         <button
-          onClick={logout}
+          onClick={async () => { await logout(); router.push("/") }}
           className="w-full py-3 rounded-xl border border-border text-sm text-muted-foreground flex items-center justify-center gap-2"
         >
           <LogOut className="w-4 h-4" />

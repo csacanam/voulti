@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Wallet, Plus, Loader2, ArrowUpRight, Settings } from "lucide-react"
 import { useCommerce } from "@/hooks/use-commerce"
@@ -24,8 +24,15 @@ export default function Home() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
 
+  const loginAttempted = useRef(false)
   useEffect(() => {
-    if (ready && !authenticated) login()
+    if (ready && !authenticated && !loginAttempted.current) {
+      loginAttempted.current = true
+      login()
+    }
+    if (authenticated) {
+      loginAttempted.current = false
+    }
   }, [ready, authenticated, login])
 
   useEffect(() => {

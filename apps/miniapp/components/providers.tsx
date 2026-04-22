@@ -3,7 +3,6 @@
 import { PrivyProvider } from "@privy-io/react-auth"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState, useEffect } from "react"
-import { celo } from "viem/chains"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
@@ -27,10 +26,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
           theme: "light",
           accentColor: "#7c3aed",
         },
-        defaultChain: celo,
-        supportedChains: [celo],
         embeddedWallets: {
-          createOnLogin: "off", // never create a new wallet — use the MiniPay injected one
+          createOnLogin: "off", // never create a new wallet — use the injected one
         },
       }}
     >
