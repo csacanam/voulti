@@ -219,11 +219,12 @@ export async function invoicesRoutes(app: FastifyInstance) {
     const { getCommerceNetworkStatus } = await import('../business/commerceNetworks');
     const networkStatus = await getCommerceNetworkStatus(commerce.wallet);
     // Build a set of allowed (network, tokenAddress) for fast lookup
+    // NOTE: normalize network name to lowercase — DB stores "Celo" but code uses "celo"
     const allowed = new Set<string>();
     for (const ns of networkStatus) {
       if (!ns.active) continue;
       for (const t of ns.tokens) {
-        if (t.whitelisted) allowed.add(`${ns.network}:${t.address.toLowerCase()}`);
+        if (t.whitelisted) allowed.add(`${ns.network.toLowerCase()}:${t.address.toLowerCase()}`);
       }
     }
 
@@ -233,7 +234,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
         const addr = tokenEnabled.tokens_addresses as any;
         const token = addr.tokens as any;
 
-        const key = `${addr.network}:${addr.contract_address.toLowerCase()}`;
+        const key = `${addr.network.toLowerCase()}:${addr.contract_address.toLowerCase()}`;
         if (!allowed.has(key)) return null;
 
         const amountInToken = amountInUSD / Number(token.rate_to_usd);
