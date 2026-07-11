@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { NETWORKS } from '../blockchain/config/networks';
+import { getProvider } from '../blockchain/utils/web3';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
@@ -557,9 +558,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
             const networkConfig = NETWORKS[paid_network as keyof typeof NETWORKS];
             const contracts = CONTRACTS[paid_network];
             if (networkConfig && contracts) {
-              const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-                name: networkConfig.name, chainId: networkConfig.chainId,
-              });
+              const provider = getProvider(paid_network);
               const accessManager = new ethers.Contract(contracts.ACCESS_MANAGER, [
                 'function getCommerceFee(address commerce) view returns (uint256)',
               ], provider);

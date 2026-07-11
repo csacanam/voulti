@@ -10,6 +10,7 @@
 
 import { FastifyInstance } from 'fastify';
 import { ethers } from 'ethers';
+import { getProvider } from '../blockchain/utils/web3';
 import { NETWORKS } from '../blockchain/config/networks';
 import { sendTelegramAlert } from '../utils/notify';
 
@@ -109,10 +110,7 @@ export async function cronRoutes(app: FastifyInstance) {
       const balanceResults = await Promise.all(
         prodNetworks.map(async ([name, config]) => {
           try {
-            const provider = new ethers.JsonRpcProvider(config.rpcUrl, {
-              name: config.name,
-              chainId: config.chainId,
-            });
+            const provider = getProvider(name);
             const raw = await provider.getBalance(operatorAddress);
             const balance = parseFloat(ethers.formatEther(raw));
             return { network: name, symbol: config.nativeCurrency.symbol, balance, error: null };
@@ -211,10 +209,7 @@ export async function cronRoutes(app: FastifyInstance) {
       const balanceResults = await Promise.all(
         prodNetworks.map(async ([name, config]) => {
           try {
-            const provider = new ethers.JsonRpcProvider(config.rpcUrl, {
-              name: config.name,
-              chainId: config.chainId,
-            });
+            const provider = getProvider(name);
             const raw = await provider.getBalance(operatorAddress);
             return { network: name, symbol: config.nativeCurrency.symbol, balance: parseFloat(ethers.formatEther(raw)) };
           } catch {

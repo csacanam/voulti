@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { NETWORKS, type NetworkName } from '../blockchain/config/networks';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { TOKENS } from '../blockchain/config/tokens';
-import { getWallet } from '../blockchain/utils/web3';
+import { getProvider, getWallet } from '../blockchain/utils/web3';
 import AccessManagerABI from '../blockchain/abi/AccessManager.json';
 
 const ACCESS_MANAGER_ABI = [
@@ -40,10 +40,7 @@ export async function getCommerceNetworkStatus(commerceWallet: string): Promise<
 
         try {
           const networkConfig = NETWORKS[networkName as keyof typeof NETWORKS];
-          const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-            name: networkConfig.name,
-            chainId: networkConfig.chainId,
-          });
+          const provider = getProvider(networkName);
           const am = new ethers.Contract(contracts.ACCESS_MANAGER, ACCESS_MANAGER_ABI, provider);
 
           const [active, ...tokenResults] = await Promise.all([

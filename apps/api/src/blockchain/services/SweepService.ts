@@ -5,7 +5,7 @@ import { HDWalletService, type DepositAddressRecord } from './HDWalletService';
 import { NETWORKS, type NetworkName } from '../config/networks';
 import { CONTRACTS } from '../config/contracts';
 import { TOKENS } from '../config/tokens';
-import { getWallet } from '../utils/web3';
+import { getProvider, getWallet } from '../utils/web3';
 import DerampProxyABI from '../abi/DerampProxy.json';
 
 const supabase = createClient(
@@ -90,13 +90,9 @@ export class SweepService {
 
   private async checkDeposit(deposit: DepositAddressRecord, invoice: any): Promise<void> {
     const network = deposit.network as NetworkName;
-    const networkConfig = NETWORKS[network];
     const isExpired = invoice?.expires_at && new Date(invoice.expires_at) < new Date();
 
-    const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-      name: networkConfig.name,
-      chainId: networkConfig.chainId,
-    });
+    const provider = getProvider(network);
 
     const token = new ethers.Contract(deposit.token_address, ERC20_ABI, provider);
     const balance: bigint = await token.balanceOf(deposit.address);
@@ -278,10 +274,7 @@ export class SweepService {
         try {
           const contracts = CONTRACTS[network];
           if (contracts?.ACCESS_MANAGER) {
-            const networkConfig = NETWORKS[network];
-            const readProvider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-              name: networkConfig.name, chainId: networkConfig.chainId,
-            });
+            const readProvider = getProvider(network);
             const am = new ethers.Contract(contracts.ACCESS_MANAGER, [
               'function getCommerceFee(address commerce) view returns (uint256)',
             ], readProvider);
@@ -442,10 +435,7 @@ export class SweepService {
         if (!networkTokens) continue;
 
         try {
-          const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-            name: networkConfig.name,
-            chainId: networkConfig.chainId,
-          });
+          const provider = getProvider(networkName);
 
           for (const [, tokenInfo] of Object.entries(networkTokens)) {
             const token = new ethers.Contract(tokenInfo.address, ERC20_ABI, provider);
@@ -541,11 +531,7 @@ export class SweepService {
     network: NetworkName
   ): Promise<string | null> {
     try {
-      const networkConfig = NETWORKS[network];
-      const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-        name: networkConfig.name,
-        chainId: networkConfig.chainId,
-      });
+      const provider = getProvider(network);
 
       const token = new ethers.Contract(tokenAddress, [
         'event Transfer(address indexed from, address indexed to, uint256 value)',
@@ -577,12 +563,7 @@ export class SweepService {
    */
   private async checkAndRefundOrphanedDeposit(deposit: DepositAddressRecord): Promise<void> {
     const network = deposit.network as NetworkName;
-    const networkConfig = NETWORKS[network];
-
-    const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-      name: networkConfig.name,
-      chainId: networkConfig.chainId,
-    });
+    const provider = getProvider(network);
 
     const token = new ethers.Contract(deposit.token_address, ERC20_ABI, provider);
     const balance: bigint = await token.balanceOf(deposit.address);

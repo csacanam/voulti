@@ -2,6 +2,7 @@
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
 import { NETWORKS, type NetworkName } from '../config/networks';
+import { getProvider } from '../utils/web3';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -53,13 +54,7 @@ export class HDWalletService {
       `${DERIVATION_BASE_PATH}/${index}`
     );
 
-    const networkConfig = NETWORKS[network];
-    const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
-      name: networkConfig.name,
-      chainId: networkConfig.chainId,
-    });
-
-    return new ethers.Wallet(hdNode.privateKey, provider);
+    return new ethers.Wallet(hdNode.privateKey, getProvider(network));
   }
 
   /**
