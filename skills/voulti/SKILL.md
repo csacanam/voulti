@@ -52,7 +52,11 @@ https://voulti.com/checkout/<invoice_id>
 
 The payer connects any wallet (or MiniPay) and pays in the stablecoin/network of their choice; Voulti handles conversion and settlement.
 
-**Charging several clients?** There is no reference/memo field on invoices yet — keep your own mapping of `invoice_id` → client so you know who paid what.
+**Charging several clients?** Pass an optional `reference` (string, ≤ 200 chars) when creating the invoice — your own order id, client name, or memo. It comes back in the invoice responses and in the webhook payload, so you always know who paid what:
+
+```json
+{ "commerce_id": "...", "amount_fiat": 150, "reference": "andres-logo-2026" }
+```
 
 ### Option B — Permanent link (payer chooses the amount)
 
@@ -78,7 +82,22 @@ Returns the invoice with `status`, `paid_at`, `payment_method`, `expires_at` and
 
 ### Webhook (recommended for production)
 
-If the merchant configured `confirmation_url`, Voulti POSTs there on payment with `invoice_id`, `amount_fiat`, `status` and `paid_tx_hash`. Always verify the invoice with a `GET /invoices/<invoice_id>` before releasing goods — don't trust the webhook body alone.
+If the merchant configured `confirmation_url`, Voulti POSTs there on payment with `invoice_id`, `amount_fiat`, `fiat_currency`, `status`, `paid_tx_hash`, `paid_token`, `paid_network`, `paid_amount`, `paid_at` and `reference`.
+
+**Verify the signature.** Signed webhooks carry an `X-Voulti-Signature: t=<unix>,v1=<hex>` header — HMAC-SHA256 of `` `${t}.${rawBody}` `` with the commerce's webhook signing secret:
+
+```js
+import { createHmac, timingSafeEqual } from "crypto";
+
+function verifyVoultiWebhook(rawBody, signatureHeader, secret, toleranceSeconds = 300) {
+  const { t, v1 } = Object.fromEntries(signatureHeader.split(",").map((p) => p.split("=")));
+  if (Math.abs(Date.now() / 1000 - Number(t)) > toleranceSeconds) return false; // replay guard
+  const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+}
+```
+
+Defense in depth: even with a valid signature, confirm with `GET /invoices/<invoice_id>` before releasing goods.
 
 ---
 

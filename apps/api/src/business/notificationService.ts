@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { getNetworkByChainId, NETWORKS } from '../blockchain/config/networks';
@@ -30,6 +31,7 @@ interface InvoiceData {
   paid_token?: string;
   paid_network?: string;
   paid_amount?: number;
+  reference?: string | null;
 }
 
 interface CommerceData {
@@ -37,6 +39,7 @@ interface CommerceData {
   name: string;
   confirmation_url: string | null;
   confirmation_email?: string;
+  webhook_secret?: string | null;
 }
 
 export class NotificationService {
@@ -284,7 +287,8 @@ export class NotificationService {
         paid_token: invoice.paid_token,
         paid_network: invoice.paid_network,
         paid_amount: invoice.paid_amount,
-        status: invoice.status
+        status: invoice.status,
+        reference: invoice.reference ?? null
       };
 
       // Create AbortController for timeout
@@ -292,12 +296,23 @@ export class NotificationService {
       const timeoutId = setTimeout(() => controller.abort(), this.urlTimeout); // Use configurable timeout
 
       try {
+        const body = JSON.stringify(payload);
+
+        // HMAC signature so the merchant can verify the webhook is from Voulti.
+        // Backward compatible: commerces without webhook_secret get the same
+        // unsigned request as before. Scheme (Stripe-style, replay-resistant):
+        //   X-Voulti-Signature: t=<unix_seconds>,v1=hex(hmacSHA256(secret, `${t}.${body}`))
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (commerce.webhook_secret) {
+          const t = Math.floor(Date.now() / 1000);
+          const v1 = createHmac('sha256', commerce.webhook_secret).update(`${t}.${body}`).digest('hex');
+          headers['X-Voulti-Signature'] = `t=${t},v1=${v1}`;
+        }
+
         const response = await fetch(commerce.confirmation_url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
+          headers,
+          body,
           signal: controller.signal
         });
 
@@ -389,7 +404,7 @@ export class NotificationService {
   private async getCommerceData(commerceId: string): Promise<CommerceData | null> {
     const { data, error } = await supabase
       .from('commerces')
-      .select('id, name, confirmation_url, confirmation_email')
+      .select('id, name, confirmation_url, confirmation_email, webhook_secret')
       .eq('id', commerceId)
       .single();
 

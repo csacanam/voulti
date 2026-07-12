@@ -16,12 +16,19 @@ export async function invoicesRoutes(app: FastifyInstance) {
   // Create invoice in Supabase (public — commerce page + authenticated merchant dashboard)
   app.post('/', async (req: AuthenticatedRequest, res) => {
     try {
-      const { commerce_id, amount_fiat, expires_at } = req.body as any;
+      const { commerce_id, amount_fiat, expires_at, reference } = req.body as any;
 
       // Validate required fields
       if (!commerce_id || !amount_fiat) {
         return res.status(400).send({
           error: 'Missing required fields: commerce_id, amount_fiat'
+        });
+      }
+
+      // Optional reference/memo (integrator's own mapping, e.g. order id or client name)
+      if (reference !== undefined && (typeof reference !== 'string' || reference.length > 200)) {
+        return res.status(400).send({
+          error: 'reference must be a string of at most 200 characters'
         });
       }
 
@@ -77,7 +84,8 @@ export async function invoicesRoutes(app: FastifyInstance) {
           status: 'Pending',
           expires_at: expirationTime,
           confirmation_url_available: commerce.confirmation_url !== null,
-          confirmation_email_available: commerce.confirmation_email !== null
+          confirmation_email_available: commerce.confirmation_email !== null,
+          ...(reference !== undefined ? { reference } : {})
         })
         .select()
         .single();
@@ -99,6 +107,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
           status: invoice.status,
           expires_at: invoice.expires_at,
           created_at: invoice.created_at,
+          reference: invoice.reference ?? null,
           confirmation_url_available: invoice.confirmation_url_available,
           confirmation_email_available: invoice.confirmation_email_available
         }
@@ -136,7 +145,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
 
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method')
+        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference')
         .eq('commerce_id', commerce_id)
         .order('created_at', { ascending: false })
         .limit(50);

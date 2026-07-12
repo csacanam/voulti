@@ -28,6 +28,7 @@ CREATE TABLE public.commerces (
   currencySymbol text DEFAULT '$',
   confirmation_url text,
   confirmation_email text,
+  webhook_secret text,
   CONSTRAINT commerces_pkey PRIMARY KEY (id)
 );
 
@@ -117,6 +118,7 @@ CREATE TABLE public.invoices (
   payment_method text,
   fee_amount decimal DEFAULT 0,
   fee_percent decimal DEFAULT 100,
+  reference text,
   CONSTRAINT invoices_pkey PRIMARY KEY (id),
   CONSTRAINT invoices_commerce_id_fkey FOREIGN KEY (commerce_id) REFERENCES public.commerces(id)
 );
