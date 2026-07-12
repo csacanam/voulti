@@ -1,0 +1,38 @@
+{
+  "name": "voulti-mcp",
+  "mcpName": "io.github.csacanam/voulti",
+  "version": "0.1.0",
+  "description": "MCP server for Voulti — accept crypto payments from any AI agent. Create an invoice with one call, share the hosted checkout link, and confirm payment. USDC/USDT on Celo, Base, Arbitrum, Polygon and BSC; instant self-custody settlement; no API key needed.",
+  "type": "module",
+  "bin": {
+    "voulti-mcp": "src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csacanam/voulti.git",
+    "directory": "mcp"
+  },
+  "homepage": "https://voulti.com",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "payments",
+    "crypto-payments",
+    "stablecoins",
+    "usdc",
+    "usdt",
+    "checkout",
+    "ai-agents"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.0"
+  }
+}

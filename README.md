@@ -27,6 +27,14 @@ packages/
 | Base | 8453 | USDC |
 | BSC | 56 | USDC, USDT |
 
+## For AI agents
+
+Voulti is agent-usable end to end — the integration API needs no API key:
+
+- **MCP server**: `claude mcp add voulti -- npx -y voulti-mcp` — tools `create_invoice`, `get_invoice`, `get_payment_link`. See [`mcp/README.md`](mcp/README.md).
+- **Agent skill**: `npx skills add csacanam/voulti` — or read it at [voulti.com/skill.md](https://voulti.com/skill.md).
+- **Plain HTTP**: `POST https://api.voulti.com/invoices` with `{ commerce_id, amount_fiat, reference? }` → hosted checkout link. LLM index: [voulti.com/llms.txt](https://voulti.com/llms.txt).
+
 ## Features
 
 - **Self-service registration** — merchant connects wallet, names business, done
