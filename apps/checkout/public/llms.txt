@@ -1,0 +1,23 @@
+# Voulti
+
+> Crypto payment gateway for merchants and AI agents. Accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with instant self-custody settlement and a 1% fee. Public no-auth REST API: create an invoice with one POST and get a hosted checkout link; a webhook notifies you when it's paid.
+
+Key facts:
+
+- API base: `https://api.voulti.com` — integration endpoints require no API key or authentication.
+- Typical flow: `POST /invoices` with `{ "commerce_id": "<id>", "amount_fiat": 50 }` → returns `invoice_id` → send the payer to `https://voulti.com/checkout/<invoice_id>` → poll `GET /invoices/<invoice_id>` until `status: "Paid"`, or receive the webhook on your `confirmation_url`.
+- Permanent payment link per merchant: `https://voulti.com/pay/<commerce_id>`.
+- Merchants sign up self-service at `https://app.voulti.com` (wallet or email) to get a `commerce_id`. Settlement goes to the merchant's own wallet (self-custody).
+- Contracts (proxy architecture) deployed and verified on all 5 mainnets.
+
+## Docs
+
+- [Agent guide](https://voulti.com/skill.md): how an AI agent sets up payments for its human
+- [Merchant dashboard](https://app.voulti.com): self-service signup, developer page with live snippets
+- [Source code](https://github.com/csacanam/voulti): monorepo — checkout, merchant app, MiniPay miniapp, API, contracts
+
+## API summary
+
+- `POST /invoices` — create an invoice (no auth): `{ commerce_id, amount_fiat }`
+- `GET /invoices/:id` — invoice status: `Pending`, `Paid`, `Expired`
+- Webhook — POST to the merchant's `confirmation_url` on payment, with `invoice_id`, `amount_fiat`, `status`, `paid_tx_hash`
