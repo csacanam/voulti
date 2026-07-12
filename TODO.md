@@ -9,6 +9,12 @@ Contexto: Voulti tiene la tesis agent más fuerte del portafolio ("tu agente pue
 - [ ] Considerar MCP server con tools `create_invoice` / `check_payment` (distribución dentro de Claude/Cursor).
 - [ ] Registro ERC-8004 (opcional, si se posiciona como servicio para agentes): registry `0x8004A169…` en Celo/Base; modelo: comprabtc.
 
+## Hallazgos del test de claridad con agente fresco (12 jul — skill ya corregido)
+
+- [ ] Campo `reference`/`memo` en invoices — sin él, quien cobra a varios clientes debe llevar el mapeo invoice↔cliente por fuera.
+- [ ] Documentar firma/secreto del webhook (hoy el integrador no puede verificar autenticidad del POST).
+- [ ] Publicar schemas de respuesta de la API (el doc decía `invoice_id` pero el campo real es `data.id` — ya corregido en el skill).
+
 ## Developer experience
 
 - [ ] Decidir: publicar SDK mínimo en npm (`@voulti/checkout`: createInvoice/getInvoice/webhook verify) o doctrina explícita "no SDK, es solo REST" bien documentada. Hoy no hay ningún paquete publicado (`packages/shared` es private).
