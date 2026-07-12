@@ -7,7 +7,7 @@ Contexto: Voulti tiene la tesis agent más fuerte del portafolio ("tu agente pue
 - [ ] **Demo en X** — el de mayor potencial del portafolio: "mi agente de Claude cobró $5 USDC por un servicio — 3 prompts", con el link de checkout real pagándose en video y `npx skills add csacanam/voulti` en el post.
 - [ ] PRs a awesome-lists (awesome-celo, listas de crypto payments / MiniPay).
 - [x] MCP server construido y probado (12 jul): `mcp/` con 3 tools sin auth (create_invoice con reference/expires_at, get_invoice, get_payment_link), smoke test contra producción. README raíz con sección For AI agents.
-- [ ] **Publicar `voulti-mcp` en npm** (nombre libre): `cd mcp && npm publish` (con el mcpName ya incluido). Luego `mcp-publisher publish` (server.json listo).
+- [x] `voulti-mcp@0.1.0` PUBLICADO (12 jul): npm (cold-install npx verificado) + registro MCP oficial (`io.github.csacanam/voulti`, verificado en la API del registro). Instalación: `claude mcp add voulti -- npx -y voulti-mcp`.
 - [ ] Registro ERC-8004 (opcional, si se posiciona como servicio para agentes): registry `0x8004A169…` en Celo/Base; modelo: comprabtc.
 
 ## Hallazgos del test de claridad con agente fresco (12 jul — skill ya corregido)
