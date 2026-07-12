@@ -14,6 +14,8 @@ Contexto: Voulti tiene la tesis agent más fuerte del portafolio ("tu agente pue
 - [ ] Campo `reference`/`memo` en invoices — sin él, quien cobra a varios clientes debe llevar el mapeo invoice↔cliente por fuera.
 - [ ] Documentar firma/secreto del webhook (hoy el integrador no puede verificar autenticidad del POST).
 - [ ] Publicar schemas de respuesta de la API (el doc decía `invoice_id` pero el campo real es `data.id` — ya corregido en el skill).
+- [ ] Modo sandbox/test — hoy la única forma de probar una integración es con dinero real.
+- [ ] API de creación de comercios (multi-tenant) — hoy el signup es manual en app.voulti.com, lo que hace posible "mi plataforma cobra a mis clientes" pero NO "plataforma donde cada usuario mío cobra" (marketplaces).
 
 ## Developer experience
 
