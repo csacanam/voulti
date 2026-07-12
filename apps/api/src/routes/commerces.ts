@@ -209,6 +209,27 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
+  // Get webhook signing secret (authenticated + verify ownership)
+  app.get('/:id/webhook-secret', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet, webhook_secret')
+        .eq('id', id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      return res.send({ webhook_secret: commerce.webhook_secret ?? null });
+    } catch (error: any) {
+      return res.status(500).send({ error: error.message || 'Failed to fetch webhook secret' });
+    }
+  });
+
   // Get withdrawal fee estimate for a token
   app.get('/withdraw-fee/:tokenSymbol', async (req, res) => {
     try {

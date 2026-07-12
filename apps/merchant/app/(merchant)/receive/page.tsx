@@ -317,6 +317,67 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
   )
 }
 
+// ─── Webhook Signing Secret ───
+function WebhookSecret({ commerceId }: { commerceId: string }) {
+  const [secret, setSecret] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const { toast } = useToast()
+  const { language } = useLanguage()
+
+  const reveal = async () => {
+    setLoading(true)
+    try {
+      const { getAuthToken } = await import("@/services/api")
+      const token = getAuthToken()
+      const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/webhook-secret`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setSecret(data.webhook_secret)
+    } catch {
+      toast({ title: language === 'es' ? 'No se pudo cargar el secreto' : 'Failed to load secret', variant: 'destructive' as const })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copy = () => {
+    if (!secret) return
+    navigator.clipboard.writeText(secret)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t">
+      <p className="text-sm font-semibold mb-1">{language === 'es' ? 'Secreto de firma' : 'Signing secret'}</p>
+      <p className="text-xs text-muted-foreground mb-2">
+        {language === 'es'
+          ? 'Cada webhook llega firmado con este secreto para que verifiques que viene de Voulti.'
+          : 'Every webhook is signed with this secret so you can verify it comes from Voulti.'}
+      </p>
+      {secret ? (
+        <div className="flex gap-2 items-center">
+          <code className="bg-muted px-2 py-1 rounded text-xs font-mono break-all flex-1">{secret}</code>
+          <Button variant="outline" size="sm" onClick={copy} className="gap-1.5 shrink-0">
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? (language === 'es' ? 'Copiado' : 'Copied') : (language === 'es' ? 'Copiar' : 'Copy')}
+          </Button>
+        </div>
+      ) : (
+        <Button variant="outline" size="sm" onClick={reveal} disabled={loading} className="gap-1.5">
+          <Key className="w-3 h-3" /> {loading ? '…' : (language === 'es' ? 'Revelar secreto' : 'Reveal secret')}
+        </Button>
+      )}
+      <p className="text-xs text-muted-foreground mt-2">
+        <code className="bg-muted px-1 rounded">X-Voulti-Signature: t=&lt;unix&gt;,v1=&lt;HMAC-SHA256(secret, t + "." + body)&gt;</code>
+      </p>
+    </div>
+  )
+}
+
 // ─── Developers Tab ───
 function DevelopersTab() {
   const { commerce } = useCommerce()
@@ -334,7 +395,7 @@ function DevelopersTab() {
 
   const createCode = `curl -X POST ${apiBase}/invoices \\
   -H "Content-Type: application/json" \\
-  -d '{"commerce_id":"${cid}","amount_fiat":50}'`
+  -d '{"commerce_id":"${cid}","amount_fiat":50,"reference":"order-123"}'`
 
   const responseCode = `{
   "success": true,
@@ -343,7 +404,8 @@ function DevelopersTab() {
     "amount_fiat": 50,
     "fiat_currency": "${commerce?.currency || "USD"}",
     "status": "Pending",
-    "expires_at": "2026-03-30T06:00:00Z"
+    "expires_at": "2026-03-30T06:00:00Z",
+    "reference": "order-123"
   }
 }`
 
@@ -414,8 +476,9 @@ function DevelopersTab() {
         </p>
         <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
         <p className="text-xs text-muted-foreground mt-2">
-          Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount {'}'}
+          Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount, paid_at, reference {'}'}
         </p>
+        <WebhookSecret commerceId={cid} />
       </Card>
 
       {/* Other */}

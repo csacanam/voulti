@@ -14,7 +14,7 @@ Contexto: Voulti tiene la tesis agent más fuerte del portafolio ("tu agente pue
 - [x] Campo `reference`/`memo` en invoices (12 jul): opcional ≤200 chars en POST, vuelve en respuestas, listado y webhook. **Requiere migración** (ver abajo).
 - [x] Firma de webhooks (12 jul): HMAC-SHA256 estilo Stripe (`X-Voulti-Signature: t=...,v1=...`) con `webhook_secret` por comercio; backward-compatible (sin secret = sin header). Snippet de verificación en el skill.
 - [ ] **⚠️ ANTES de deployar el API: correr `apps/api/db/migrations/2026-07-12_reference_and_webhook_secret.sql` en Supabase** (agrega columnas + backfill de secrets). El código nuevo selecciona `webhook_secret` — sin la migración, los webhooks fallarían.
-- [ ] Mostrar el `webhook_secret` en la página Developers del merchant app (hoy solo accesible por DB/API autenticada).
+- [x] Mostrar el `webhook_secret` en la página Developers del merchant app (12 jul): endpoint autenticado GET /commerces/:id/webhook-secret + componente Reveal/Copy con formato de firma; ejemplos de la página actualizados con `reference`.
 - [ ] Publicar schemas de respuesta de la API (el doc decía `invoice_id` pero el campo real es `data.id` — ya corregido en el skill).
 - [ ] Modo sandbox/test — hoy la única forma de probar una integración es con dinero real.
 - [ ] API de creación de comercios (multi-tenant) — hoy el signup es manual en app.voulti.com, lo que hace posible "mi plataforma cobra a mis clientes" pero NO "plataforma donde cada usuario mío cobra" (marketplaces). Es LA feature que convertiría a Voulti en infraestructura tipo Stripe Connect.
