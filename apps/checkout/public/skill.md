@@ -33,13 +33,26 @@ Content-Type: application/json
 { "commerce_id": "<commerce_id>", "amount_fiat": 50 }
 ```
 
-Response includes the `invoice_id`. Send the payer this link:
+`amount_fiat` is in the merchant's base currency — **confirm which currency their account uses before charging** (`50` means $50 USD or 50 COP depending on their setup; the response tells you via `fiat_currency`).
+
+Response (`201`):
+
+```json
+{ "success": true, "data": { "id": "<invoice_id>", "commerce_id": "...", "amount_fiat": 50,
+  "fiat_currency": "USD", "status": "Pending", "expires_at": "...", "created_at": "..." } }
+```
+
+The invoice id is **`data.id`**. Send the payer this link:
 
 ```
 https://voulti.com/checkout/<invoice_id>
 ```
 
+**Expiration:** invoices expire in **1 hour** by default. If the payer won't pay right away, pass a custom `expires_at` (ISO 8601) when creating: `{ "commerce_id": "...", "amount_fiat": 150, "expires_at": "2026-07-15T00:00:00Z" }` — or use the permanent link (Option B) for slow payers.
+
 The payer connects any wallet (or MiniPay) and pays in the stablecoin/network of their choice; Voulti handles conversion and settlement.
+
+**Charging several clients?** There is no reference/memo field on invoices yet — keep your own mapping of `invoice_id` → client so you know who paid what.
 
 ### Option B — Permanent link (payer chooses the amount)
 
@@ -59,7 +72,9 @@ Good for tips, donations, or "pay what you owe" flows. No API call needed.
 GET https://api.voulti.com/invoices/<invoice_id>
 ```
 
-`status` transitions: `Pending` → `Paid` or `Expired`. Poll every few seconds while the payer is at checkout; treat `Expired` as final (create a new invoice to retry).
+Returns the invoice with `status`, `paid_at`, `payment_method`, `expires_at` and amount fields. `status` transitions: `Pending` → `Paid` or `Expired`. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Treat `Expired` as final (create a new invoice to retry; never resend an expired link).
+
+**Where the money lands (tell your human this):** Voulti never holds funds. Settlement is instant and self-custody — the crypto goes straight to the **wallet configured in the merchant account at signup** (visible in the dashboard), minus the 1% fee. Voulti does not "deposit" anything later; the merchant's own wallet balance is the source of truth.
 
 ### Webhook (recommended for production)
 
