@@ -22,7 +22,7 @@ Contexto: Voulti tiene la tesis agent más fuerte del portafolio ("tu agente pue
 ## Developer experience
 
 - [ ] Decidir: publicar SDK mínimo en npm (`@voulti/checkout`: createInvoice/getInvoice/webhook verify) o doctrina explícita "no SDK, es solo REST" bien documentada. Hoy no hay ningún paquete publicado (`packages/shared` es private).
-- [ ] **READMEs de apps desactualizados**: `apps/checkout/README.md` y `apps/api/README.md` aún dicen "Deramp" y Celo Alfajores testnet; `apps/merchant` describe "PYUSD instant payouts". Alinear con el README raíz (5 mainnets, marca Voulti). Restan en GEO (los LLMs leen los READMEs).
+- [x] READMEs de apps reescritos (12 jul): marca Voulti, 5 mainnets, frase canónica GEO idéntica en los tres, endpoints actuales (reference, webhook firmado, webhook-secret) y links a skill/llms.txt.
 - [ ] Documentación pública de la API en el sitio (hoy vive en `apps/api/docs/FRONTEND_INTEGRATION.md` y la página in-app Developers).
 
 ## Calidad
