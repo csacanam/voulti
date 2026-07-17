@@ -10,7 +10,6 @@
 
 import { FastifyInstance } from 'fastify';
 import { ethers } from 'ethers';
-import { getProvider } from '../blockchain/utils/web3';
 import { NETWORKS } from '../blockchain/config/networks';
 import { sendTelegramAlert } from '../utils/notify';
 
@@ -32,6 +31,40 @@ let cronCycleCount = 0;
 const lastAlertState = new Map<string, string>();
 
 // ─── Helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Read the operator's native balance from EVERY configured RPC of a network in
+ * parallel and return the maximum successful reading.
+ *
+ * A single misbehaving endpoint under-reports: a broken node returns 0, a
+ * lagging one returns an old (lower, if funds just arrived) balance. With the
+ * shared FallbackProvider (quorum: 1) the monitor trusted whichever node
+ * answered first, so one bad node — e.g. mainnet.base.org intermittently
+ * returning 0x0 — was enough to fire a false "0.000000 ETH CRITICAL" alert.
+ * Taking the max means that as long as ANY healthy node still sees the funds we
+ * trust it, and no lone endpoint can cry wolf. Returns -1 only when every RPC
+ * fails (that case is skipped downstream, same as before).
+ */
+async function readMaxBalance(network: string, address: string): Promise<number> {
+  const config = NETWORKS[network as keyof typeof NETWORKS];
+  const chain = new ethers.Network(config.name, config.chainId);
+
+  const reads = await Promise.all(
+    config.rpcUrls.map(async (url) => {
+      try {
+        const provider = new ethers.JsonRpcProvider(url, chain, { staticNetwork: true });
+        const raw = await provider.getBalance(address);
+        return parseFloat(ethers.formatEther(raw));
+      } catch (err: any) {
+        console.error(`[cron] Balance read failed on ${network} via ${url}:`, err.message);
+        return null;
+      }
+    })
+  );
+
+  const ok = reads.filter((b): b is number => b !== null);
+  return ok.length ? Math.max(...ok) : -1;
+}
 
 function evaluateLevel(balance: number, warning: number, critical: number): string | null {
   if (balance < critical) return 'critical';
@@ -106,18 +139,18 @@ export async function cronRoutes(app: FastifyInstance) {
 
   app.get('/health', async (_req, reply) => {
     try {
-      // Step 1: Fetch all native balances in parallel
+      // Step 1: Fetch all native balances in parallel, each reading across all
+      // of the network's RPCs and taking the max so a single bad node can't
+      // trigger a false low-balance alert.
       const balanceResults = await Promise.all(
         prodNetworks.map(async ([name, config]) => {
-          try {
-            const provider = getProvider(name);
-            const raw = await provider.getBalance(operatorAddress);
-            const balance = parseFloat(ethers.formatEther(raw));
-            return { network: name, symbol: config.nativeCurrency.symbol, balance, error: null };
-          } catch (err: any) {
-            console.error(`[cron] Balance read error on ${name}:`, err.message);
-            return { network: name, symbol: config.nativeCurrency.symbol, balance: -1, error: err.message };
-          }
+          const balance = await readMaxBalance(name, operatorAddress);
+          return {
+            network: name,
+            symbol: config.nativeCurrency.symbol,
+            balance,
+            error: balance < 0 ? 'all RPC endpoints failed' : null,
+          };
         })
       );
 
@@ -208,13 +241,8 @@ export async function cronRoutes(app: FastifyInstance) {
     try {
       const balanceResults = await Promise.all(
         prodNetworks.map(async ([name, config]) => {
-          try {
-            const provider = getProvider(name);
-            const raw = await provider.getBalance(operatorAddress);
-            return { network: name, symbol: config.nativeCurrency.symbol, balance: parseFloat(ethers.formatEther(raw)) };
-          } catch {
-            return { network: name, symbol: config.nativeCurrency.symbol, balance: 0 };
-          }
+          const balance = await readMaxBalance(name, operatorAddress);
+          return { network: name, symbol: config.nativeCurrency.symbol, balance: balance < 0 ? 0 : balance };
         })
       );
 
