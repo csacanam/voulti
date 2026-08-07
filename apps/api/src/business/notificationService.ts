@@ -514,9 +514,12 @@ export class NotificationService {
       .in('status', ['Paid', 'Expired', 'Refunded'])
       .eq('confirmation_url_available', true)
       .eq('confirmation_url_response', false)
-      .lt('confirmation_url_retries', this.maxRetries)
-      .not('selected_network', 'is', null)
-      .not('blockchain_invoice_id', 'is', null);
+      .lt('confirmation_url_retries', this.maxRetries);
+    // Deliberately not filtering on selected_network / blockchain_invoice_id.
+    // Those are null for every invoice that never settled on-chain — exactly
+    // the Expired and Refunded ones the merchant most needs to hear about.
+    // `Paid` still gets its on-chain proof: verifyBlockchainStatus rejects a
+    // null blockchain_invoice_id on its own.
 
     if (error) {
       console.error('Error fetching invoices needing URL confirmation:', error);
