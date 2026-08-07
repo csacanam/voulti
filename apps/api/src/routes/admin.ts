@@ -22,7 +22,10 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KE
 function checkSecret(req: FastifyRequest, res: FastifyReply): boolean {
   const expected = process.env.ADMIN_SECRET;
   if (!expected) {
-    res.status(503).send({ error: 'ADMIN_SECRET not configured — admin routes disabled' });
+    // 501, not 503: DigitalOcean App Platform reads a 503 from the app as
+    // "upstream is unhealthy" and swallows the response, handing the caller its
+    // own error page instead of ours. Never return 503 from a handler here.
+    res.status(501).send({ error: 'ADMIN_SECRET not configured — admin routes disabled' });
     return false;
   }
 

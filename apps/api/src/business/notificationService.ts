@@ -4,6 +4,7 @@ import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { getNetworkByChainId, NETWORKS } from '../blockchain/config/networks';
 import { TOKENS } from '../blockchain/config/tokens';
 import { getBlockExplorerUrl, getTokenSymbol, getNetworkDisplayName, getTokenAddress } from '../blockchain/utils/formatters';
+import { sendTelegramAlert } from '../utils/notify';
 import { Resend } from 'resend';
 
 const supabase = createClient(
@@ -248,23 +249,65 @@ export class NotificationService {
         // Increment retry count
         const newRetryCount = invoice.confirmation_url_retries + 1;
         await this.updateInvoiceField(invoice.id, 'confirmation_url_retries', newRetryCount);
-        
+
         // Send failure notification email to commerce
         await this.sendConfirmationUrlFailureEmail(invoice, commerce, newRetryCount, 'HTTP Error Response');
-        
+        await this.alertIfRetriesExhausted(invoice, commerce, newRetryCount, 'HTTP Error Response');
+
         console.log(`Confirmation URL failed for invoice ${invoice.id}, retry ${newRetryCount}/${this.maxRetries}`);
       }
           } catch (error) {
         console.error(`Error handling confirmation URL for invoice ${invoice.id}:`, error);
-        
+
         // Increment retry count on error
         const newRetryCount = invoice.confirmation_url_retries + 1;
         await this.updateInvoiceField(invoice.id, 'confirmation_url_retries', newRetryCount);
-        
+
         // Send failure notification email to commerce
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         await this.sendConfirmationUrlFailureEmail(invoice, commerce, newRetryCount, errorMessage);
+        await this.alertIfRetriesExhausted(invoice, commerce, newRetryCount, errorMessage);
       }
+  }
+
+  /**
+   * Alert us — not just the merchant — when a webhook runs out of retries.
+   *
+   * getInvoicesNeedingUrlConfirmation() filters on retries < maxRetries, so the
+   * last failure is the point of no return: the invoice leaves the delivery
+   * queue for good and the merchant is left believing a payment never landed.
+   * The per-attempt emails go to the merchant; this is the operator's copy.
+   */
+  private async alertIfRetriesExhausted(
+    invoice: InvoiceData,
+    commerce: CommerceData,
+    retryCount: number,
+    errorDetails: string
+  ): Promise<void> {
+    if (retryCount < this.maxRetries) return;
+
+    try {
+      const esc = (s: string) =>
+        String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const text = [
+        '🚨 <b>Webhook agotó reintentos</b>',
+        '',
+        `<b>Comercio:</b> ${esc(commerce.name)}`,
+        `<b>Invoice:</b> <code>${esc(invoice.id)}</code>`,
+        `<b>Estado:</b> ${esc(invoice.status)} — ${esc(String(invoice.amount_fiat))} ${esc(invoice.fiat_currency)}`,
+        `<b>URL:</b> <code>${esc(commerce.confirmation_url || '—')}</code>`,
+        `<b>Intentos:</b> ${retryCount}/${this.maxRetries} (sin reintentos restantes)`,
+        '',
+        `<b>Último error:</b> <code>${esc(errorDetails).slice(0, 600)}</code>`,
+        '',
+        `Reintentar: <code>POST /admin/invoices/${esc(invoice.id)}/retry</code>`,
+      ].join('\n');
+
+      await sendTelegramAlert(`webhook_exhausted_${invoice.id}`, text);
+    } catch (err: any) {
+      console.error(`[notify] Webhook exhaustion alert failed for ${invoice.id}:`, err.message);
+    }
   }
 
   /**
