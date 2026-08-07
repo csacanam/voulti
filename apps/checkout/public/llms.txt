@@ -19,5 +19,5 @@ Key facts:
 ## API summary
 
 - `POST /invoices` — create an invoice (no auth): `{ commerce_id, amount_fiat }`
-- `GET /invoices/:id` — invoice status: `Pending`, `Paid`, `Expired`
-- Webhook — POST to the merchant's `confirmation_url` on payment, with `invoice_id`, `amount_fiat`, `status`, `paid_tx_hash`
+- `GET /invoices/:id` — invoice status: `Pending`, `Paid`, `Expired`, `Refunded` (returned bare, not wrapped in `{success,data}` like POST)
+- Webhook — POST to the merchant's `confirmation_url` on every final status (`Paid`, `Expired`, `Refunded`), with `invoice_id`, `amount_fiat`, `status`, `paid_tx_hash`

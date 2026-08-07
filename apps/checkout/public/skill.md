@@ -91,13 +91,23 @@ GET https://api.voulti.com/invoices/<invoice_id>
   "paid_amount": 0.31471, "reference": "...", "tokens": [ … ] }
 ```
 
-`status` transitions: `Pending` → `Paid` or `Expired`. Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471` USDT), not the fiat total — compare `amount_fiat` if you need to verify the price. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Treat `Expired` as final (create a new invoice to retry; never resend an expired link).
+`status` transitions: `Pending` → `Paid`, `Expired` **or `Refunded`**. All three are final.
+
+| Status | Meaning |
+|---|---|
+| `Paid` | Settled on-chain. The funds are in the merchant's wallet. This is the only status that means "release the goods". |
+| `Expired` | The time limit passed and nothing was received. |
+| `Refunded` | Money reached the deposit address but never settled — it arrived after expiry, or too late to complete. Voulti returned it to the sending address automatically. **The merchant receives nothing**, so treat it like `Expired` for fulfilment, but expect the payer to say they paid: they did, and they already have it back. |
+
+Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471` USDT), not the fiat total — compare `amount_fiat` if you need to verify the price. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Never reuse an expired link; create a new invoice instead.
 
 **Where the money lands (tell your human this):** Voulti never holds funds. Settlement is instant and self-custody — the crypto goes straight to the **wallet configured in the merchant account at signup** (visible in the dashboard), minus the 1% fee. Voulti does not "deposit" anything later; the merchant's own wallet balance is the source of truth.
 
 ### Webhook (recommended for production)
 
-If the merchant configured `confirmation_url`, Voulti POSTs there on payment with `invoice_id`, `amount_fiat`, `fiat_currency`, `status`, `paid_tx_hash`, `paid_token`, `paid_network`, `paid_amount`, `paid_at` and `reference`.
+If the merchant configured `confirmation_url`, Voulti POSTs there with `invoice_id`, `amount_fiat`, `fiat_currency`, `status`, `paid_tx_hash`, `paid_token`, `paid_network`, `paid_amount`, `paid_at` and `reference`.
+
+**It fires on every final status, not just `Paid`** — `Expired` and `Refunded` arrive here too, so branch on `status` rather than assuming a delivery means money. On `Expired` and `Refunded` the payment fields (`paid_tx_hash`, `paid_amount`, `paid_at`…) are `null`.
 
 **Verify the signature.** Signed webhooks carry an `X-Voulti-Signature: t=<unix>,v1=<hex>` header — HMAC-SHA256 of `` `${t}.${rawBody}` `` with the commerce's webhook signing secret:
 
@@ -125,7 +135,9 @@ Defense in depth: even with a valid signature, confirm with `GET /invoices/<invo
 | `400` on POST /invoices | Check `commerce_id` (exact string from the Developers page) and that `amount_fiat` is a positive number. |
 | Invoice `Expired` | Invoices have a time limit. Create a fresh one; never reuse expired links. |
 | Payment shows on-chain but status is `Pending` | Wait — confirmation follows the chain's finality. If it persists minutes, tell the human to check app.voulti.com. |
-| Refunds | Settlement is self-custody: refunds are a manual transfer from the merchant's wallet. Voulti does not hold funds. |
+| Payer sent to the deposit address **after** the invoice expired | Voulti keeps watching that address for 24h and returns the funds to the sending address. The invoice becomes `Refunded`, not `Paid` — a late payment is never credited. Tell the payer to expect the money back and use a fresh invoice. |
+| Invoice went `Refunded` | Nothing settled, so nothing is owed to the merchant. The payer has already been repaid automatically; no action needed beyond not fulfilling the order. |
+| Refunding a **completed** sale (`Paid`) | Voulti never holds funds — a settled payment is already in the merchant's wallet, so reversing it is a manual transfer they make themselves. Only unsettled deposits are returned automatically. |
 
 ---
 
