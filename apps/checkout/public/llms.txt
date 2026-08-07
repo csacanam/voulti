@@ -5,7 +5,7 @@
 Key facts:
 
 - API base: `https://api.voulti.com` — integration endpoints require no API key or authentication.
-- Typical flow: `POST /invoices` with `{ "commerce_id": "<id>", "amount_fiat": 50 }` → returns `invoice_id` → send the payer to `https://voulti.com/checkout/<invoice_id>` → poll `GET /invoices/<invoice_id>` until `status: "Paid"`, or receive the webhook on your `confirmation_url`.
+- Typical flow: `POST /invoices` with `{ "commerce_id": "<id>", "amount_fiat": 50, "currency": "USD" }` → returns `invoice_id` → send the payer to `https://voulti.com/checkout/<invoice_id>` → poll `GET /invoices/<invoice_id>` until `status: "Paid"`, or receive the webhook on your `confirmation_url`.
 - Permanent payment link per merchant: `https://voulti.com/pay/<commerce_id>`.
 - Merchants sign up self-service at `https://app.voulti.com` (wallet or email) to get a `commerce_id`. Settlement goes to the merchant's own wallet (self-custody).
 - Contracts (proxy architecture) deployed and verified on all 5 mainnets.
@@ -18,7 +18,7 @@ Key facts:
 
 ## API summary
 
-- `POST /invoices` — create an invoice (no auth): `{ commerce_id, amount_fiat }`
+- `POST /invoices` — create an invoice (no auth): `{ commerce_id, amount_fiat, currency }`. `currency` is required and chosen per invoice (USD, EUR, COP, ARS, BRL, MXN) — a merchant is not tied to one
 - `GET /invoices/:id` — invoice status: `Pending`, `Paid`, `Expired`, `Refunded` (returned bare, not wrapped in `{success,data}` like POST)
 - Webhook — POST to the merchant's `confirmation_url` on every final status (`Paid`, `Expired`, `Refunded`), with `invoice_id`, `amount_fiat`, `status`, `paid_tx_hash`. Signed with `X-Voulti-Signature`; **respond within ~2s** (verify the signature, ack, then do the re-check and fulfilment after responding) or the delivery is retried.
 - Rate limit: 100 requests/minute per IP. Call from a server — `api.voulti.com` sends no CORS headers for third-party origins.

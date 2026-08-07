@@ -42,6 +42,10 @@ export default function NewLinkPage() {
       const invoice = await api.createInvoice({
         commerce_id: commerce.commerce_id,
         amount_fiat: amountNum,
+        // Sent explicitly: the API no longer infers a pricing currency from
+        // the commerce, since that setting only decides how its dashboard
+        // totals are displayed. This is the currency shown next to the input.
+        currency: commerce.currency,
       })
       router.push(`/links/${invoice.id}`)
     } catch (err: any) {

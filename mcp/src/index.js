@@ -43,14 +43,17 @@ const server = new McpServer({ name: "voulti", version: "0.1.0" });
 
 server.tool(
   "create_invoice",
-  "Create a payment invoice and get a hosted checkout link to send to the payer. amount_fiat is in the MERCHANT's base currency (USD, EUR, COP, ARS, BRL or MXN — confirm which one before charging; the response's fiat_currency tells you). Invoices expire in 1 hour by default; pass expires_at (ISO 8601) for slow payers. Use reference to tag the invoice with your own order id or client name.",
+  "Create a payment invoice and get a hosted checkout link to send to the payer. You choose the pricing currency per invoice — a merchant is not tied to one. Ask the human which currency the price is in rather than guessing; the payer settles in stablecoins either way. Invoices expire in 1 hour by default; pass expires_at (ISO 8601) for slow payers. Use reference to tag the invoice with your own order id or client name.",
   {
-    amount_fiat: z.number().positive().describe("Amount in the merchant's base currency"),
+    amount_fiat: z.number().positive().describe("Amount, expressed in `currency`"),
+    currency: z
+      .enum(["USD", "EUR", "COP", "ARS", "BRL", "MXN"])
+      .describe("Currency the price is quoted in. Ask the human — do not assume."),
     commerce_id: z.string().optional().describe("Merchant id (defaults to VOULTI_COMMERCE_ID env)"),
     reference: z.string().max(200).optional().describe("Your own memo: order id, client name…"),
     expires_at: z.string().optional().describe("ISO 8601 expiration (default: 1 hour from now)"),
   },
-  async ({ amount_fiat, commerce_id, reference, expires_at }) => {
+  async ({ amount_fiat, currency, commerce_id, reference, expires_at }) => {
     let cid;
     try {
       cid = resolveCommerce(commerce_id);
@@ -63,6 +66,7 @@ server.tool(
       body: JSON.stringify({
         commerce_id: cid,
         amount_fiat,
+        currency,
         ...(reference !== undefined ? { reference } : {}),
         ...(expires_at !== undefined ? { expires_at } : {}),
       }),

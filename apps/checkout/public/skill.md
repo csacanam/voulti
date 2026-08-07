@@ -32,12 +32,14 @@ You help merchants (or agents selling services) accept crypto payments: USDC, US
 POST https://api.voulti.com/invoices
 Content-Type: application/json
 
-{ "commerce_id": "<commerce_id>", "amount_fiat": 50 }
+{ "commerce_id": "<commerce_id>", "amount_fiat": 50, "currency": "USD" }
 ```
 
-`amount_fiat` is in the merchant's base currency — **confirm which currency their account uses before charging** (`50` means $50 USD or 50 COP depending on their setup).
+**`currency` is required and you pick it per invoice.** A merchant is not tied to one: `50` + `"USD"` is fifty dollars, `50` + `"COP"` is fifty pesos, and the same merchant can issue both. Supported: `USD`, `EUR`, `COP`, `ARS`, `BRL`, `MXN` — anything else is rejected with `400` listing the valid ones. It only decides the unit the payer sees quoted; settlement is in stablecoins regardless.
 
-You do not have to guess or take the human's word for it. `GET https://api.voulti.com/commerces/<commerce_id>` is public, needs no auth, and tells you up front:
+**Ask the human which currency the price is in — never guess.** Charging 50 in the wrong currency is a real mispricing, not a formatting detail.
+
+The merchant's own `currency` (from `GET /commerces/<id>`) is only the unit their dashboard totals are displayed in. It is **not** a default for your invoices and reading it is not a substitute for asking. `GET https://api.voulti.com/commerces/<commerce_id>` is public, needs no auth, and is still useful for the symbol, the limits, and to confirm the `commerce_id` is real:
 
 ```json
 { "success": true, "data": { "id": "...", "name": "Peewah", "currency": "COP",

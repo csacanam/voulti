@@ -395,7 +395,7 @@ function DevelopersTab() {
 
   const createCode = `curl -X POST ${apiBase}/invoices \\
   -H "Content-Type: application/json" \\
-  -d '{"commerce_id":"${cid}","amount_fiat":50,"reference":"order-123"}'`
+  -d '{"commerce_id":"${cid}","amount_fiat":50,"currency":"USD","reference":"order-123"}'`
 
   const responseCode = `{
   "success": true,

@@ -222,7 +222,8 @@ export const HomePage: React.FC = () => {
 {`POST /invoices
 {
   "commerce_id": "${DEMO_COMMERCE_ID.slice(0, 8)}...",
-  "amount_fiat": 25000
+  "amount_fiat": 25000,
+  "currency": "COP"
 }
 
 → 201 Created

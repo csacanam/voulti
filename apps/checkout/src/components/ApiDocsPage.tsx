@@ -60,7 +60,7 @@ export const ApiDocsPage: React.FC = () => {
             <button
               onClick={() => copy(`curl -X POST ${API_BASE}/invoices \\
   -H "Content-Type: application/json" \\
-  -d '{"commerce_id": "YOUR_COMMERCE_ID", "amount_fiat": 25000}'`, 'req')}
+  -d '{"commerce_id": "YOUR_COMMERCE_ID", "amount_fiat": 25000, "currency": "COP"}'`, 'req')}
               className="absolute top-3 right-3 text-xs text-gray-500 hover:text-white transition-colors"
             >
               {copied === 'req' ? '✓' : 'Copy'}
@@ -70,7 +70,8 @@ export const ApiDocsPage: React.FC = () => {
   -H "Content-Type: application/json" \\
   -d '{
     "commerce_id": "YOUR_COMMERCE_ID",
-    "amount_fiat": 25000
+    "amount_fiat": 25000,
+    "currency": "COP"
   }'`}
             </pre>
           </div>

@@ -40,7 +40,7 @@ export const api = {
       body: JSON.stringify(body),
     }).then(r => r.data),
 
-  createInvoice: (body: { commerce_id: string; amount_fiat: number; expires_at?: string }) =>
+  createInvoice: (body: { commerce_id: string; amount_fiat: number; currency: string; expires_at?: string }) =>
     request<{ data: any }>(`/invoices`, {
       method: "POST",
       body: JSON.stringify(body),

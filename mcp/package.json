@@ -1,7 +1,7 @@
 {
   "name": "voulti-mcp",
   "mcpName": "io.github.csacanam/voulti",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for Voulti — accept crypto payments from any AI agent. Create an invoice with one call, share the hosted checkout link, and confirm payment. USDC/USDT on Celo, Base, Arbitrum, Polygon and BSC; instant self-custody settlement; no API key needed.",
   "type": "module",
   "bin": {
