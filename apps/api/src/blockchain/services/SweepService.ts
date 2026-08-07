@@ -23,6 +23,13 @@ const POLL_INTERVAL = Number(process.env.SWEEP_POLL_INTERVAL_MS || 15000);
 const MAX_RETRIES = Number(process.env.SWEEP_MAX_RETRIES || 5);
 const GAS_BUFFER = 1.5;
 
+// Gas units reserved per operation. The node holds back gasLimit * maxFeePerGas
+// up front, so these have to cover the gasLimit ethers estimates, not the gas
+// actually burned (payInvoice estimates ~330k on Celo).
+const GAS_APPROVE = 100_000n;
+const GAS_PAY_INVOICE = 450_000n;
+const GAS_TRANSFER = 120_000n;
+
 export class SweepService {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private isProcessing = false;
@@ -170,24 +177,14 @@ export class SweepService {
       const actualBalance: bigint = await tokenContract.balanceOf(deposit.address);
       const overpayment = actualBalance > expectedAmount ? actualBalance - expectedAmount : 0n;
 
-      // TX 1: Send gas (if not done yet)
-      // Need extra gas if we also need to refund overpayment
-      if (!deposit.gas_tx_hash) {
-        const extraOps = overpayment > 0n ? 1 : 0; // extra transfer for refund
-        const gasNeeded = await this.estimateGasNeeded(hdWallet, 3 + extraOps);
-        const gasTx = await hotWallet.sendTransaction({
-          to: deposit.address,
-          value: gasNeeded,
-        });
-        await gasTx.wait();
+      // Gas still owed by this sweep, so a retry only funds what's left to do
+      const refundGas = overpayment > 0n ? GAS_TRANSFER : 0n;
+      const pendingGas =
+        (deposit.approve_tx_hash ? 0n : GAS_APPROVE) +
+        (deposit.pay_invoice_tx_hash ? 0n : GAS_PAY_INVOICE + refundGas);
 
-        await supabase
-          .from('deposit_addresses')
-          .update({ gas_tx_hash: gasTx.hash })
-          .eq('id', deposit.id);
-
-        console.log(`[SweepService] Gas sent: ${gasTx.hash}`);
-      }
+      // TX 1: Fund gas (tops up whatever is missing, including on retries)
+      await this.ensureGas(deposit, hdWallet, hotWallet, pendingGas);
 
       // TX 2: Approve exact amount for DerampProxy (if not done yet)
       if (!deposit.approve_tx_hash) {
@@ -258,6 +255,9 @@ export class SweepService {
           DerampProxyABI.abi || DerampProxyABI,
           hdWallet
         );
+
+        // Re-check: approve burned gas and the base fee may have moved since
+        await this.ensureGas(deposit, hdWallet, hotWallet, GAS_PAY_INVOICE + refundGas);
 
         const payTx = await proxyContract.payInvoice(
           blockchainInvoiceId,
@@ -371,9 +371,7 @@ export class SweepService {
       }
 
       // Send gas for the refund transfer
-      const gasNeeded = await this.estimateGasNeeded(hdWallet, 1);
-      const gasTx = await hotWallet.sendTransaction({ to: deposit.address, value: gasNeeded });
-      await gasTx.wait();
+      await this.ensureGas(deposit, hdWallet, hotWallet, GAS_TRANSFER);
 
       // Transfer tokens back to sender
       const refundTx = await tokenContract.transfer(senderAddress, amount);
@@ -576,18 +574,47 @@ export class SweepService {
     }
   }
 
-  private async estimateGasNeeded(hdWallet: ethers.Wallet, numOps: number): Promise<bigint> {
+  /**
+   * Make sure the HD address holds enough native token to cover `gasUnits`.
+   * Tops up the difference from the hot wallet — the amount already there
+   * counts, so this is safe to call before every tx and on every retry.
+   *
+   * Prices at maxFeePerGas (~2 * baseFee + tip), which is what ethers puts on
+   * the txs and what the node reserves. Pricing at eth_gasPrice underfunds by
+   * roughly half and the tx bounces with INSUFFICIENT_FUNDS.
+   */
+  private async ensureGas(
+    deposit: DepositAddressRecord,
+    hdWallet: ethers.Wallet,
+    hotWallet: ethers.Wallet,
+    gasUnits: bigint
+  ): Promise<void> {
     const provider = hdWallet.provider!;
     const feeData = await provider.getFeeData();
-    const gasPrice = feeData.gasPrice || ethers.parseUnits('1', 'gwei');
+    const pricePerGas =
+      feeData.maxFeePerGas || feeData.gasPrice || ethers.parseUnits('1', 'gwei');
 
-    // ~150k per operation (approve ~50k, payInvoice ~250k, transfer ~65k)
-    const gasPerOp = 150_000n;
-    const totalGas = gasPerOp * BigInt(numOps);
-    const gasCost = totalGas * gasPrice;
-    const buffered = (gasCost * BigInt(Math.floor(GAS_BUFFER * 100))) / 100n;
+    const needed =
+      (gasUnits * pricePerGas * BigInt(Math.floor(GAS_BUFFER * 100))) / 100n;
+    const balance = await provider.getBalance(deposit.address);
+    if (balance >= needed) return;
 
-    return buffered;
+    const topUp = needed - balance;
+    const gasTx = await hotWallet.sendTransaction({
+      to: deposit.address,
+      value: topUp,
+    });
+    await gasTx.wait();
+
+    await supabase
+      .from('deposit_addresses')
+      .update({ gas_tx_hash: gasTx.hash })
+      .eq('id', deposit.id);
+    deposit.gas_tx_hash = gasTx.hash;
+
+    console.log(
+      `[SweepService] Gas funded ${ethers.formatEther(topUp)} to ${deposit.address}: ${gasTx.hash}`
+    );
   }
 
   private async updateStatus(id: string, status: string, error?: string): Promise<void> {
