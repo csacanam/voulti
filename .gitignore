@@ -38,3 +38,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# scripts temporales de diagnostico
+.watch-*.cjs
+.*-test.js
