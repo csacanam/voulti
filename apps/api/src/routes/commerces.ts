@@ -636,15 +636,19 @@ export async function commercesRoutes(app: FastifyInstance) {
       const { data: enabledTokens, error: tokensError } = await supabase
         .from('tokens_enabled')
         .select(`
-          tokens_addresses (
+          tokens_addresses!inner (
             token_symbol,
+            is_active,
             tokens (
               symbol,
               name
             )
           )
         `)
-        .eq('commerce_id', id);
+        .eq('commerce_id', id)
+        // Retired tokens must disappear here too, or this endpoint keeps
+        // advertising something no invoice will ever offer.
+        .eq('tokens_addresses.is_active', true);
 
       if (tokensError) {
         console.error('Error fetching tokens:', tokensError);
@@ -712,15 +716,17 @@ export async function commercesRoutes(app: FastifyInstance) {
           const { data: enabledTokens } = await supabase
             .from('tokens_enabled')
             .select(`
-              tokens_addresses (
+              tokens_addresses!inner (
                 token_symbol,
+                is_active,
                 tokens (
                   symbol,
                   name
                 )
               )
             `)
-            .eq('commerce_id', commerce.id);
+            .eq('commerce_id', commerce.id)
+            .eq('tokens_addresses.is_active', true);
 
           const supportedTokens = [...new Set(
             enabledTokens?.map((item: any) => item.tokens_addresses?.tokens?.symbol).filter(Boolean) || []
