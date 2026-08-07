@@ -35,7 +35,17 @@ Content-Type: application/json
 { "commerce_id": "<commerce_id>", "amount_fiat": 50 }
 ```
 
-`amount_fiat` is in the merchant's base currency — **confirm which currency their account uses before charging** (`50` means $50 USD or 50 COP depending on their setup; the response tells you via `fiat_currency`).
+`amount_fiat` is in the merchant's base currency — **confirm which currency their account uses before charging** (`50` means $50 USD or 50 COP depending on their setup).
+
+You do not have to guess or take the human's word for it. `GET https://api.voulti.com/commerces/<commerce_id>` is public, needs no auth, and tells you up front:
+
+```json
+{ "success": true, "data": { "id": "...", "name": "Peewah", "currency": "COP",
+  "currency_symbol": "$", "supported_tokens": ["USDC","USDT","COPm"],
+  "min_amount": null, "max_amount": null } }
+```
+
+Call it once before charging: it confirms the currency, gives you a symbol for your UI, and exposes any `min_amount`/`max_amount` limits (`null` means unbounded). It also doubles as a check that the `commerce_id` is real before you build a whole flow on it.
 
 Response (`201`):
 
@@ -93,12 +103,14 @@ GET https://api.voulti.com/invoices/<invoice_id>
   "paid_amount": 0.31471, "reference": "...", "tokens": [ … ] }
 ```
 
-`status` transitions: `Pending` → `Paid`, `Expired` **or `Refunded`**. All three are final.
+`status` transitions: `Pending` → `Paid`, `Expired` or `Refunded` — **and `Expired` → `Refunded`**. Only `Paid` and `Refunded` are truly final.
+
+> ⚠️ **`Expired` is not the end of the story.** Voulti watches the deposit address for 24h after expiry, so an invoice you already saw as `Expired` can flip to `Refunded` later, when late funds arrive and are sent back. If your poller stops re-checking on `Expired`, you will never learn the payer actually paid — and they *will* contact the merchant saying so. Keep re-checking expired invoices for 24h, or rely on the webhook, which fires again on the flip.
 
 | Status | Meaning |
 |---|---|
-| `Paid` | Settled on-chain. The funds are in the merchant's wallet. This is the only status that means "release the goods". |
-| `Expired` | The time limit passed and nothing was received. |
+| `Paid` | Settled on-chain. The funds are in the merchant's wallet. This is the only status that means "release the goods". Final. |
+| `Expired` | The time limit passed and nothing had arrived *yet*. May still become `Refunded` within 24h. |
 | `Refunded` | Money reached the deposit address but never settled — it arrived after expiry, or too late to complete. Voulti returned it to the sending address automatically. **The merchant receives nothing**, so treat it like `Expired` for fulfilment, but expect the payer to say they paid: they did, and they already have it back. |
 
 Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471` USDT), not the fiat total — compare `amount_fiat` if you need to verify the price. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Never reuse an expired link; create a new invoice instead.
@@ -107,7 +119,18 @@ Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471`
 
 ### Webhook (recommended for production)
 
-If the merchant configured `confirmation_url`, Voulti POSTs there with `invoice_id`, `amount_fiat`, `fiat_currency`, `status`, `paid_tx_hash`, `paid_token`, `paid_network`, `paid_amount`, `paid_at` and `reference`.
+If the merchant configured `confirmation_url`, Voulti POSTs there a **bare** JSON body (no `{success, data}` wrapper):
+
+```json
+{ "invoice_id": "4310057f-3150-42c9-8099-244c494f87bf", "amount_fiat": 1000,
+  "fiat_currency": "COP", "status": "Paid", "paid_at": "2026-08-07T05:51:30.771+00:00",
+  "paid_tx_hash": "0xfbff…afe11", "paid_token": "USDT", "paid_network": "celo",
+  "paid_amount": 0.31471, "reference": "ord_9db61d37" }
+```
+
+> ⚠️ **The invoice id is `invoice_id` here, not `id`.** `GET /invoices/<id>` returns it as `id`; the webhook calls it `invoice_id`. Destructuring `{ id }` from this body gets `undefined` and — since you look the order up by it — silently fails every delivery. There is no `commerce_id` in the payload either, so if you serve several merchants, map them by the invoice ids you stored at creation.
+
+Deduplicate on `invoice_id` plus `status`: there is no delivery id or attempt counter, and the same final status can arrive more than once.
 
 **It fires on every final status, not just `Paid`** — `Expired` and `Refunded` arrive here too, so branch on `status` rather than assuming a delivery means money. On `Expired` and `Refunded` the payment fields (`paid_tx_hash`, `paid_amount`, `paid_at`…) are `null`.
 
@@ -183,7 +206,8 @@ Failures do **not** use the `{ success, data }` envelope — they come back as `
 - Tokens: USDC, USDT variants, and regional stablecoins (e.g. COPm on Celo).
 - Fee: 1% per payment, deducted at settlement.
 - Rate limit: 100 requests/minute per IP, reported in the `x-ratelimit-*` response headers.
-- Envelopes differ by endpoint: `POST /invoices` wraps in `{ success, data }`; `GET /invoices/<id>` and the webhook payload are bare objects; errors are `{ error }`.
+- Envelopes differ by endpoint: `POST /invoices` and `GET /commerces/<id>` wrap in `{ success, data }`; `GET /invoices/<id>` and the webhook payload are bare objects; errors are `{ error }`.
+- **There is no public way to list a commerce's invoices** — the only public reads are `GET /invoices/<id>` (one at a time) and `GET /commerces/<id>`. Persist every invoice id you create; you cannot ask for them back later. Building a "who has paid" dashboard means one GET per open invoice, so keep the 100/min limit in mind and stop polling invoices that reached a final status.
 - No sandbox or testnet — all 5 networks are mainnet, so an end-to-end payment test costs real money. Keep the test invoice small.
 - Contracts: verified proxy architecture on all 5 networks (source: https://github.com/csacanam/voulti).
 - Dashboard for the merchant (balance, invoices, payouts): https://app.voulti.com

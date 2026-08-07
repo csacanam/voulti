@@ -511,7 +511,17 @@ export class SweepService {
         // `Expired` (nothing came) and certainly not `Paid` (nothing settled).
         await supabase
           .from('invoices')
-          .update({ status: 'Refunded', refunded_at: new Date().toISOString() })
+          .update({
+            status: 'Refunded',
+            refunded_at: new Date().toISOString(),
+            // A late deposit flips an invoice the merchant already saw as
+            // Expired. That earlier delivery set confirmation_url_response to
+            // true, and the worker only picks up rows where it is false — so
+            // without reopening it here the merchant's last word on this sale
+            // stays "expired" and they never learn money arrived and went back.
+            confirmation_url_response: false,
+            confirmation_url_retries: 0,
+          })
           .eq('id', deposit.invoice_id);
 
         console.log(`[SweepService] Invoice ${deposit.invoice_id} marked Refunded`);

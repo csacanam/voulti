@@ -651,9 +651,9 @@ export async function commercesRoutes(app: FastifyInstance) {
       }
 
       // Extract supported token symbols
-      const supportedTokens = enabledTokens?.map((item: any) => 
-        item.tokens_addresses?.tokens?.symbol
-      ).filter(Boolean) || [];
+      const supportedTokens = [...new Set(
+        enabledTokens?.map((item: any) => item.tokens_addresses?.tokens?.symbol).filter(Boolean) || []
+      )] as string[]; // una fila por (token, red): el mismo simbolo se repite
 
       // Build response with all commerce information
       const response = {
@@ -722,9 +722,9 @@ export async function commercesRoutes(app: FastifyInstance) {
             `)
             .eq('commerce_id', commerce.id);
 
-          const supportedTokens = enabledTokens?.map((item: any) => 
-            item.tokens_addresses?.tokens?.symbol
-          ).filter(Boolean) || [];
+          const supportedTokens = [...new Set(
+            enabledTokens?.map((item: any) => item.tokens_addresses?.tokens?.symbol).filter(Boolean) || []
+          )] as string[]; // una fila por (token, red): el mismo simbolo se repite
 
           return {
             id: commerce.id,
