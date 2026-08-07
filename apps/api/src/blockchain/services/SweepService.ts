@@ -466,10 +466,17 @@ export class SweepService {
           return;
         }
 
-        await this.markFailed(
-          { ...deposit, sweep_retries: retries },
-          'Cannot refund: no Transfer found identifying the payer — manual refund needed'
-        );
+        // Say *why* it is unfindable when the cause is age — the scan is capped,
+        // so for an old deposit the answer would not change on any retry.
+        const ageHours = deposit.created_at
+          ? (Date.now() - new Date(deposit.created_at).getTime()) / 3_600_000
+          : 0;
+        const reason =
+          ageHours > MAX_SENDER_LOOKBACK_SECONDS / 3600
+            ? `Cannot refund: deposit is ${Math.round(ageHours)}h old, past the ${MAX_SENDER_LOOKBACK_SECONDS / 3600}h log scan window — manual refund needed`
+            : 'Cannot refund: no Transfer found identifying the payer — manual refund needed';
+
+        await this.markFailed({ ...deposit, sweep_retries: retries }, reason);
         return;
       }
 
@@ -760,6 +767,13 @@ export class SweepService {
    * refund them to the sender.
    */
   private async checkAndRefundOrphanedDeposit(deposit: DepositAddressRecord): Promise<void> {
+    // Already given up on this one. The invoice is Paid, so it stays in the
+    // poll set forever; without this guard a deposit whose payer cannot be
+    // identified gets re-scanned every cycle, for good — hours of blocks
+    // across every RPC, every fifteen seconds, hunting a transfer that is
+    // older than the lookback window and will never be found.
+    if (deposit.status === 'failed') return;
+
     const network = deposit.network as NetworkName;
     const provider = getProvider(network);
 

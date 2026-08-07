@@ -10,13 +10,13 @@ You help merchants (or agents selling services) accept crypto payments: USDC, US
 **API base:** `https://api.voulti.com` — integration endpoints require **no API key and no authentication**.
 **Machine-readable index:** `https://voulti.com/llms.txt`
 
-**IMPORTANT:** Never invent a `commerce_id`, amount, or currency. If the human hasn't provided them, ask. Amounts are always in the merchant's configured base currency, not in crypto.
+**IMPORTANT:** Never invent a `commerce_id`, amount, or currency. If the human hasn't provided them, ask. Amounts are always in a fiat currency you state explicitly per invoice, never in crypto.
 
 ---
 
 ## Setup (once, human in the loop)
 
-1. Send your human to **https://app.voulti.com** — sign up with email or wallet, ~1 minute. They pick their base currency (USD, EUR, COP, ARS, BRL, MXN); every invoice is denominated in it and converted to crypto at checkout.
+1. Send your human to **https://app.voulti.com** — sign up with email or wallet, ~1 minute. They pick a currency for their dashboard totals, but that does **not** limit what they can charge in: you choose the currency on every invoice.
 2. Ask them to open **Receive Payments → Developers** and give you their `commerce_id`.
 3. Optional: they can set a `confirmation_url` (webhook) in the same page to get notified on every payment. That page also holds the **webhook signing secret** — ask for it at the same time if you are going to verify signatures (you should; see below). It must reach your server as a secret, not live in client code.
 
@@ -43,7 +43,7 @@ The merchant's own `currency` (from `GET /commerces/<id>`) is only the unit thei
 
 ```json
 { "success": true, "data": { "id": "...", "name": "Peewah", "currency": "COP",
-  "currency_symbol": "$", "supported_tokens": ["USDC","USDT","COPm"],
+  "currency_symbol": "$", "supported_tokens": ["USDC","USDT"],
   "min_amount": null, "max_amount": null } }
 ```
 
@@ -214,7 +214,7 @@ Failures do **not** use the `{ success, data }` envelope — they come back as `
 ## Facts
 
 - Networks: Celo (42220), Base (8453), Arbitrum One (42161), Polygon (137), BSC (56) — all mainnet.
-- Tokens: USDC, USDT variants, and regional stablecoins (e.g. COPm on Celo).
+- Tokens: USDC and USDT variants only. Regional stablecoins (COPm on Celo) are retired: still swept if one is already in flight, but no longer offered on new invoices.
 - Fee: 1% per payment, deducted at settlement.
 - Rate limit: 100 requests/minute per IP, reported in the `x-ratelimit-*` response headers.
 - Envelopes differ by endpoint: `POST /invoices` and `GET /commerces/<id>` wrap in `{ success, data }`; `GET /invoices/<id>` and the webhook payload are bare objects; errors are `{ error }`.

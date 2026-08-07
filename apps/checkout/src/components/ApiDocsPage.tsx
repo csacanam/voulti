@@ -251,7 +251,7 @@ export const ApiDocsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr><td className="p-3">Celo</td><td className="p-3">USDC, USDT, COPm</td></tr>
+                <tr><td className="p-3">Celo</td><td className="p-3">USDC, USDT</td></tr>
                 <tr><td className="p-3">Arbitrum</td><td className="p-3">USDC, USDT</td></tr>
                 <tr><td className="p-3">Polygon</td><td className="p-3">USDC, USDT</td></tr>
                 <tr><td className="p-3">Base</td><td className="p-3">USDC</td></tr>

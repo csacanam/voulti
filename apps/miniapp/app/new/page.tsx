@@ -84,7 +84,7 @@ export default function NewLinkPage() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            The customer will pay the equivalent in USDC, USDT or COPm on any supported network.
+            The customer will pay the equivalent in USDC or USDT on any supported network.
           </p>
         </div>
 

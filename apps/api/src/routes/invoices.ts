@@ -279,10 +279,16 @@ export async function invoicesRoutes(app: FastifyInstance) {
     const amountInUSD = baseAmountInUSD * (1 + Number(commerce.spread) / 100);
 
     // 3. Get enabled tokens for the commerce
+    // `!inner` + the is_active filter is what actually retires a token: flip
+    // tokens_addresses.is_active and it stops being offered everywhere, without
+    // deleting the per-commerce rows (so re-enabling is one flag, not a
+    // reconstruction) and without touching in-flight deposits, which the sweep
+    // resolves from its own record rather than from this list.
     const { data: tokensEnabled, error: tokensEnabledError } = await supabase
       .from('tokens_enabled')
       .select(`
-        tokens_addresses (
+        tokens_addresses!inner (
+          is_active,
           network,
           contract_address,
           decimals,
@@ -297,7 +303,8 @@ export async function invoicesRoutes(app: FastifyInstance) {
           )
         )
       `)
-      .eq('commerce_id', invoice.commerce_id);
+      .eq('commerce_id', invoice.commerce_id)
+      .eq('tokens_addresses.is_active', true);
 
     if (tokensEnabledError || !tokensEnabled) {
       return res.status(500).send({ error: 'Error fetching enabled tokens' });

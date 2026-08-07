@@ -5,11 +5,11 @@ import './globals.css'
 export const metadata: Metadata = {
   metadataBase: new URL('https://pay.voulti.com'),
   title: 'Voulti Pay — Get paid in crypto',
-  description: 'Create payment links and get paid in USDC, USDT or COPm from any wallet.',
+  description: 'Create payment links and get paid in USDC or USDT from any wallet.',
   manifest: '/manifest.json',
   openGraph: {
     title: 'Voulti Pay',
-    description: 'Create payment links and get paid in USDC, USDT or COPm.',
+    description: 'Create payment links and get paid in USDC or USDT.',
     url: 'https://pay.voulti.com',
     siteName: 'Voulti Pay',
     images: [{ url: '/og.png', width: 1200, height: 630 }],
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Voulti Pay',
-    description: 'Create payment links and get paid in USDC, USDT or COPm.',
+    description: 'Create payment links and get paid in USDC or USDT.',
   },
   other: {
     // MiniPay detection hints
