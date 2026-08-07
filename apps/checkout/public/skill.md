@@ -62,6 +62,8 @@ https://voulti.com/checkout/<invoice_id>
 
 **Expiration:** invoices expire in **1 hour** by default. If the payer won't pay right away, pass a custom `expires_at` (ISO 8601) when creating: `{ "commerce_id": "...", "amount_fiat": 150, "expires_at": "2026-07-15T00:00:00Z" }` — or use the permanent link (Option B) for slow payers.
 
+There is **no maximum and no validation** on `expires_at`: a date ten years out is accepted, and so is a date in the past — which silently creates an invoice that is already dead and will be swept to `Expired`. Nothing warns you. Sanity-check the value yourself before sending it, and prefer a window you would actually honour: a link that stays payable for a year is a link whose price is a year stale.
+
 The payer connects any wallet (or MiniPay) and pays in the stablecoin/network of their choice; Voulti handles conversion and settlement.
 
 **Charging several clients?** Pass an optional `reference` (string, ≤ 200 chars) when creating the invoice — your own order id, client name, or memo. It comes back in the invoice responses and in the webhook payload, so you always know who paid what:
@@ -98,10 +100,13 @@ GET https://api.voulti.com/invoices/<invoice_id>
 
 ```json
 { "id": "<invoice_id>", "commerce_id": "...", "amount_fiat": 50, "fiat_currency": "USD",
-  "status": "Paid", "expires_at": "...", "paid_at": "...", "payment_method": "address",
+  "status": "Paid", "expires_at": "...", "paid_at": "...", "amount_usd": "0.31",
+  "usd_to_fiat_rate": 3181.1, "commerce_name": "...", "commerce_wallet": "0x…",
   "paid_tx_hash": "0x…", "paid_token": "USDT", "paid_network": "celo",
-  "paid_amount": 0.31471, "reference": "...", "tokens": [ … ] }
+  "paid_amount": 0.31471, "wallet_address": "0x…", "tokens": [ … ] }
 ```
+
+**`reference` and `created_at` are not on this response.** `reference` comes back on `POST /invoices` and in the webhook payload, but `GET /invoices/<id>` does not echo it — so you cannot use it to identify an invoice you fetched by id, and there is no way to search by it. Store your own id → invoice mapping at creation time. Likewise, capture `created_at` from the POST response if you need it; the GET will not give it back.
 
 `status` transitions: `Pending` → `Paid`, `Expired` or `Refunded` — **and `Expired` → `Refunded`**. Only `Paid` and `Refunded` are truly final.
 
@@ -138,7 +143,7 @@ Deduplicate on `invoice_id` plus `status`: there is no delivery id or attempt co
 
 **`Expired` arrives even for invoices nobody ever opened.** A link that was never clicked still becomes `Expired` and still fires a webhook, so you can rely on it to close out abandoned carts. Expiry is detected by a periodic sweep rather than at the exact second, so expect the status to flip up to ~5 minutes after `expires_at`, with the webhook following seconds later. Don't treat a `Pending` invoice as live purely because `expires_at` has not passed yet, and don't treat one as dead the instant it does.
 
-**Verify the signature.** Signed webhooks carry an `X-Voulti-Signature: t=<unix>,v1=<hex>` header — HMAC-SHA256 of `` `${t}.${rawBody}` `` with the commerce's webhook signing secret:
+**Verify the signature.** The `X-Voulti-Signature: t=<unix_seconds>,v1=<hex>` header carries an HMAC-SHA256 of `` `${t}.${rawBody}` `` keyed with the commerce's webhook signing secret. It is present **whenever that commerce has a signing secret configured, and absent when it does not** — so if your handler rejects unsigned deliveries (it should), make sure the merchant actually set a secret, or every delivery will `401` and burn all five retries.
 
 ```js
 import { createHmac, timingSafeEqual } from "crypto";
@@ -177,6 +182,8 @@ export async function POST(req) {
 ```
 
 Defense in depth still applies: even with a valid signature, confirm with `GET /invoices/<invoice_id>` before releasing goods — just do it *after* you have answered, minding the envelope difference above. If that deferred work fails, the invoice stays unfulfilled and polling will catch it; nothing is released on an unverified webhook either way.
+
+**Treat the whole payload as untrusted, not just `status`.** It is tempting to re-check the status against the API but still persist `paid_tx_hash`, `paid_amount` or `paid_at` from the body — especially as a fallback when the API returns `null`. Don't. A forged delivery then writes a real-looking transaction hash onto an unpaid invoice, and your dashboard shows a payment that never happened even though the status stayed correct. **Use the body for `invoice_id` and nothing else**; take every other field from the `GET` response.
 
 **Answer `2xx` unless you actually want a retry.** Voulti retries up to **5 times** on any non-2xx response and emails the merchant on every failure; once the 5th is spent the invoice leaves the delivery queue permanently. Return `200` for anything a retry cannot fix (unknown invoice, duplicate delivery, order already handled) and reserve `5xx` for genuinely transient problems. A re-check that throws because of a client-side bug will otherwise burn all five attempts and look, from the merchant's inbox, exactly like an outage.
 
