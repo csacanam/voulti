@@ -16,7 +16,11 @@ export async function invoicesRoutes(app: FastifyInstance) {
   // Create invoice in Supabase (public — commerce page + authenticated merchant dashboard)
   app.post('/', async (req: AuthenticatedRequest, res) => {
     try {
-      const { commerce_id, amount_fiat, expires_at, reference } = req.body as any;
+      const body = (req.body || {}) as any;
+      const { commerce_id, amount_fiat, expires_at, reference } = body;
+      // `fiat_currency` accepted as an alias: it is the name the field carries
+      // in every response, so integrators reach for it first.
+      const currency = body.currency ?? body.fiat_currency;
 
       // Validate required fields
       if (!commerce_id || amount_fiat === undefined || amount_fiat === null) {
@@ -73,20 +77,60 @@ export async function invoicesRoutes(app: FastifyInstance) {
         });
       }
 
-      // Use commerce currency
-      const fiat_currency = commerce.currency || 'COP';
+      // Price in whatever currency the caller asks for. The commerce's own
+      // currency is a display preference for its dashboard totals, not a
+      // constraint on what it may charge — settlement happens in crypto either
+      // way, so tying every invoice to one fiat never bought anything. When no
+      // currency is given we fall back to it, so existing callers are unaffected.
+      const fiat_currency = String(currency ?? commerce.currency ?? 'USD').toUpperCase();
 
-      // Validate amount limits
-      if (commerce.minAmount && amount_fiat < commerce.minAmount) {
+      const { data: rate } = await supabase
+        .from('fiat_exchange_rates')
+        .select('currency_code, usd_to_currency_rate')
+        .eq('currency_code', fiat_currency)
+        .single();
+
+      if (!rate) {
+        const { data: supported } = await supabase
+          .from('fiat_exchange_rates')
+          .select('currency_code')
+          .order('currency_code');
+
         return res.status(400).send({
-          error: `Amount must be at least ${commerce.minAmount} ${fiat_currency}`
+          error: `Unsupported currency "${fiat_currency}". Supported: ${(supported || []).map((c: any) => c.currency_code).join(', ')}`
         });
       }
 
-      if (commerce.maxAmount && amount_fiat > commerce.maxAmount) {
-        return res.status(400).send({
-          error: `Amount must be at most ${commerce.maxAmount} ${fiat_currency}`
-        });
+      // Limits are stored in the commerce's own currency, so comparing raw
+      // numbers against an invoice priced in a different one would be
+      // meaningless (5000 COP is not 5000 EUR). Compare in USD instead.
+      if (commerce.minAmount || commerce.maxAmount) {
+        const limitCurrency = commerce.currency || fiat_currency;
+        let limitRate = rate;
+
+        if (limitCurrency !== fiat_currency) {
+          const { data: other } = await supabase
+            .from('fiat_exchange_rates')
+            .select('usd_to_currency_rate')
+            .eq('currency_code', limitCurrency)
+            .single();
+          if (other) limitRate = other as any;
+        }
+
+        const amountUsd = amount_fiat / Number(rate.usd_to_currency_rate);
+        const toUsd = (v: number) => v / Number(limitRate.usd_to_currency_rate);
+
+        if (commerce.minAmount && amountUsd < toUsd(Number(commerce.minAmount))) {
+          return res.status(400).send({
+            error: `Amount must be at least ${commerce.minAmount} ${limitCurrency}`
+          });
+        }
+
+        if (commerce.maxAmount && amountUsd > toUsd(Number(commerce.maxAmount))) {
+          return res.status(400).send({
+            error: `Amount must be at most ${commerce.maxAmount} ${limitCurrency}`
+          });
+        }
       }
 
       // Set expiration time - 1 hour from now if not provided
