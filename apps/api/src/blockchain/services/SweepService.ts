@@ -448,8 +448,28 @@ export class SweepService {
 
       const senderAddress = await this.findSenderAddress(deposit);
       if (!senderAddress) {
-        console.warn(`[SweepService] Cannot refund: sender unknown for deposit ${deposit.id}`);
-        await this.markFailed(deposit, 'Cannot refund: no Transfer found identifying the payer — manual refund needed');
+        // A balance read can run ahead of the log index — the tokens show up
+        // before the event is queryable — so the first empty answer means
+        // "not yet", not "never". Only give up once the attempts run out.
+        const retries = deposit.sweep_retries + 1;
+
+        if (retries < MAX_RETRIES) {
+          await supabase
+            .from('deposit_addresses')
+            .update({
+              sweep_retries: retries,
+              sweep_error: `Payer not identified yet — retry ${retries}/${MAX_RETRIES}`,
+            })
+            .eq('id', deposit.id);
+
+          console.warn(`[SweepService] Sender unknown for ${deposit.id}, retry ${retries}/${MAX_RETRIES}`);
+          return;
+        }
+
+        await this.markFailed(
+          { ...deposit, sweep_retries: retries },
+          'Cannot refund: no Transfer found identifying the payer — manual refund needed'
+        );
         return;
       }
 
@@ -648,9 +668,44 @@ export class SweepService {
     network: NetworkName,
     lookbackSeconds = 3600
   ): Promise<string | null> {
-    try {
-      const provider = getProvider(network);
+    const config = NETWORKS[network];
+    const urls: string[] = config?.rpcUrls ?? [];
 
+    // Ask each endpoint in turn rather than going through getProvider().
+    // FallbackProvider only fails over on errors, and an endpoint whose log
+    // index lags simply answers "no events" — a perfectly valid response that
+    // is indistinguishable from "nothing happened". Refusing to refund someone
+    // because the first node had not caught up yet is not acceptable, so a
+    // negative answer is only trusted once every endpoint agrees.
+    for (const url of urls) {
+      try {
+        const provider = new ethers.JsonRpcProvider(
+          url,
+          new ethers.Network(config.name, config.chainId),
+          { staticNetwork: true }
+        );
+
+        const sender = await this.scanForSender(
+          provider, depositAddress, tokenAddress, lookbackSeconds
+        );
+        if (sender) return sender;
+
+        console.warn(`[SweepService] No Transfer to ${depositAddress} via ${url}`);
+      } catch (err: any) {
+        console.error(`[SweepService] Sender scan failed on ${url}:`, err.message);
+      }
+    }
+
+    return null;
+  }
+
+  private async scanForSender(
+    provider: ethers.JsonRpcProvider,
+    depositAddress: string,
+    tokenAddress: string,
+    lookbackSeconds: number
+  ): Promise<string | null> {
+    {
       const token = new ethers.Contract(tokenAddress, [
         'event Transfer(address indexed from, address indexed to, uint256 value)',
       ], provider);
@@ -685,12 +740,6 @@ export class SweepService {
         }
         if (from === oldest) break;
       }
-
-      console.warn(
-        `[SweepService] No Transfer to ${depositAddress} in the last ${span} blocks on ${network}`
-      );
-    } catch (err: any) {
-      console.error(`[SweepService] Error finding sender on ${network}:`, err.message);
     }
 
     return null;
