@@ -78,11 +78,17 @@ export async function invoicesRoutes(app: FastifyInstance) {
       }
 
       // Price in whatever currency the caller asks for. The commerce's own
-      // currency is a display preference for its dashboard totals, not a
-      // constraint on what it may charge — settlement happens in crypto either
-      // way, so tying every invoice to one fiat never bought anything. When no
-      // currency is given we fall back to it, so existing callers are unaffected.
-      const fiat_currency = String(currency ?? commerce.currency ?? 'USD').toUpperCase();
+      // currency only decides the unit its dashboard totals are shown in, so
+      // it is deliberately NOT used as a fallback here: inferring a price
+      // currency from a display setting is how "50" quietly becomes dollars
+      // for one merchant and pesos for another. Make the caller say it.
+      if (currency === undefined || currency === null || currency === '') {
+        return res.status(400).send({
+          error: 'currency is required — the price currency is chosen per invoice, not taken from the commerce'
+        });
+      }
+
+      const fiat_currency = String(currency).toUpperCase();
 
       const { data: rate } = await supabase
         .from('fiat_exchange_rates')
