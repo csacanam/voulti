@@ -125,13 +125,18 @@ export const CommercePage: React.FC = () => {
 
   const handleGenerateLink = async () => {
     if (!validateAmount()) return;
+    // The API requires a currency and this page's only source for it is the
+    // loaded commerce, so refuse rather than send a request that would 400.
+    if (!commerce) return;
 
     setIsGenerating(true);
 
     try {
       const response = await createInvoice({
         commerce_id: commerceId || '',
-        amount_fiat: parseFloat(amount)
+        amount_fiat: parseFloat(amount),
+        // The unit shown next to the input the payer just typed into
+        currency: commerce.currency
       });
 
       if (response.success && response.data) {

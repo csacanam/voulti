@@ -3,6 +3,12 @@ import { InvoiceResponse } from '../types/invoice';
 export interface CreateInvoiceRequest {
   commerce_id: string;
   amount_fiat: number;
+  /**
+   * Required by the API — the price currency is chosen per invoice. On the
+   * permanent link there is no caller to state one, so the commerce's own
+   * currency is used: it is the unit the payer is typing the amount in.
+   */
+  currency: string;
 }
 
 export interface CreateInvoiceResponse {

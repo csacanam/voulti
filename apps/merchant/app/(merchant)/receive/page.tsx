@@ -402,7 +402,7 @@ function DevelopersTab() {
   "data": {
     "id": "invoice-uuid",
     "amount_fiat": 50,
-    "fiat_currency": "${commerce?.currency || "USD"}",
+    "fiat_currency": "USD",
     "status": "Pending",
     "expires_at": "2026-03-30T06:00:00Z",
     "reference": "order-123"
@@ -445,7 +445,7 @@ function DevelopersTab() {
       <Card className="p-5 space-y-4">
         <div>
           <p className="text-sm font-semibold mb-1">{t.receive.step1Title}</p>
-          <p className="text-xs text-muted-foreground mb-2">{t.receive.step1Desc} {commerce?.currency || "your currency"}{t.receive.step1DescEnd}</p>
+          <p className="text-xs text-muted-foreground mb-2">{t.receive.step1Desc}{t.receive.step1DescEnd}</p>
           <CB code={createCode} id="create" />
           <p className="text-xs text-muted-foreground mt-2 mb-1">{t.receive.response}</p>
           <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto font-mono text-green-500">{responseCode}</pre>
