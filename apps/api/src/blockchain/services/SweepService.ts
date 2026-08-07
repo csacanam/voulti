@@ -36,6 +36,10 @@ const MAX_SENDER_LOOKBACK_SECONDS = 6 * 3600;
 const MAX_SENDER_LOOKBACK_BLOCKS = 120_000;
 const LOG_PAGE_SIZE = 4_000;
 
+// How long after expiry a deposit address is still watched for late arrivals.
+// Bounded so expired rows eventually stop being polled forever.
+const LATE_DEPOSIT_WINDOW_MS = 24 * 3600 * 1000;
+
 export class SweepService {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private isProcessing = false;
@@ -67,7 +71,7 @@ export class SweepService {
       const { data: deposits, error } = await supabase
         .from('deposit_addresses')
         .select('*')
-        .in('status', ['awaiting', 'partial', 'detected', 'sweeping', 'failed']);
+        .in('status', ['awaiting', 'partial', 'detected', 'sweeping', 'failed', 'expired']);
 
       if (error || !deposits || deposits.length === 0) return;
 
@@ -88,9 +92,16 @@ export class SweepService {
           // Past expiresAt the contract rejects payInvoice ("Invoice has
           // expired [PP]"), so no amount of retrying can settle this. Return
           // the funds instead of leaving them parked at a derived address.
-          const isExpired = invoice?.expires_at && new Date(invoice.expires_at) < new Date();
+          const expiresAt = invoice?.expires_at ? new Date(invoice.expires_at).getTime() : null;
+          const isExpired = expiresAt !== null && expiresAt < Date.now();
+
           if (isExpired) {
-            await this.handleExpiredDeposit(deposit);
+            // Keep watching for a while after expiry. A payer who copied the
+            // address and sent late would otherwise transfer into an address
+            // nothing looks at again — the money simply disappears.
+            if (Date.now() - expiresAt! <= LATE_DEPOSIT_WINDOW_MS) {
+              await this.handleExpiredDeposit(deposit);
+            }
             continue;
           }
 
@@ -438,7 +449,7 @@ export class SweepService {
       const senderAddress = await this.findSenderAddress(deposit);
       if (!senderAddress) {
         console.warn(`[SweepService] Cannot refund: sender unknown for deposit ${deposit.id}`);
-        await this.markFailed(deposit, 'Expired partial deposit, sender unknown — manual refund needed');
+        await this.markFailed(deposit, 'Cannot refund: no Transfer found identifying the payer — manual refund needed');
         return;
       }
 
