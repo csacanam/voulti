@@ -62,7 +62,7 @@ https://voulti.com/checkout/<invoice_id>
 
 **Expiration:** invoices expire in **1 hour** by default. If the payer won't pay right away, pass a custom `expires_at` (ISO 8601) when creating: `{ "commerce_id": "...", "amount_fiat": 150, "expires_at": "2026-07-15T00:00:00Z" }` — or use the permanent link (Option B) for slow payers.
 
-There is **no maximum and no validation** on `expires_at`: a date ten years out is accepted, and so is a date in the past — which silently creates an invoice that is already dead and will be swept to `Expired`. Nothing warns you. Sanity-check the value yourself before sending it, and prefer a window you would actually honour: a link that stays payable for a year is a link whose price is a year stale.
+A past or unparseable `expires_at` is rejected with `400` (`"expires_at must be in the future"` / `"must be a valid ISO 8601 date"`), so you cannot accidentally hand a payer a link that was dead on arrival. There is **no maximum**, though: a date ten years out is accepted without complaint. Prefer a window you would actually honour — a link that stays payable for a year is a link whose price is a year stale.
 
 The payer connects any wallet (or MiniPay) and pays in the stablecoin/network of their choice; Voulti handles conversion and settlement.
 
@@ -196,7 +196,9 @@ Failures do **not** use the `{ success, data }` envelope — they come back as `
 | Situation | What to do |
 |---|---|
 | `404 {"error":"Commerce not found"}` on POST /invoices | The `commerce_id` is wrong — copy it exactly from the Developers page. Note this is a `404`, not a `400`. |
-| `400 {"error":"Missing required fields: commerce_id, amount_fiat"}` | Both fields are required; `amount_fiat` must be a positive number. |
+| `400 {"error":"Missing required fields: commerce_id, amount_fiat"}` | One of them is absent. Both are required. |
+| `400 {"error":"amount_fiat must be a positive number"}` | It has to be a JSON number greater than zero — not a string like `"1000"`, not zero, not negative. |
+| `400 {"error":"expires_at must be in the future"}` | You sent a date that has already passed. Send a future ISO 8601 timestamp or omit the field for the 1-hour default. |
 | `404 {"error":"Invoice not found"}` on GET | Wrong or mistyped invoice id. |
 | `429` / requests suddenly rejected | You are over the **100 requests per minute per IP** limit. Watch the `x-ratelimit-remaining` header and back off; poll one invoice every few seconds, not every invoice every second. |
 | Invoice `Expired` | Invoices have a time limit. Create a fresh one; never reuse expired links. |

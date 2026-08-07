@@ -19,9 +19,18 @@ export async function invoicesRoutes(app: FastifyInstance) {
       const { commerce_id, amount_fiat, expires_at, reference } = req.body as any;
 
       // Validate required fields
-      if (!commerce_id || !amount_fiat) {
+      if (!commerce_id || amount_fiat === undefined || amount_fiat === null) {
         return res.status(400).send({
           error: 'Missing required fields: commerce_id, amount_fiat'
+        });
+      }
+
+      // `!amount_fiat` alone let a negative through (it is truthy) and sent a
+      // non-numeric one all the way to the insert, where it surfaced as an
+      // opaque 500 instead of telling the caller what was wrong.
+      if (typeof amount_fiat !== 'number' || !Number.isFinite(amount_fiat) || amount_fiat <= 0) {
+        return res.status(400).send({
+          error: 'amount_fiat must be a positive number'
         });
       }
 
@@ -30,6 +39,25 @@ export async function invoicesRoutes(app: FastifyInstance) {
         return res.status(400).send({
           error: 'reference must be a string of at most 200 characters'
         });
+      }
+
+      // A past expires_at used to be accepted, creating an invoice that was
+      // already dead: the payer got a link that never worked and nobody found
+      // out until the expiry sweep marked it Expired. Fail loudly instead.
+      if (expires_at !== undefined && expires_at !== null) {
+        const expiry = new Date(expires_at);
+
+        if (Number.isNaN(expiry.getTime())) {
+          return res.status(400).send({
+            error: 'expires_at must be a valid ISO 8601 date'
+          });
+        }
+
+        if (expiry.getTime() <= Date.now()) {
+          return res.status(400).send({
+            error: 'expires_at must be in the future'
+          });
+        }
       }
 
       // Validate commerce exists and get its currency and confirmation_url
