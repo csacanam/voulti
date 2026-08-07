@@ -137,11 +137,19 @@ export class NotificationService {
             return;
           }
 
-          // Verify blockchain status matches database status
-          const isConfirmedOnBlockchain = await this.verifyBlockchainStatus(invoice);
-          if (!isConfirmedOnBlockchain) {
-            console.log(`Invoice ${invoice.id} not yet confirmed on blockchain, skipping URL confirmation`);
-            return;
+          // Only `Paid` makes a claim the chain can contradict, and telling a
+          // merchant to release goods demands that proof. `Expired` and
+          // `Refunded` say the opposite — no money — and usually have no
+          // on-chain record at all: an invoice refunded before it ever settled
+          // was never created on-chain, so blockchain_invoice_id is null and
+          // this gate would reject it forever. Gating them meant the merchant
+          // was never told the payment came back.
+          if (invoice.status === 'Paid') {
+            const isConfirmedOnBlockchain = await this.verifyBlockchainStatus(invoice);
+            if (!isConfirmedOnBlockchain) {
+              console.log(`Invoice ${invoice.id} not yet confirmed on blockchain, skipping URL confirmation`);
+              return;
+            }
           }
 
           // Process URL confirmation
