@@ -31,6 +31,11 @@ const GAS_APPROVE = 100_000n;
 const GAS_PAY_INVOICE = 450_000n;
 const GAS_TRANSFER = 120_000n;
 
+// Sender lookup: how far back to scan, and how wide a single eth_getLogs may be
+const MAX_SENDER_LOOKBACK_SECONDS = 6 * 3600;
+const MAX_SENDER_LOOKBACK_BLOCKS = 120_000;
+const LOG_PAGE_SIZE = 4_000;
+
 export class SweepService {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private isProcessing = false;
@@ -54,11 +59,15 @@ export class SweepService {
     this.isProcessing = true;
 
     try {
+      // `failed` is included on purpose: a deposit that ran out of sweep
+      // retries still holds the payer's tokens, and once the invoice expires
+      // the only correct ending for it is a refund. The retry budget is
+      // enforced below instead of in the query, so giving up on sweeping is
+      // never the same as giving up on the money.
       const { data: deposits, error } = await supabase
         .from('deposit_addresses')
         .select('*')
-        .in('status', ['awaiting', 'partial', 'detected', 'sweeping'])
-        .lt('sweep_retries', MAX_RETRIES);
+        .in('status', ['awaiting', 'partial', 'detected', 'sweeping', 'failed']);
 
       if (error || !deposits || deposits.length === 0) return;
 
@@ -70,12 +79,24 @@ export class SweepService {
             .eq('id', deposit.invoice_id)
             .single();
 
-          // Invoice paid via wallet — skip
+          // Invoice paid via wallet — anything at the HD address is extra
           if (invoice?.status === 'Paid') {
-            // If there are tokens in the HD wallet, refund them
             await this.checkAndRefundOrphanedDeposit(deposit);
             continue;
           }
+
+          // Past expiresAt the contract rejects payInvoice ("Invoice has
+          // expired [PP]"), so no amount of retrying can settle this. Return
+          // the funds instead of leaving them parked at a derived address.
+          const isExpired = invoice?.expires_at && new Date(invoice.expires_at) < new Date();
+          if (isExpired) {
+            await this.handleExpiredDeposit(deposit);
+            continue;
+          }
+
+          // Retries spent but still inside the window: leave it be. An operator
+          // can revive it via /admin, and expiry will refund it if nobody does.
+          if (deposit.sweep_retries >= MAX_RETRIES) continue;
 
           if (deposit.status === 'awaiting' || deposit.status === 'partial') {
             await this.checkDeposit(deposit, invoice);
@@ -96,10 +117,35 @@ export class SweepService {
     }
   }
 
+  /**
+   * Wind down a deposit whose invoice has expired.
+   *
+   * Whatever is at the address goes back to the payer — full, partial or
+   * overpaid alike. Settling is no longer possible (PaymentProcessor reverts
+   * once block.timestamp passes expiresAt), so holding the tokens would only
+   * mean waiting for a human to notice.
+   */
+  private async handleExpiredDeposit(deposit: DepositAddressRecord): Promise<void> {
+    const network = deposit.network as NetworkName;
+    const token = new ethers.Contract(deposit.token_address, ERC20_ABI, getProvider(network));
+    const balance: bigint = await token.balanceOf(deposit.address);
+
+    if (balance === 0n) {
+      if (deposit.status !== 'expired') {
+        await this.updateStatus(deposit.id, 'expired', 'Invoice expired with no deposit');
+      }
+      return;
+    }
+
+    const amount = ethers.formatUnits(balance, deposit.token_decimals);
+    console.log(
+      `[SweepService] Expired holding ${amount} ${deposit.token_symbol} at ${deposit.address} — refunding`
+    );
+    await this.refundDeposit(deposit, balance);
+  }
+
   private async checkDeposit(deposit: DepositAddressRecord, invoice: any): Promise<void> {
     const network = deposit.network as NetworkName;
-    const isExpired = invoice?.expires_at && new Date(invoice.expires_at) < new Date();
-
     const provider = getProvider(network);
 
     const token = new ethers.Contract(deposit.token_address, ERC20_ABI, provider);
@@ -140,17 +186,10 @@ export class SweepService {
         })
         .eq('id', deposit.id);
 
-      if (isExpired) {
-        // Invoice expired with partial deposit — refund
-        console.log(`[SweepService] Expired with partial deposit, refunding ${partial} ${deposit.token_symbol}`);
-        await this.refundDeposit(deposit, balance);
-      }
-    } else {
-      // No deposit
-      if (isExpired) {
-        await this.updateStatus(deposit.id, 'expired', 'Invoice expired with no deposit');
-      }
+      // Still inside the window — keep waiting for the rest. Expiry is handled
+      // by handleExpiredDeposit, which refunds whatever arrived.
     }
+    // No deposit yet: nothing to do until it lands or the invoice expires.
   }
 
   private async executeSweep(deposit: DepositAddressRecord): Promise<void> {
@@ -269,6 +308,18 @@ export class SweepService {
 
         console.log(`[SweepService] PayInvoice: ${payTx.hash}`);
 
+        // Record settlement before anything else can throw. The steps below
+        // (overpayment refund, gas return) are not part of the payment, but if
+        // one of them fails and this hash is not on the row yet, the retry
+        // re-runs payInvoice against an invoice the contract now considers
+        // paid — it reverts five times and ends as a bogus "funds stuck" alert
+        // on a sale that actually went through.
+        deposit.pay_invoice_tx_hash = payTx.hash;
+        await supabase
+          .from('deposit_addresses')
+          .update({ pay_invoice_tx_hash: payTx.hash })
+          .eq('id', deposit.id);
+
         // Update invoice as paid — read fee from contract
         const paidAmount = parseFloat(deposit.expected_amount);
         let feePercent = 100; // default 1%
@@ -363,8 +414,16 @@ export class SweepService {
   }
 
   /**
-   * Refund tokens from HD wallet back to the sender.
-   * Used when invoice expires with a partial deposit.
+   * Return tokens from the HD address to whoever sent them.
+   *
+   * Reached two ways, and they mean different things to the merchant:
+   *  - the invoice expired without settling → the payment never happened, so
+   *    the invoice becomes `Refunded` (money came in and went back), never
+   *    `Paid`;
+   *  - the invoice was already settled from a wallet and extra tokens showed
+   *    up at the deposit address → the payment stands, so the invoice is left
+   *    exactly as it is. Overwriting a `Paid` invoice here would tell the
+   *    merchant a completed sale had expired.
    */
   private async refundDeposit(deposit: DepositAddressRecord, amount: bigint): Promise<void> {
     const network = deposit.network as NetworkName;
@@ -400,15 +459,32 @@ export class SweepService {
         .update({
           status: 'refunded',
           refund_tx_hash: refundTx.hash,
-          sweep_error: `Expired. Refunded ${refundAmount} to ${senderAddress}`,
+          sweep_error: `Refunded ${refundAmount} to ${senderAddress}`,
         })
         .eq('id', deposit.id);
 
-      // Mark invoice as expired
-      await supabase
+      // Read the invoice fresh — it may have settled from a wallet while this
+      // refund was in flight, and a settled sale must not be rewritten.
+      const { data: invoice } = await supabase
         .from('invoices')
-        .update({ status: 'Expired', expired_at: new Date().toISOString() })
-        .eq('id', deposit.invoice_id);
+        .select('status')
+        .eq('id', deposit.invoice_id)
+        .single();
+
+      if (invoice?.status === 'Paid') {
+        console.log(
+          `[SweepService] Invoice ${deposit.invoice_id} stays Paid — refund returned surplus tokens only`
+        );
+      } else {
+        // Money arrived and went back, so the merchant sees `Refunded`, not
+        // `Expired` (nothing came) and certainly not `Paid` (nothing settled).
+        await supabase
+          .from('invoices')
+          .update({ status: 'Refunded', refunded_at: new Date().toISOString() })
+          .eq('id', deposit.invoice_id);
+
+        console.log(`[SweepService] Invoice ${deposit.invoice_id} marked Refunded`);
+      }
 
     } catch (err: any) {
       console.error(`[SweepService] Refund error for ${deposit.id}:`, err.message);
@@ -531,17 +607,35 @@ export class SweepService {
    * Find the sender address by looking at recent Transfer events TO the deposit address.
    */
   private async findSenderAddress(deposit: DepositAddressRecord): Promise<string | null> {
+    // Cover the deposit's whole life, not a fixed guess: a refund usually runs
+    // at expiry, an hour or more after the tokens actually arrived.
+    const ageSeconds = deposit.created_at
+      ? (Date.now() - new Date(deposit.created_at).getTime()) / 1000
+      : 3600;
+
     return this.findSenderOnNetwork(
       deposit.address,
       deposit.token_address,
-      deposit.network as NetworkName
+      deposit.network as NetworkName,
+      Math.min(ageSeconds + 900, MAX_SENDER_LOOKBACK_SECONDS)
     );
   }
 
+  /**
+   * Find who funded a deposit address, by walking back through Transfer logs.
+   *
+   * Two things this must not assume. Block time differs by an order of
+   * magnitude across our networks (~1s on Celo, ~0.25s on Arbitrum), so a
+   * lookback expressed in blocks covers wildly different amounts of time and
+   * quietly misses the transfer; it is derived from timestamps instead. And
+   * public RPCs reject wide `eth_getLogs` ranges — Celo's forno starts failing
+   * past ~5k blocks — so the range is paged rather than requested at once.
+   */
   private async findSenderOnNetwork(
     depositAddress: string,
     tokenAddress: string,
-    network: NetworkName
+    network: NetworkName,
+    lookbackSeconds = 3600
   ): Promise<string | null> {
     try {
       const provider = getProvider(network);
@@ -550,19 +644,40 @@ export class SweepService {
         'event Transfer(address indexed from, address indexed to, uint256 value)',
       ], provider);
 
-      // Look at last 1000 blocks for Transfer events to the deposit address
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 1000);
+      const sample = Math.min(1000, currentBlock);
+      const [head, past] = await Promise.all([
+        provider.getBlock(currentBlock),
+        provider.getBlock(currentBlock - sample),
+      ]);
 
+      const secondsPerBlock =
+        head && past && head.timestamp > past.timestamp
+          ? (head.timestamp - past.timestamp) / sample
+          : 2;
+
+      const span = Math.min(
+        Math.ceil(lookbackSeconds / secondsPerBlock),
+        MAX_SENDER_LOOKBACK_BLOCKS
+      );
+      const oldest = Math.max(0, currentBlock - span);
       const filter = token.filters.Transfer(null, depositAddress);
-      const events = await token.queryFilter(filter, fromBlock, currentBlock);
 
-      if (events.length > 0) {
-        // Return the sender of the most recent transfer
-        const lastEvent = events[events.length - 1];
-        const args = (lastEvent as ethers.EventLog).args;
-        return args[0] as string; // 'from' address
+      for (let to = currentBlock; to >= oldest; to -= LOG_PAGE_SIZE) {
+        const from = Math.max(oldest, to - LOG_PAGE_SIZE + 1);
+        const events = await token.queryFilter(filter, from, to);
+
+        if (events.length > 0) {
+          // Most recent transfer in the newest page that has any
+          const last = events[events.length - 1] as ethers.EventLog;
+          return last.args[0] as string;
+        }
+        if (from === oldest) break;
       }
+
+      console.warn(
+        `[SweepService] No Transfer to ${depositAddress} in the last ${span} blocks on ${network}`
+      );
     } catch (err: any) {
       console.error(`[SweepService] Error finding sender on ${network}:`, err.message);
     }
@@ -584,6 +699,11 @@ export class SweepService {
     if (balance > 0n) {
       console.log(`[SweepService] Orphaned deposit: invoice paid via wallet but ${ethers.formatUnits(balance, deposit.token_decimals)} ${deposit.token_symbol} at HD address`);
       await this.refundDeposit(deposit, balance);
+    } else if (deposit.pay_invoice_tx_hash) {
+      // This deposit is what settled the invoice — the bookkeeping just never
+      // finished (crash between marking the invoice Paid and the row `swept`).
+      // Recording it as `expired` would deny a payment that demonstrably happened.
+      await this.updateStatus(deposit.id, 'swept');
     } else {
       await this.updateStatus(deposit.id, 'expired', 'Invoice already paid via wallet');
     }
@@ -646,14 +766,21 @@ export class SweepService {
    * in the checkout, which is not a signal we ever receive.
    */
   private async markFailed(deposit: DepositAddressRecord, reason: string): Promise<void> {
+    // Alert on the transition only. Expired deposits stay in the poll set so a
+    // refund can be re-attempted (a null sender is usually a flaky log query),
+    // and without this guard each retry would fire another alert every cycle.
+    const alreadyFailed = deposit.status === 'failed';
+
     await this.updateStatus(deposit.id, 'failed', reason);
-    await this.alertSweepFailure(deposit, reason);
+    if (!alreadyFailed) await this.alertSweepFailure(deposit, reason);
   }
 
   private async alertSweepFailure(deposit: DepositAddressRecord, reason: string): Promise<void> {
     try {
-      const esc = (s: string) =>
-        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // Null-safe on purpose: an alert that throws is an alert nobody gets,
+      // which is the exact failure this whole path exists to prevent.
+      const esc = (s: unknown) =>
+        String(s ?? '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
       const explorer = NETWORKS[deposit.network as NetworkName]?.blockExplorer;
       const amount = deposit.detected_amount || deposit.expected_amount;
