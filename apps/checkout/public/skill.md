@@ -76,7 +76,22 @@ Good for tips, donations, or "pay what you owe" flows. No API call needed.
 GET https://api.voulti.com/invoices/<invoice_id>
 ```
 
-Returns the invoice with `status`, `paid_at`, `payment_method`, `expires_at` and amount fields. `status` transitions: `Pending` → `Paid` or `Expired`. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Treat `Expired` as final (create a new invoice to retry; never resend an expired link).
+> ⚠️ **The response envelope is not the same as on POST.** `POST /invoices`
+> wraps the invoice in `{ "success": true, "data": {…} }`, but
+> `GET /invoices/<id>` returns the invoice object **bare, at the top level** —
+> there is no `data` field to read. A client that assumes one shape for both
+> silently gets `undefined` and, if it does this inside a webhook handler, can
+> fail every delivery. Read `id`/`status` directly here, `data.id`/`data.status`
+> on create.
+
+```json
+{ "id": "<invoice_id>", "commerce_id": "...", "amount_fiat": 50, "fiat_currency": "USD",
+  "status": "Paid", "expires_at": "...", "paid_at": "...", "payment_method": "address",
+  "paid_tx_hash": "0x…", "paid_token": "USDT", "paid_network": "celo",
+  "paid_amount": 0.31471, "reference": "...", "tokens": [ … ] }
+```
+
+`status` transitions: `Pending` → `Paid` or `Expired`. Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471` USDT), not the fiat total — compare `amount_fiat` if you need to verify the price. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Treat `Expired` as final (create a new invoice to retry; never resend an expired link).
 
 **Where the money lands (tell your human this):** Voulti never holds funds. Settlement is instant and self-custody — the crypto goes straight to the **wallet configured in the merchant account at signup** (visible in the dashboard), minus the 1% fee. Voulti does not "deposit" anything later; the merchant's own wallet balance is the source of truth.
 
@@ -97,7 +112,9 @@ function verifyVoultiWebhook(rawBody, signatureHeader, secret, toleranceSeconds 
 }
 ```
 
-Defense in depth: even with a valid signature, confirm with `GET /invoices/<invoice_id>` before releasing goods.
+Defense in depth: even with a valid signature, confirm with `GET /invoices/<invoice_id>` before releasing goods — minding the envelope difference above.
+
+**Answer `2xx` unless you actually want a retry.** Voulti retries up to **5 times** on any non-2xx response and emails the merchant on every failure; once the 5th is spent the invoice leaves the delivery queue permanently. Return `200` for anything a retry cannot fix (unknown invoice, duplicate delivery, order already handled) and reserve `5xx` for genuinely transient problems. A re-check that throws because of a client-side bug will otherwise burn all five attempts and look, from the merchant's inbox, exactly like an outage.
 
 ---
 

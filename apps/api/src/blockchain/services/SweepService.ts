@@ -6,6 +6,7 @@ import { NETWORKS, type NetworkName } from '../config/networks';
 import { CONTRACTS } from '../config/contracts';
 import { TOKENS } from '../config/tokens';
 import { getProvider, getWallet } from '../utils/web3';
+import { sendTelegramAlert } from '../../utils/notify';
 import DerampProxyABI from '../abi/DerampProxy.json';
 
 const supabase = createClient(
@@ -158,7 +159,7 @@ export class SweepService {
     const backendKey = process.env.BACKEND_PRIVATE_KEY;
 
     if (!backendKey || !contracts?.DERAMP_PROXY) {
-      await this.updateStatus(deposit.id, 'failed', 'Backend key or contract not configured');
+      await this.markFailed(deposit, 'Backend key or contract not configured');
       return;
     }
 
@@ -323,6 +324,9 @@ export class SweepService {
           }
         }
 
+        // All token movement is done — recover the unused gas we funded
+        await this.returnLeftoverGas(deposit, hdWallet, hotWallet);
+
         await supabase
           .from('deposit_addresses')
           .update({
@@ -338,14 +342,23 @@ export class SweepService {
     } catch (err: any) {
       console.error(`[SweepService] Sweep error for ${deposit.id}:`, err.message);
 
+      const retries = deposit.sweep_retries + 1;
+      const exhausted = retries >= MAX_RETRIES;
+
       await supabase
         .from('deposit_addresses')
         .update({
           sweep_error: err.message,
-          sweep_retries: deposit.sweep_retries + 1,
-          status: deposit.sweep_retries + 1 >= MAX_RETRIES ? 'failed' : 'sweeping',
+          sweep_retries: retries,
+          status: exhausted ? 'failed' : 'sweeping',
         })
         .eq('id', deposit.id);
+
+      // Out of retries: pollCycle filters on sweep_retries < MAX_RETRIES, so
+      // nothing will pick this up again. Tokens are sitting at the HD address.
+      if (exhausted) {
+        await this.alertSweepFailure({ ...deposit, sweep_retries: retries }, err.message);
+      }
     }
   }
 
@@ -366,7 +379,7 @@ export class SweepService {
       const senderAddress = await this.findSenderAddress(deposit);
       if (!senderAddress) {
         console.warn(`[SweepService] Cannot refund: sender unknown for deposit ${deposit.id}`);
-        await this.updateStatus(deposit.id, 'failed', 'Expired partial deposit, sender unknown — manual refund needed');
+        await this.markFailed(deposit, 'Expired partial deposit, sender unknown — manual refund needed');
         return;
       }
 
@@ -379,6 +392,8 @@ export class SweepService {
 
       const refundAmount = ethers.formatUnits(amount, deposit.token_decimals);
       console.log(`[SweepService] Refunded ${refundAmount} ${deposit.token_symbol} to ${senderAddress}`);
+
+      await this.returnLeftoverGas(deposit, hdWallet, hotWallet);
 
       await supabase
         .from('deposit_addresses')
@@ -397,7 +412,7 @@ export class SweepService {
 
     } catch (err: any) {
       console.error(`[SweepService] Refund error for ${deposit.id}:`, err.message);
-      await this.updateStatus(deposit.id, 'failed', `Refund failed: ${err.message}`);
+      await this.markFailed(deposit, `Refund failed: ${err.message}`);
     }
   }
 
@@ -622,6 +637,136 @@ export class SweepService {
       .from('deposit_addresses')
       .update({ status, sweep_error: error || null })
       .eq('id', id);
+  }
+
+  /**
+   * Mark a deposit as failed AND alert, so stuck funds are never silent.
+   * Every path that gives up on a deposit holding (or possibly holding) tokens
+   * goes through here — otherwise the only signal is the payer seeing an error
+   * in the checkout, which is not a signal we ever receive.
+   */
+  private async markFailed(deposit: DepositAddressRecord, reason: string): Promise<void> {
+    await this.updateStatus(deposit.id, 'failed', reason);
+    await this.alertSweepFailure(deposit, reason);
+  }
+
+  private async alertSweepFailure(deposit: DepositAddressRecord, reason: string): Promise<void> {
+    try {
+      const esc = (s: string) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const explorer = NETWORKS[deposit.network as NetworkName]?.blockExplorer;
+      const amount = deposit.detected_amount || deposit.expected_amount;
+      const addressLine = explorer
+        ? `<a href="${explorer}/address/${deposit.address}">${deposit.address}</a>`
+        : `<code>${deposit.address}</code>`;
+
+      const text = [
+        '🚨 <b>Sweep fallido — fondos atrapados</b>',
+        '',
+        `<b>Invoice:</b> <code>${esc(deposit.invoice_id)}</code>`,
+        `<b>Monto:</b> ${esc(amount)} ${esc(deposit.token_symbol)}`,
+        `<b>Red:</b> ${esc(deposit.network)}`,
+        `<b>Dirección HD:</b> ${addressLine}`,
+        `<b>Índice derivación:</b> ${deposit.derivation_index}`,
+        `<b>Reintentos:</b> ${deposit.sweep_retries}/${MAX_RETRIES}`,
+        '',
+        `<b>Error:</b> <code>${esc(reason).slice(0, 600)}</code>`,
+        '',
+        `Reintentar: <code>POST /admin/invoices/${esc(deposit.invoice_id)}/retry</code>`,
+      ].join('\n');
+
+      await sendTelegramAlert(`sweep_failed_${deposit.id}`, text);
+    } catch (err: any) {
+      // Alerting must never be what breaks the sweep
+      console.error(`[SweepService] Alert failed for ${deposit.id}:`, err.message);
+    }
+  }
+
+  /**
+   * Send whatever native token is left at the HD address back to the hot
+   * wallet. Funding is deliberately generous (buffered, priced at
+   * maxFeePerGas), so most sweeps leave a usable remainder behind — without
+   * this it just accumulates across every derived address, unreachable to
+   * anything but a manual script.
+   *
+   * Best-effort by design: the invoice is already paid by the time this runs,
+   * so a failure here is logged and swallowed rather than failing the sweep.
+   */
+  private async returnLeftoverGas(
+    deposit: DepositAddressRecord,
+    hdWallet: ethers.Wallet,
+    hotWallet: ethers.Wallet
+  ): Promise<bigint> {
+    try {
+      const provider = hdWallet.provider!;
+      const feeData = await provider.getFeeData();
+      const pricePerGas =
+        feeData.maxFeePerGas || feeData.gasPrice || ethers.parseUnits('1', 'gwei');
+
+      const balance = await provider.getBalance(deposit.address);
+      const cost = 21_000n * pricePerGas;
+
+      // Below this the transfer costs more than it recovers
+      if (balance <= cost * 3n) return 0n;
+
+      // Pin the price we budgeted for: letting ethers re-quote at send time
+      // means a base fee tick makes the tx cost more than we left behind.
+      const value = balance - cost;
+      const tx = await hdWallet.sendTransaction({
+        to: hotWallet.address,
+        value,
+        gasLimit: 21_000n,
+        maxFeePerGas: pricePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? undefined,
+      });
+      await tx.wait();
+
+      console.log(
+        `[SweepService] Leftover gas returned ${ethers.formatEther(value)} from ${deposit.address}: ${tx.hash}`
+      );
+      return value;
+    } catch (err: any) {
+      console.error(`[SweepService] Leftover gas return failed for ${deposit.id}:`, err.message);
+      return 0n;
+    }
+  }
+
+  /**
+   * Manual recovery for HD addresses still holding native token — deposits
+   * swept before leftover-return existed, or ones that failed midway.
+   * Exposed for the admin route; the sweep calls the private path directly.
+   */
+  async recoverLeftoverGas(depositId: string): Promise<{
+    address: string;
+    network: string;
+    returned: string;
+    remaining: string;
+  }> {
+    const { data: deposit, error } = await supabase
+      .from('deposit_addresses')
+      .select('*')
+      .eq('id', depositId)
+      .single();
+
+    if (error || !deposit) throw new Error('Deposit not found');
+
+    const backendKey = process.env.BACKEND_PRIVATE_KEY;
+    if (!backendKey) throw new Error('BACKEND_PRIVATE_KEY not configured');
+
+    const network = deposit.network as NetworkName;
+    const hdWallet = HDWalletService.deriveWallet(deposit.derivation_index, network);
+    const hotWallet = getWallet(backendKey, network, false);
+
+    const returned = await this.returnLeftoverGas(deposit as DepositAddressRecord, hdWallet, hotWallet);
+    const remaining = await getProvider(network).getBalance(deposit.address);
+
+    return {
+      address: deposit.address,
+      network: deposit.network,
+      returned: ethers.formatEther(returned),
+      remaining: ethers.formatEther(remaining),
+    };
   }
 }
 
