@@ -32,6 +32,7 @@ export const en = {
   order: {
     title: 'Order details',
     orderId: 'Order ID',
+    payingTo: 'Paying to',
     totalToPay: 'Total amount',
     timeRemaining: 'Time left',
     pageTitle: 'Complete your payment',

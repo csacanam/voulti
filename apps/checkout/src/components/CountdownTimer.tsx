@@ -40,7 +40,10 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
     const totalMinutes = timeLeft.hours * 60 + timeLeft.minutes;
     if (totalMinutes <= 5) return 'text-red-500';
     if (totalMinutes <= 15) return 'text-orange-500';
-    return 'text-green-600';
+    // Neutral by default: green reads as "all good" on something that is
+    // counting down towards the invoice dying. Colour should mean urgency,
+    // and mean nothing until there is any.
+    return 'text-gray-700';
   };
 
   return (

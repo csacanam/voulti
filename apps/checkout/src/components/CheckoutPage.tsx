@@ -373,17 +373,41 @@ export const CheckoutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto p-4">
-        {/* Language Selector - Top Right */}
-        <div className="flex justify-end mb-2">
+        {/* A payment page with no header reads as a loose widget. The brand
+            also tells the payer what site they are on before they send money. */}
+        <div className="flex items-center justify-between mb-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">V</span>
+            </div>
+            <span className="text-lg font-bold text-gray-900">Voulti</span>
+          </Link>
           <LanguageSelector />
         </div>
 
-        {/* Order Information */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Store className="w-4 h-4 text-gray-400" />
-              <h2 className="text-gray-900 font-semibold">{invoice.commerce_name}</h2>
+        {/* One panel, not two floating cards: the amount and how to pay it are
+            one decision, and splitting them read as unrelated widgets. */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-6">
+          {/* Who is being paid is the payer's first question, so it leads
+              rather than sitting in a caption above the amount. */}
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3 min-w-0">
+              {invoice.commerce_icon_url ? (
+                <img
+                  src={invoice.commerce_icon_url}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0">
+                  <Store className="w-5 h-5 text-violet-600" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">{t.order.payingTo}</p>
+                <h2 className="text-gray-900 font-semibold truncate">{invoice.commerce_name}</h2>
+              </div>
             </div>
             <StatusBadge status={effectiveStatus || 'Pending'} />
           </div>
@@ -401,7 +425,7 @@ export const CheckoutPage: React.FC = () => {
 
             <div>
               <p className="text-gray-500 text-sm">{t.order.totalToPay}</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-gray-900 tracking-tight">
                 {formatAmount(invoice.amount_fiat, invoice.fiat_currency)}
               </p>
             </div>
@@ -432,21 +456,12 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Payment Section */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          {effectiveStatus === 'Pending' && (
-            <>
-              <div className="text-left mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  {t.order.pageTitle}
-                </h2>
-                <p className="text-gray-600 text-sm">
-                  {t.order.pageDescription}
-                </p>
-              </div>
-            </>
-          )}
+        {/* Payment Section — same panel, separated by a rule instead of a gap.
+            The old heading and its description said what the method selector
+            below already asks, so three instructions became one. */}
+        <div className="border-t border-gray-100 p-6">
           {renderStatusContent()}
+        </div>
         </div>
 
         {/* Footer */}

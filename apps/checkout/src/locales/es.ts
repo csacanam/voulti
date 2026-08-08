@@ -32,6 +32,7 @@ export const es = {
   order: {
     title: 'Detalles del pedido',
     orderId: 'Número de Orden',
+    payingTo: 'Pagando a',
     totalToPay: 'Importe total',
     timeRemaining: 'Tiempo restante',
     pageTitle: 'Completa tu pago',
