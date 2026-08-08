@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,14 +30,10 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
   const [description, setDescription] = useState("")
   // Picked per link, not fixed by the account: the price currency is only the
   // unit the payer is quoted in, and settlement is in stablecoins either way.
-  const [currency, setCurrency] = useState(commerce?.currency || "USD")
-
-  // The initial value is captured before `commerce` has loaded, so a merchant
-  // on COP was being offered USD — a wrong currency is a wrong price, not a
-  // cosmetic default. Re-seed it when the dialog opens with the commerce known.
-  useEffect(() => {
-    if (open && commerce?.currency) setCurrency(commerce.currency)
-  }, [open, commerce?.currency])
+  // The account currency is what the merchant *reads totals in*, which says
+  // nothing about what they charge, so it is not a default worth inheriting —
+  // USD is, since it is the unit the stablecoins themselves are denominated in.
+  const [currency, setCurrency] = useState("USD")
   const [enableExpiration, setEnableExpiration] = useState(false)
   const [expirationDate, setExpirationDate] = useState("")
   const [expirationTime, setExpirationTime] = useState("")

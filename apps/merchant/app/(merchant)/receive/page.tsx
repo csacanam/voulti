@@ -295,15 +295,12 @@ function CommerceLinkTab() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // The link carries the currency it charges in. Without it the page falls back
-  // to the account currency, which is the last place that setting still sets a
-  // price — with it the merchant can hand a EUR link to one audience and a COP
-  // one to another from the same account.
-  const [linkCurrency, setLinkCurrency] = useState(commerce?.currency || "USD")
-
-  useEffect(() => {
-    if (commerce?.currency) setLinkCurrency(commerce.currency)
-  }, [commerce?.currency])
+  // The link carries the currency it charges in, so the merchant can hand a EUR
+  // link to one audience and a COP one to another from the same account. It
+  // starts at USD rather than at the account currency: that setting only picks
+  // the unit totals are displayed in, and a display preference should not
+  // silently price a link.
+  const [linkCurrency, setLinkCurrency] = useState("USD")
 
   const commerceUrl = commerce
     ? `${CHECKOUT_BASE_URL}/pay/${commerce.commerce_id}?currency=${linkCurrency}`
