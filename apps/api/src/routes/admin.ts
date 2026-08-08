@@ -150,24 +150,37 @@ export async function adminRoutes(app: FastifyInstance) {
 
       const report: any[] = [];
       for (const c of wallets) {
-        const results = await whitelistCommerceOnChain(c.wallet.toLowerCase());
-        let onChain: string[] = [];
+        // Look before writing. Whitelisting is idempotent on-chain but not
+        // free: blindly re-running over every commerce spends gas on ~170
+        // transactions that only set flags already set — and this wallet is
+        // the same one that funds deposit sweeps, so wasting its balance
+        // eventually stops real payments from settling.
+        let missing: string[] | undefined;
         try {
           const status = await getCommerceNetworkStatus(c.wallet);
-          onChain = status
-            .filter((n: any) => n.active && n.tokens.some((t: any) => t.whitelisted))
+          missing = status
+            .filter((n: any) => !n.active || !n.tokens.some((t: any) => t.whitelisted))
             .map((n: any) => n.network);
         } catch {
-          // The read is best-effort: public RPCs rate-limit, and a failure here
-          // says nothing about whether the whitelist transactions landed.
-          onChain = ['(no se pudo verificar)'];
+          // Read failed (public RPCs rate-limit). Not knowing is not a reason
+          // to skip a commerce that might genuinely be missing a network, so
+          // fall back to attempting all of them.
+          missing = undefined;
         }
+
+        if (missing && missing.length === 0) {
+          report.push({ commerce: c.name, wallet: c.wallet, skipped: 'already complete' });
+          continue;
+        }
+
+        const results = await whitelistCommerceOnChain(c.wallet.toLowerCase(), missing);
 
         report.push({
           commerce: c.name,
           wallet: c.wallet,
-          failed_networks: results.filter(r => !r.success).map(r => `${r.network}: ${r.error}`),
-          active_on_chain: onChain,
+          attempted: missing ?? 'all (status unreadable)',
+          repaired: results.filter(r => r.success).map(r => r.network),
+          failed: results.filter(r => !r.success).map(r => `${r.network}: ${r.error}`),
         });
       }
 

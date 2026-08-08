@@ -20,7 +20,16 @@ const supabase = createClient(
  * Whitelist a commerce on all networks where contracts are deployed.
  * Uses the backend wallet with ONBOARDING_ROLE.
  */
-export async function whitelistCommerceOnChain(wallet: string): Promise<{ network: string; success: boolean; error?: string }[]> {
+export async function whitelistCommerceOnChain(
+  wallet: string,
+  /**
+   * Restrict to these networks. Signup passes nothing (a new commerce needs
+   * all of them); the repair route passes only what is actually missing, so
+   * re-running it does not re-send ~170 transactions worth of gas to set flags
+   * that are already true.
+   */
+  onlyNetworks?: string[]
+): Promise<{ network: string; success: boolean; error?: string }[]> {
   const backendKey = process.env.BACKEND_PRIVATE_KEY;
   if (!backendKey) {
     throw new Error('BACKEND_PRIVATE_KEY not configured');
@@ -56,6 +65,8 @@ export async function whitelistCommerceOnChain(wallet: string): Promise<{ networ
   };
 
   for (const [networkName, contracts] of Object.entries(CONTRACTS)) {
+    if (onlyNetworks && !onlyNetworks.includes(networkName)) continue;
+
     if (!contracts.ACCESS_MANAGER) {
       results.push({ network: networkName, success: false, error: 'No contract deployed' });
       continue;
