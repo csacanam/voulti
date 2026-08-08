@@ -9,6 +9,7 @@ import AccessManagerABI from '../blockchain/abi/AccessManager.json';
 import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
+import { sendTelegramAlert } from '../utils/notify';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -19,7 +20,7 @@ const supabase = createClient(
  * Whitelist a commerce on all networks where contracts are deployed.
  * Uses the backend wallet with ONBOARDING_ROLE.
  */
-async function whitelistCommerceOnChain(wallet: string): Promise<{ network: string; success: boolean; error?: string }[]> {
+export async function whitelistCommerceOnChain(wallet: string): Promise<{ network: string; success: boolean; error?: string }[]> {
   const backendKey = process.env.BACKEND_PRIVATE_KEY;
   if (!backendKey) {
     throw new Error('BACKEND_PRIVATE_KEY not configured');
@@ -60,6 +61,31 @@ async function whitelistCommerceOnChain(wallet: string): Promise<{ network: stri
       console.error(`Whitelist error on ${networkName}:`, error.message);
       results.push({ network: networkName, success: false, error: error.message });
     }
+  }
+
+  // This runs detached from the signup response, so a failure here used to
+  // leave a merchant permanently unable to take payments on a network with
+  // nothing but a log line to show for it — which is exactly how commerces
+  // ended up missing Polygon without anyone noticing.
+  const failed = results.filter(r => !r.success);
+  if (failed.length > 0) {
+    const esc = (s: unknown) =>
+      String(s ?? '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    await sendTelegramAlert(
+      `whitelist_failed_${wallet}`,
+      [
+        '⚠️ <b>Whitelist on-chain incompleto</b>',
+        '',
+        `<b>Wallet:</b> <code>${esc(wallet)}</code>`,
+        `<b>Redes OK:</b> ${results.filter(r => r.success).map(r => r.network).join(', ') || '(ninguna)'}`,
+        `<b>Redes fallidas:</b> ${failed.map(r => r.network).join(', ')}`,
+        '',
+        ...failed.map(r => `<code>${esc(r.network)}: ${esc(r.error).slice(0, 160)}</code>`),
+        '',
+        `Reintentar: <code>POST /admin/commerces/${esc(wallet)}/whitelist</code>`,
+      ].join('\n')
+    );
   }
 
   return results;

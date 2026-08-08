@@ -16,6 +16,8 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import { timingSafeEqual } from 'crypto';
 import { sweepService } from '../blockchain/services/SweepService';
+import { whitelistCommerceOnChain } from './commerces';
+import { getCommerceNetworkStatus } from '../business/commerceNetworks';
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
@@ -107,6 +109,73 @@ export async function adminRoutes(app: FastifyInstance) {
     } catch (err: any) {
       console.error('[admin] Retry failed:', err);
       return res.status(500).send({ error: err.message || 'Retry failed' });
+    }
+  });
+
+  /**
+   * Re-run on-chain whitelisting for a commerce, or for every commerce.
+   *
+   * Signup already whitelists on all networks, but it runs detached from the
+   * response, so a single failed transaction used to leave a merchant unable
+   * to take payments on that network with only a log line to show for it. This
+   * is the repair: it is idempotent, so running it over everyone is safe, and
+   * it reports the resulting on-chain status rather than just claiming success.
+   *
+   * POST /admin/commerces/all/whitelist to sweep every commerce.
+   */
+  app.post<{ Params: { id: string } }>('/commerces/:id/whitelist', async (req, res) => {
+    if (!checkSecret(req, res)) return;
+
+    try {
+      const { id } = req.params;
+      let wallets: { id: string; name: string; wallet: string }[] = [];
+
+      if (id === 'all') {
+        const { data } = await supabase.from('commerces').select('id, name, wallet');
+        wallets = data || [];
+      } else {
+        const { data } = await supabase
+          .from('commerces')
+          .select('id, name, wallet')
+          // Accept either the commerce id or its wallet, since the alert that
+          // sends an operator here only knows the wallet.
+          .or(`id.eq.${id},wallet.eq.${id.toLowerCase()}`)
+          .limit(1);
+
+        if (!data || data.length === 0) {
+          return res.status(404).send({ error: 'Commerce not found' });
+        }
+        wallets = data;
+      }
+
+      const report: any[] = [];
+      for (const c of wallets) {
+        const results = await whitelistCommerceOnChain(c.wallet.toLowerCase());
+        let onChain: string[] = [];
+        try {
+          const status = await getCommerceNetworkStatus(c.wallet);
+          onChain = status
+            .filter((n: any) => n.active && n.tokens.some((t: any) => t.whitelisted))
+            .map((n: any) => n.network);
+        } catch {
+          // The read is best-effort: public RPCs rate-limit, and a failure here
+          // says nothing about whether the whitelist transactions landed.
+          onChain = ['(no se pudo verificar)'];
+        }
+
+        report.push({
+          commerce: c.name,
+          wallet: c.wallet,
+          failed_networks: results.filter(r => !r.success).map(r => `${r.network}: ${r.error}`),
+          active_on_chain: onChain,
+        });
+      }
+
+      console.log('[admin] Whitelist repair:', JSON.stringify(report));
+      return res.send({ success: true, commerces: report.length, report });
+    } catch (err: any) {
+      console.error('[admin] Whitelist repair failed:', err);
+      return res.status(500).send({ error: err.message || 'Whitelist repair failed' });
     }
   });
 

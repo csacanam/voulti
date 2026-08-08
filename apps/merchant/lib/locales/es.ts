@@ -122,7 +122,7 @@ export const es = {
     title: "Nuevo Link de Pago",
     createdTitle: "Link de Pago Creado",
     currency: "Moneda",
-    currencyNote: "Basado en la configuración de tu cuenta",
+    currencyNote: "La unidad que ve el pagador. A ti te pagan en stablecoins igual.",
     amount: "Monto",
     customExpiration: "Expiración personalizada",
     defaultExpiration: "Por defecto: expira en 1 hora",

@@ -27,7 +27,9 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
   const { commerce } = useCommerce()
   const { t } = useLanguage()
   const [amount, setAmount] = useState("")
-  const currency = commerce?.currency || "USD"
+  // Picked per link, not fixed by the account: the price currency is only the
+  // unit the payer is quoted in, and settlement is in stablecoins either way.
+  const [currency, setCurrency] = useState(commerce?.currency || "USD")
   const [enableExpiration, setEnableExpiration] = useState(false)
   const [expirationDate, setExpirationDate] = useState("")
   const [expirationTime, setExpirationTime] = useState("")
@@ -62,6 +64,7 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
       const body: any = {
         commerce_id: commerce.commerce_id,
         amount_fiat: Number.parseFloat(amount),
+        currency,
       }
 
       if (enableExpiration) {
@@ -165,8 +168,18 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
           <>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>{t.createLink.currency}</Label>
-                <div className="px-3 py-2 bg-muted rounded-md text-sm font-medium">{currency}</div>
+                <Label htmlFor="link-currency">{t.createLink.currency}</Label>
+                <select
+                  id="link-currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm font-medium"
+                >
+                  {["USD", "EUR", "COP", "ARS", "BRL", "MXN"].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
                 <p className="text-xs text-muted-foreground">{t.createLink.currencyNote}</p>
               </div>
 

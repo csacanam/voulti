@@ -122,7 +122,7 @@ export const en = {
     title: "New Payment Link",
     createdTitle: "Payment Link Created",
     currency: "Currency",
-    currencyNote: "Based on your account settings",
+    currencyNote: "The unit the payer sees. You are paid in stablecoins either way.",
     amount: "Amount",
     customExpiration: "Custom expiration",
     defaultExpiration: "Default: expires in 1 hour",
