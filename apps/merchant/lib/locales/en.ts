@@ -43,6 +43,8 @@ export const en = {
     amount: "Amount",
     status: "Status",
     reference: "Reference",
+    idCopied: "Invoice ID copied",
+    tx: "tx ↗",
     created: "Created",
     expires: "Expires",
     copyUrl: "Copy",

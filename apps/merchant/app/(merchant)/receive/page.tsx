@@ -31,6 +31,11 @@ function explorerAddress(network: string | undefined, address: string): string {
   return base + address
 }
 
+function explorerTx(network: string | undefined, hash: string): string {
+  const base = EXPLORERS[(network || "").toLowerCase()] || EXPLORERS.celo
+  return base.replace("/address/", "/tx/") + hash
+}
+
 function formatTimeRemaining(expires: string, t: any): string {
   const diff = new Date(expires).getTime() - Date.now()
   if (diff <= 0) return t.time.expired
@@ -196,8 +201,12 @@ function PaymentLinksTab() {
                     return (
                       <tr key={link.id} className="hover:bg-muted/50">
                         <td className="p-3">
+                          {/* The truncated invoice id used to live here. Cut to
+                              eight characters it could not be searched, copied
+                              or matched against anything — it cost a line and
+                              answered nothing. The full id is copyable from the
+                              actions column instead. */}
                           <div className="font-medium text-foreground">{link.currency} {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{link.id.slice(0, 8)}...</div>
                         </td>
                         <td className="p-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>{statusInfo.label}</span>
@@ -225,9 +234,35 @@ function PaymentLinksTab() {
                         </td>
                         <td className="p-3 text-sm text-muted-foreground">{link.status !== "active" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</td>
                         <td className="p-3">
-                          <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
-                            <Copy className="w-4 h-4" /> {t.receive.copyUrl}
-                          </Button>
+                          {/* What you need when a payment has to be traced in
+                              another system: the id Voulti knows it by, and the
+                              transaction anyone can verify on-chain. Both were
+                              stored; neither was reachable from this table. */}
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
+                              <Copy className="w-4 h-4" /> {t.receive.copyUrl}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title={link.id}
+                              onClick={() => { navigator.clipboard.writeText(link.id); toast({ title: t.receive.idCopied }) }}
+                              className="gap-1.5 text-muted-foreground"
+                            >
+                              ID
+                            </Button>
+                            {link.txHash && link.network && (
+                              <a
+                                href={explorerTx(link.network, link.txHash)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={link.txHash}
+                                className="text-xs text-primary hover:underline px-2"
+                              >
+                                {t.receive.tx}
+                              </a>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -252,7 +287,7 @@ function PaymentLinksTab() {
                       {link.reference ? (
                         <div className="text-sm text-foreground truncate">{link.reference}</div>
                       ) : (
-                        <div className="text-xs text-muted-foreground font-mono truncate">{link.id.slice(0, 12)}...</div>
+                        <div className="text-xs text-muted-foreground">—</div>
                       )}
                       {link.payerAddress && (
                         <a

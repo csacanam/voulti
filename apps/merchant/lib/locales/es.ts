@@ -43,6 +43,8 @@ export const es = {
     amount: "Monto",
     status: "Estado",
     reference: "Referencia",
+    idCopied: "ID de factura copiado",
+    tx: "tx ↗",
     created: "Creado",
     expires: "Expira",
     copyUrl: "Copiar",
