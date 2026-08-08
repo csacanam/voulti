@@ -92,7 +92,7 @@ https://voulti.com/pay/<commerce_id>?currency=USD
 
 Good for tips, donations, or "pay what you owe" flows. No API call needed — the payer types an amount and the invoice is created for them.
 
-`currency` is optional here and takes any of the supported codes; the payer types the amount in it. Omit it and the merchant's account currency is used, which is the only place that setting still decides a price. The code is validated server-side against the same whitelist as every invoice, so editing the URL by hand cannot invent a currency.
+**Always include `?currency=`.** It takes any of the supported codes and the payer types the amount in it. Omit it and the payer is shown a currency picker with nothing pre-selected — they cannot continue until they choose, because a link that never stated a unit has no unit to infer, and USD against COP is three orders of magnitude. That fallback is a safety net for a hand-edited URL, not a mode to build on: a link you generate should always carry the code. The code is validated server-side against the same whitelist as every invoice, so editing the URL by hand cannot invent a currency.
 
 The same merchant can hand out one link per audience — `?currency=EUR` abroad, `?currency=COP` at home — without changing anything account-wide.
 
@@ -119,7 +119,7 @@ GET https://api.voulti.com/invoices/<invoice_id>
   "status": "Paid", "expires_at": "...", "paid_at": "...", "amount_usd": "0.31",
   "usd_to_fiat_rate": 3181.1, "commerce_name": "...", "commerce_wallet": "0x…",
   "paid_tx_hash": "0x…", "paid_token": "USDT", "paid_network": "celo",
-  "paid_amount": 0.31471, "wallet_address": "0x…", "tokens": [ … ] }
+  "paid_amount": 0.31471, "wallet_address": "0x…", "description": "Logo design", "tokens": [ … ] }
 ```
 
 **`reference` and `created_at` are not on this response.** `reference` comes back on `POST /invoices` and in the webhook payload, but `GET /invoices/<id>` does not echo it — so you cannot use it to identify an invoice you fetched by id, and there is no way to search by it. Store your own id → invoice mapping at creation time. Likewise, capture `created_at` from the POST response if you need it; the GET will not give it back.
@@ -217,6 +217,7 @@ Failures do **not** use the `{ success, data }` envelope — they come back as `
 | `400 {"error":"Missing required fields: commerce_id, amount_fiat"}` | One of them is absent. Both are required. |
 | `400 {"error":"amount_fiat must be a positive number"}` | It has to be a JSON number greater than zero — not a string like `"1000"`, not zero, not negative. |
 | `400 {"error":"expires_at must be in the future"}` | You sent a date that has already passed. Send a future ISO 8601 timestamp or omit the field for the 1-hour default. |
+| `400 {"error":"Commerce is not enabled on any network…"}` | **You cannot fix this — the human must.** The merchant is not whitelisted on-chain anywhere, so no invoice can be created at all. Send them to app.voulti.com → Account → Networks to enable one. Do not retry in a loop; nothing about your request is wrong. |
 | `404 {"error":"Invoice not found"}` on GET | Wrong or mistyped invoice id. |
 | `429` / requests suddenly rejected | You are over the **100 requests per minute per IP** limit. Watch the `x-ratelimit-remaining` header and back off; poll one invoice every few seconds, not every invoice every second. |
 | Invoice `Expired` | Invoices have a time limit. Create a fresh one; never reuse expired links. |
