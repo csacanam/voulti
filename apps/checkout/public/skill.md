@@ -197,6 +197,8 @@ Pass the **raw** body, not the re-serialized JSON — `JSON.stringify(JSON.parse
 So split it in two: **verify the signature, respond `200`, and do the re-check and fulfilment after the response is sent** — `after()` in Next.js, `BackgroundTasks` in FastAPI, or a queue. The signature check stays *before* the `200`, so an unauthenticated call is never acknowledged.
 
 ```js
+import { after } from "next/server"; // Next.js 15+; in FastAPI this is BackgroundTasks
+
 export async function POST(req) {
   const rawBody = await req.text();
   if (!verifyVoultiWebhook(rawBody, req.headers.get("x-voulti-signature"), secret)) {
