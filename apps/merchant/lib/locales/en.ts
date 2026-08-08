@@ -42,7 +42,7 @@ export const en = {
     createLink: "Create Payment Link",
     amount: "Amount",
     status: "Status",
-    customer: "Customer",
+    reference: "Reference",
     created: "Created",
     expires: "Expires",
     copyUrl: "Copy",

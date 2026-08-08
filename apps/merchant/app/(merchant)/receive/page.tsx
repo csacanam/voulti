@@ -180,10 +180,11 @@ function PaymentLinksTab() {
                   <tr>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.amount}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.status}</th>
-                    {/* The two things that answer "who paid this": the id the
-                        merchant attached at creation, and where the money came
-                        from. Both were already stored and neither was shown. */}
-                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.customer}</th>
+                    {/* Named after what dominates the cell — the identifier the
+                        merchant chose. "Customer" promised an identity that
+                        crypto cannot deliver, and covered two different things.
+                        The payer address sits underneath as provenance. */}
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.reference}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.created}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.expires}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
@@ -245,7 +246,24 @@ function PaymentLinksTab() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-foreground">{link.currency} {link.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-                      <div className="text-xs text-muted-foreground font-mono truncate">{link.id.slice(0, 12)}...</div>
+                      {/* Mobile hides the desktop columns, so the reference has
+                          to travel with the amount or it is not visible at all
+                          on the screen most merchants actually use. */}
+                      {link.reference ? (
+                        <div className="text-sm text-foreground truncate">{link.reference}</div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground font-mono truncate">{link.id.slice(0, 12)}...</div>
+                      )}
+                      {link.payerAddress && (
+                        <a
+                          href={explorerAddress(link.network, link.payerAddress)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-mono text-primary hover:underline"
+                        >
+                          {link.payerAddress.slice(0, 6)}…{link.payerAddress.slice(-4)}
+                        </a>
+                      )}
                     </div>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${statusInfo.className}`}>{statusInfo.label}</span>
                   </div>
