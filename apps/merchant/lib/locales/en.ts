@@ -167,6 +167,7 @@ export const en = {
     paid: "Paid",
     expired: "Expired",
     active: "Active",
+    refunded: "Refunded",
   },
   time: {
     mLeft: "{m}m left",

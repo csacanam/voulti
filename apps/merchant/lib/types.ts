@@ -36,8 +36,10 @@ export interface Transaction {
   txHash?: string
 }
 
-export type PaymentLinkStatus = "active" | "expired" | "disabled"
-export type PaymentLinkCurrency = "USD" | "COP" | "MXN" | "BRL"
+export type PaymentLinkStatus = "active" | "paid" | "expired" | "refunded"
+// Every currency the API accepts on POST /invoices; the price currency is
+// chosen per link, so this must not lag behind fiat_exchange_rates.
+export type PaymentLinkCurrency = "USD" | "EUR" | "COP" | "ARS" | "BRL" | "MXN"
 
 export interface PaymentLink {
   id: string

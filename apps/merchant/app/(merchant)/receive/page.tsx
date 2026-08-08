@@ -92,8 +92,12 @@ function PaymentLinksTab() {
         const invoices = data.data || []
 
         setLinks(invoices.map((inv: any) => {
-          let status: "active" | "expired" | "disabled" = "active"
-          if (inv.status === "Paid") status = "disabled"
+          // One key per real outcome. `Refunded` used to fall through to the
+          // expiry check and show up as "Expired", which tells the merchant
+          // nobody paid — when in fact money arrived and was sent back.
+          let status: "active" | "paid" | "expired" | "refunded" = "active"
+          if (inv.status === "Paid") status = "paid"
+          else if (inv.status === "Refunded") status = "refunded"
           else if (inv.status === "Expired" || (inv.expires_at && new Date(inv.expires_at) < new Date())) status = "expired"
 
           return {
@@ -123,7 +127,10 @@ function PaymentLinksTab() {
   const statusConfig: Record<string, { label: string; className: string }> = {
     active: { label: t.status.pending, className: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
     expired: { label: t.status.expired, className: "bg-red-500/10 text-red-400 border-red-500/30" },
-    disabled: { label: t.status.paid, className: "bg-green-500/10 text-green-400 border-green-500/30" },
+    paid: { label: t.status.paid, className: "bg-green-500/10 text-green-400 border-green-500/30" },
+    // Blue, not red: money did arrive. Colouring it like a failure would tell
+    // the merchant the same thing "Expired" wrongly told them before.
+    refunded: { label: t.status.refunded, className: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
   }
 
   return (
@@ -176,7 +183,7 @@ function PaymentLinksTab() {
                         <td className="p-3 text-sm text-muted-foreground">
                           {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                         </td>
-                        <td className="p-3 text-sm text-muted-foreground">{link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</td>
+                        <td className="p-3 text-sm text-muted-foreground">{link.status !== "active" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</td>
                         <td className="p-3">
                           <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
                             <Copy className="w-4 h-4" /> {t.receive.copyUrl}
@@ -205,7 +212,7 @@ function PaymentLinksTab() {
                   </div>
                   <div className="text-xs text-muted-foreground space-y-1 mb-3">
                     <div>{t.receive.created}: {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
-                    <div>{t.receive.expires}: {link.status === "disabled" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</div>
+                    <div>{t.receive.expires}: {link.status !== "active" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</div>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5 w-full">
                     <Copy className="w-4 h-4" /> {t.receive.copyUrl}
