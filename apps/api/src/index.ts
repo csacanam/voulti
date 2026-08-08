@@ -73,7 +73,7 @@ async function main() {
       process.exit(1);
     }
     console.log(`Server running at ${address}`);
-    sweepService.start();
+    sweepService.start().catch(err => console.error('[SweepService] start failed:', err));
   });
 
   // Graceful shutdown

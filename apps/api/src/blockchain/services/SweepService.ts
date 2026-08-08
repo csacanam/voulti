@@ -44,10 +44,61 @@ export class SweepService {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private isProcessing = false;
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.pollInterval) return;
+
+    if (!(await this.mnemonicMatchesDatabase())) {
+      console.error(
+        '[SweepService] REFUSING TO START: HD_WALLET_MNEMONIC does not derive the ' +
+        'deposit addresses stored in this database. Sweeping would move funds using ' +
+        'keys that do not control them. Check that .env points at the matching pair.'
+      );
+      return;
+    }
+
     console.log(`[SweepService] Started polling every ${POLL_INTERVAL}ms`);
     this.pollInterval = setInterval(() => this.pollCycle(), POLL_INTERVAL);
+  }
+
+  /**
+   * Guard against a mixed configuration — the concrete accident being a local
+   * `.env` that keeps the production SUPABASE_URL but development keys, so a
+   * casual `npm run dev` starts sweeping real deposits with a mnemonic that
+   * derives entirely different addresses.
+   *
+   * Verified by deriving an address the database already recorded: if this
+   * mnemonic produces a different one, it does not control these deposits.
+   * In production the pair always matches, so this never fires there.
+   */
+  private async mnemonicMatchesDatabase(): Promise<boolean> {
+    try {
+      const { data: sample } = await supabase
+        .from('deposit_addresses')
+        .select('address, derivation_index, network')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!sample) return true; // nothing recorded yet, nothing to contradict
+
+      const derived = HDWalletService.deriveWallet(
+        sample.derivation_index,
+        sample.network as NetworkName
+      );
+
+      if (derived.address.toLowerCase() === sample.address.toLowerCase()) return true;
+
+      console.error(
+        `[SweepService] Mnemonic mismatch: index ${sample.derivation_index} on ` +
+        `${sample.network} derives ${derived.address}, database says ${sample.address}`
+      );
+      return false;
+    } catch (err: any) {
+      // A failed check is not proof of a mismatch — do not take the service
+      // down over a flaky read.
+      console.warn('[SweepService] Could not verify mnemonic against database:', err.message);
+      return true;
+    }
   }
 
   stop(): void {
