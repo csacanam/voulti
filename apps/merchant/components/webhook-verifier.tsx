@@ -19,13 +19,15 @@ import { useLanguage } from "@/components/providers/language-provider"
  * sign wrongly on purpose.
  */
 
+type ProbeId = "accepts-valid" | "has-secret" | "rejects-tampered" | "rejects-replay" | "rejects-unsigned"
+
+/** Facts from the API. Every word the merchant reads is composed here. */
 interface ProbeResult {
-  id: string
-  title: string
+  id: ProbeId
   verdict: "pass" | "fail" | "inconclusive"
-  expectation: string
-  observed: string
-  advice?: string
+  status: number | null
+  durationMs: number
+  error: string | null
 }
 
 const ICON = {
@@ -50,13 +52,19 @@ export function WebhookVerifier({ commerceId, hasUrl }: { commerceId: string; ha
       )
       setResults(res.data.results)
     } catch (err: any) {
-      setFailed(err?.message || "Request failed")
+      setFailed(err?.message || t.general.requestFailed)
     } finally {
       setRunning(false)
     }
   }
 
   const anyFailed = results?.some((r) => r.verdict === "fail")
+
+  const observed = (r: ProbeResult) => {
+    if (r.verdict === "inconclusive") return t.webhookVerify.notRun
+    if (r.status !== null) return `HTTP ${r.status} · ${r.durationMs} ms`
+    return r.error || t.webhookVerify.noResponse
+  }
 
   return (
     <div>
@@ -80,12 +88,14 @@ export function WebhookVerifier({ commerceId, hasUrl }: { commerceId: string; ha
             <div key={r.id} className="text-xs border border-border/50 rounded-md p-2">
               <div className="flex items-center gap-2">
                 {ICON[r.verdict]}
-                <span className="font-medium">{r.title}</span>
-                <span className="text-muted-foreground ml-auto">{r.observed}</span>
+                <span className="font-medium">{t.webhookVerify.probe[r.id]}</span>
+                <span className="text-muted-foreground ml-auto">{observed(r)}</span>
               </div>
               {/* Advice appears only on a failure, and says what an attacker
                   could do rather than which rule was broken. */}
-              {r.advice && <p className="text-muted-foreground mt-1.5 leading-relaxed">{r.advice}</p>}
+              {r.verdict === "fail" && (
+                <p className="text-muted-foreground mt-1.5 leading-relaxed">{t.webhookVerify.advice[r.id]}</p>
+              )}
             </div>
           ))}
 

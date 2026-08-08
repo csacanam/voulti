@@ -203,6 +203,22 @@ export const es = {
     run: "Revisar",
     running: "Revisando…",
     notReady: "Con algo en rojo no conviene salir a producción: son formas de cobrar sin pagar.",
+    noResponse: "Sin respuesta",
+    notRun: "No se corrió — tu servidor también rechaza las entregas válidas",
+    probe: {
+      "accepts-valid": "Acepta una entrega bien firmada",
+      "has-secret": "Tiene secreto de firma",
+      "rejects-tampered": "Rechaza una firma alterada",
+      "rejects-replay": "Rechaza un timestamp viejo",
+      "rejects-unsigned": "Rechaza una entrega sin firma",
+    },
+    advice: {
+      "accepts-valid": "Arreglá esto primero. Mientras una entrega válida no se acepte, lo de abajo no distingue un servidor estricto de uno roto.",
+      "has-secret": "Generá uno arriba. Sin secreto no hay nada que tu servidor pueda verificar, y cualquiera que conozca tu URL puede simular un pago.",
+      "rejects-tampered": "Tu servidor aceptó una notificación de pago que firmamos mal a propósito. Cualquiera que conozca esta URL puede hacerle creer que un pedido se pagó. Verificá X-Voulti-Signature antes de actuar, y rechazá si no coincide.",
+      "rejects-replay": "La firma era genuina pero de hace una hora. Sin control de frescura, una entrega capturada una vez se puede repetir para siempre. Rechazá si t tiene más de unos minutos.",
+      "rejects-unsigned": "Tu servidor aceptó una entrega sin ninguna cabecera de firma. Una firma ausente hay que tratarla como una firma incorrecta, no como una opción.",
+    },
   },
 
   webhookTest: {
@@ -292,6 +308,7 @@ export const es = {
     noCommerceDesc: "Completa tu registro para continuar",
   },
   general: {
+    requestFailed: "No se pudo completar la solicitud",
     loginRequired: "Inicio de Sesión Requerido",
     loginDesc: "Inicia sesión para continuar",
   },

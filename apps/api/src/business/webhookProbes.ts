@@ -26,17 +26,29 @@ const HOUR_SECONDS = 3600;
 
 export type ProbeVerdict = 'pass' | 'fail' | 'inconclusive';
 
+export type ProbeId =
+  | 'accepts-valid'
+  | 'has-secret'
+  | 'rejects-tampered'
+  | 'rejects-replay'
+  | 'rejects-unsigned';
+
+/**
+ * A probe reports what happened, not how to say it.
+ *
+ * The first version returned English titles and advice, which the dashboard
+ * painted verbatim — so a merchant reading a Spanish dashboard got English
+ * findings. Deciding wording is the client's job; it is the only side that
+ * knows who is reading.
+ */
 export interface ProbeResult {
-  id: string;
-  /** What we sent and why, in the merchant's terms. */
-  title: string;
+  id: ProbeId;
   verdict: ProbeVerdict;
-  /** What we expected the endpoint to do. */
-  expectation: string;
-  /** What it did. */
-  observed: string;
-  /** Only when something needs fixing: what to change. */
-  advice?: string;
+  /** HTTP status, or null when there was no response at all. */
+  status: number | null;
+  durationMs: number;
+  /** Transport failure — DNS, refused, timeout — when there is no status. */
+  error: string | null;
 }
 
 function sign(secret: string, body: string, atSeconds: number): string {
@@ -79,31 +91,18 @@ export async function runConformanceProbes(ctx: ProbeContext): Promise<ProbeResu
   const control = await send(ctx, payload, undefined);
   results.push({
     id: 'accepts-valid',
-    title: 'Accepts a correctly signed delivery',
     verdict: control.ok ? 'pass' : 'fail',
-    expectation: 'Answers 2xx',
-    observed: control.status !== null ? `HTTP ${control.status} in ${control.durationMs} ms` : control.error || 'no response',
-    advice: control.ok
-      ? undefined
-      : 'Fix this first. Until a valid delivery is accepted, the checks below cannot tell a strict endpoint from a broken one.',
+    status: control.status,
+    durationMs: control.durationMs,
+    error: control.error,
   });
 
   if (!control.ok) {
     // Refusing everything is not the same as verifying, and reporting the
     // rejections below as passes would hand out a security clearance to an
     // endpoint that is simply down.
-    for (const [id, title] of [
-      ['rejects-tampered', 'Rejects a tampered signature'],
-      ['rejects-replay', 'Rejects an old timestamp'],
-      ['rejects-unsigned', 'Rejects an unsigned delivery'],
-    ]) {
-      results.push({
-        id,
-        title,
-        verdict: 'inconclusive',
-        expectation: 'Answers 4xx or 5xx',
-        observed: 'Not run — the endpoint rejects valid deliveries too',
-      });
+    for (const id of ['rejects-tampered', 'rejects-replay', 'rejects-unsigned'] as ProbeId[]) {
+      results.push({ id, verdict: 'inconclusive', status: null, durationMs: 0, error: null });
     }
     return results;
   }
@@ -111,11 +110,10 @@ export async function runConformanceProbes(ctx: ProbeContext): Promise<ProbeResu
   if (!ctx.secret) {
     results.push({
       id: 'has-secret',
-      title: 'Has a signing secret',
       verdict: 'fail',
-      expectation: 'A secret is configured, so deliveries can be verified',
-      observed: 'No secret set — every delivery goes out unsigned',
-      advice: 'Generate one on this page. Without it there is nothing for your server to check, and anyone who learns your webhook URL can fake a payment.',
+      status: null,
+      durationMs: 0,
+      error: null,
     });
     return results;
   }
@@ -124,13 +122,10 @@ export async function runConformanceProbes(ctx: ProbeContext): Promise<ProbeResu
   const tampered = await send(ctx, payload, tamper(sign(ctx.secret, body, now)));
   results.push({
     id: 'rejects-tampered',
-    title: 'Rejects a tampered signature',
     verdict: tampered.ok ? 'fail' : 'pass',
-    expectation: 'Answers 4xx or 5xx',
-    observed: tampered.status !== null ? `HTTP ${tampered.status}` : tampered.error || 'no response',
-    advice: tampered.ok
-      ? 'Your server accepted a payment notification we deliberately signed wrong. Anyone who learns this URL can make it believe an order was paid. Verify X-Voulti-Signature before acting, and reject when it does not match.'
-      : undefined,
+    status: tampered.status,
+    durationMs: tampered.durationMs,
+    error: tampered.error,
   });
 
   // ── A signature that was valid an hour ago, which is what a captured
@@ -138,26 +133,20 @@ export async function runConformanceProbes(ctx: ProbeContext): Promise<ProbeResu
   const stale = await send(ctx, payload, sign(ctx.secret, body, now - HOUR_SECONDS));
   results.push({
     id: 'rejects-replay',
-    title: 'Rejects an old timestamp',
     verdict: stale.ok ? 'fail' : 'pass',
-    expectation: 'Answers 4xx or 5xx',
-    observed: stale.status !== null ? `HTTP ${stale.status}` : stale.error || 'no response',
-    advice: stale.ok
-      ? 'The signature was genuine but an hour old. Without a freshness check, a delivery captured once can be replayed at you forever. Reject when t is more than a few minutes old.'
-      : undefined,
+    status: stale.status,
+    durationMs: stale.durationMs,
+    error: stale.error,
   });
 
   // ── No header at all: the shape an attacker sends before finding out we sign.
   const unsigned = await send(ctx, payload, null);
   results.push({
     id: 'rejects-unsigned',
-    title: 'Rejects an unsigned delivery',
     verdict: unsigned.ok ? 'fail' : 'pass',
-    expectation: 'Answers 4xx or 5xx',
-    observed: unsigned.status !== null ? `HTTP ${unsigned.status}` : unsigned.error || 'no response',
-    advice: unsigned.ok
-      ? 'Your server accepted a delivery with no signature header at all. A missing signature must be treated as a wrong one, not as an absent option.'
-      : undefined,
+    status: unsigned.status,
+    durationMs: unsigned.durationMs,
+    error: unsigned.error,
   });
 
   return results;

@@ -43,7 +43,7 @@ export function WebhookHistory({ invoiceId }: { invoiceId: string }) {
     apiClient
       .get<{ success: boolean; data: Delivery[] }>(`/invoices/${invoiceId}/webhook-deliveries`)
       .then((res) => setDeliveries(res.data))
-      .catch((err: any) => setFailed(err?.message || "Request failed"))
+      .catch((err: any) => setFailed(err?.message || t.general.requestFailed))
   }, [open, invoiceId, deliveries])
 
   const fmt = (d: string) =>

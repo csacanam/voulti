@@ -108,7 +108,7 @@ export function PaymentDetailDialog({
       )
       setResendResult(res.data)
     } catch (err: any) {
-      setResendError(err?.message || "Request failed")
+      setResendError(err?.message || t.general.requestFailed)
     } finally {
       setResending(false)
     }

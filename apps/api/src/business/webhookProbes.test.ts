@@ -91,9 +91,6 @@ describe('against a receiver that verifies nothing', () => {
     expect(verdictOf(results, 'rejects-replay')).toBe('fail');
     expect(verdictOf(results, 'rejects-unsigned')).toBe('fail');
     expect(summarise(results).ok).toBe(false);
-
-    const advice = results.find((r) => r.id === 'rejects-tampered')!.advice!;
-    expect(advice).toMatch(/anyone who learns this URL/i);
   });
 });
 
@@ -147,6 +144,22 @@ describe('when the commerce has no signing secret', () => {
     expect(verdictOf(results, 'has-secret')).toBe('fail');
     // Probing rejection is meaningless when nothing is signed in the first place.
     expect(verdictOf(results, 'rejects-tampered')).toBeUndefined();
+  });
+});
+
+describe('what a probe reports', () => {
+  it('reports facts, never prose — wording is the reader\'s language, not ours', () => {
+    // The dashboard is bilingual. English titles baked into the API showed up
+    // untranslated on a Spanish screen, so the server now reports what
+    // happened and the client decides how to say it.
+    const shape = ['id', 'verdict', 'status', 'durationMs', 'error'];
+    return serve((_req, res) => res.writeHead(200).end('ok'))
+      .then((url) => runConformanceProbes({ url, secret: SECRET, commerceId: 'c1' }))
+      .then((results) => {
+        for (const r of results) {
+          expect(Object.keys(r).sort()).toEqual([...shape].sort());
+        }
+      });
   });
 });
 

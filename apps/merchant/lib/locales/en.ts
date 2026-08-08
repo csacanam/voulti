@@ -203,6 +203,22 @@ export const en = {
     run: "Run checks",
     running: "Running…",
     notReady: "Anything red here is a way to get goods without paying. Worth fixing before going live.",
+    noResponse: "No response",
+    notRun: "Not run — your server rejects valid deliveries too",
+    probe: {
+      "accepts-valid": "Accepts a correctly signed delivery",
+      "has-secret": "Has a signing secret",
+      "rejects-tampered": "Rejects a tampered signature",
+      "rejects-replay": "Rejects an old timestamp",
+      "rejects-unsigned": "Rejects an unsigned delivery",
+    },
+    advice: {
+      "accepts-valid": "Fix this first. Until a valid delivery is accepted, the checks below cannot tell a strict endpoint from a broken one.",
+      "has-secret": "Generate one above. Without it there is nothing for your server to check, and anyone who learns your webhook URL can fake a payment.",
+      "rejects-tampered": "Your server accepted a payment notification we deliberately signed wrong. Anyone who learns this URL can make it believe an order was paid. Verify X-Voulti-Signature before acting, and reject when it does not match.",
+      "rejects-replay": "The signature was genuine but an hour old. Without a freshness check, a delivery captured once can be replayed at you forever. Reject when t is more than a few minutes old.",
+      "rejects-unsigned": "Your server accepted a delivery with no signature header at all. A missing signature must be treated as a wrong one, not as an absent option.",
+    },
   },
 
   webhookTest: {
@@ -292,6 +308,7 @@ export const en = {
     noCommerceDesc: "Complete your registration to continue",
   },
   general: {
+    requestFailed: "Request failed",
     loginRequired: "Login Required",
     loginDesc: "Please login to continue",
   },

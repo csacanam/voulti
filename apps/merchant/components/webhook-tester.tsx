@@ -55,7 +55,7 @@ export function WebhookTester({
     } catch (err: any) {
       // A failure to *reach Voulti* is a different thing from the merchant's
       // endpoint rejecting the delivery, and must not be dressed as one.
-      setFailed(err?.message || "Request failed")
+      setFailed(err?.message || t.general.requestFailed)
     } finally {
       setSending(null)
     }
