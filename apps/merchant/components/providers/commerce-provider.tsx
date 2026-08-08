@@ -11,6 +11,15 @@ interface CommerceContextType {
   error: string | null
   needsRegistration: boolean
   registerCommerce: (data: { name: string; currency: string }) => Promise<void>
+  /**
+   * Merge a server-confirmed change into the shared commerce.
+   *
+   * Without this, a page that saves a setting only updated its own local
+   * state: the currency changed in Account while the dashboard kept totalling
+   * in the old one, and navigating back showed the stale value again. The
+   * screen that saved looked right and every other screen lied.
+   */
+  patchCommerce: (partial: Partial<Commerce>) => void
 }
 
 const CommerceContext = createContext<CommerceContextType | undefined>(undefined)
@@ -127,8 +136,11 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const patchCommerce = (partial: Partial<Commerce>) =>
+    setCommerce(prev => (prev ? { ...prev, ...partial } : prev))
+
   return (
-    <CommerceContext.Provider value={{ commerce, loading, error, needsRegistration, registerCommerce }}>
+    <CommerceContext.Provider value={{ commerce, loading, error, needsRegistration, registerCommerce, patchCommerce }}>
       {children}
     </CommerceContext.Provider>
   )

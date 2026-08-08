@@ -71,7 +71,7 @@ function WebhookSection({ commerceId, currentUrl }: { commerceId: string; curren
 
 export default function AccountPage() {
   const { authenticated } = usePrivy()
-  const { commerce, loading } = useCommerce()
+  const { commerce, loading, patchCommerce } = useCommerce()
   const { t, language } = useLanguage()
   const { toast } = useToast()
 
@@ -109,6 +109,12 @@ export default function AccountPage() {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || 'Failed to update currency')
       }
+
+      // Take the server's word, not the select's: it decides the symbol, and
+      // pushing it into the shared commerce is what stops the dashboard from
+      // still totalling in the previous currency.
+      const { data } = await res.json()
+      patchCommerce({ currency: data.currency, currencySymbol: data.currency_symbol })
 
       toast({ title: t.account.currencySaved })
     } catch (err: any) {
