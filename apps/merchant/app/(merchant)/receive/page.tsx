@@ -121,6 +121,15 @@ function PaymentLinksTab() {
             network: inv.paid_network || undefined,
             paidToken: inv.paid_token || undefined,
             paidAmount: inv.paid_amount ?? undefined,
+            // Three states worth telling apart: never configured, delivered,
+            // and still owed. A merchant scanning the list needs to see the
+            // third without opening every row.
+            webhook: !inv.confirmation_url_available
+              ? "none"
+              : inv.confirmation_url_response
+                ? "delivered"
+                : "failing",
+            webhookAttempts: inv.confirmation_url_retries ?? 0,
           }
         }))
       } catch { /* empty */ } finally { setLoadingLinks(false) }

@@ -42,6 +42,8 @@ export type PaymentLinkStatus = "active" | "paid" | "expired" | "refunded"
 export type PaymentLinkCurrency = "USD" | "EUR" | "COP" | "ARS" | "BRL" | "MXN"
 
 export interface PaymentLink {
+  webhook?: "none" | "delivered" | "failing"
+  webhookAttempts?: number
   id: string
   title: string
   currency: PaymentLinkCurrency

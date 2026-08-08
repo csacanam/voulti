@@ -1,5 +1,6 @@
 import { buildPayload, DeliveryResult } from './webhookDelivery';
 import { deliverAndLog } from './webhookLog';
+import { nextRetryAt, isExhausted, shouldEmailMerchant, MAX_ATTEMPTS, describeSchedule } from './webhookRetry';
 import { createClient } from '@supabase/supabase-js';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { getNetworkByChainId, NETWORKS } from '../blockchain/config/networks';
@@ -46,7 +47,7 @@ interface CommerceData {
 }
 
 export class NotificationService {
-  private maxRetries = 5;
+  private maxRetries = MAX_ATTEMPTS;
   private batchSize = 10;           // Process max 10 invoices per execution (URLs)
   private emailBatchSize = 20;      // Process max 20 invoices per execution (Emails)
   private urlTimeout = 2000;        // 2 seconds timeout per URL
@@ -256,29 +257,13 @@ export class NotificationService {
         await this.updateInvoiceField(invoice.id, 'confirmation_url_response', true);
         console.log(`Confirmation URL successful for invoice ${invoice.id}`);
       } else {
-        // Increment retry count
-        const newRetryCount = invoice.confirmation_url_retries + 1;
-        await this.updateInvoiceField(invoice.id, 'confirmation_url_retries', newRetryCount);
-
-        // The merchant is the one who has to fix this, so they get the status
-        // code and the response body, not a generic sentence.
-        const detail = this.describeDelivery(result);
-        await this.sendConfirmationUrlFailureEmail(invoice, commerce, newRetryCount, detail);
-        await this.alertIfRetriesExhausted(invoice, commerce, newRetryCount, detail);
-
-        console.log(`Confirmation URL failed for invoice ${invoice.id}, retry ${newRetryCount}/${this.maxRetries}: ${detail}`);
+        await this.recordFailure(invoice, commerce, this.describeDelivery(result));
       }
           } catch (error) {
         console.error(`Error handling confirmation URL for invoice ${invoice.id}:`, error);
 
-        // Increment retry count on error
-        const newRetryCount = invoice.confirmation_url_retries + 1;
-        await this.updateInvoiceField(invoice.id, 'confirmation_url_retries', newRetryCount);
-
-        // Send failure notification email to commerce
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        await this.sendConfirmationUrlFailureEmail(invoice, commerce, newRetryCount, errorMessage);
-        await this.alertIfRetriesExhausted(invoice, commerce, newRetryCount, errorMessage);
+        await this.recordFailure(invoice, commerce, errorMessage);
       }
   }
 
@@ -345,6 +330,37 @@ export class NotificationService {
       invoiceId: invoice.id,
       event: invoice.status,
     });
+  }
+
+  /**
+   * Book the next attempt and decide who hears about this one.
+   *
+   * Both failure paths — a non-2xx answer and a thrown request — end here, so
+   * the backoff cannot be applied to one and forgotten on the other.
+   */
+  private async recordFailure(invoice: InvoiceData, commerce: CommerceData, detail: string): Promise<void> {
+    const failureCount = invoice.confirmation_url_retries + 1;
+    const next = nextRetryAt(failureCount);
+
+    await supabase
+      .from('invoices')
+      .update({
+        confirmation_url_retries: failureCount,
+        confirmation_url_next_retry_at: next ? next.toISOString() : null,
+      })
+      .eq('id', invoice.id);
+
+    // One email when it starts failing and one when we stop trying. Sending one
+    // per attempt filled a mailbox with news the merchant had after the first.
+    if (shouldEmailMerchant(failureCount)) {
+      await this.sendConfirmationUrlFailureEmail(invoice, commerce, failureCount, detail);
+    }
+    await this.alertIfRetriesExhausted(invoice, commerce, failureCount, detail);
+
+    const when = next ? `next attempt ${next.toISOString()}` : 'no attempts left';
+    console.log(
+      `Confirmation URL failed for invoice ${invoice.id}, attempt ${failureCount}/${this.maxRetries} (${when}): ${detail}`
+    );
   }
 
   /** One line naming what actually went wrong, for the email and the logs. */
@@ -486,7 +502,10 @@ export class NotificationService {
       .in('status', ['Paid', 'Expired', 'Refunded'])
       .eq('confirmation_url_available', true)
       .eq('confirmation_url_response', false)
-      .lt('confirmation_url_retries', this.maxRetries);
+      .lt('confirmation_url_retries', this.maxRetries)
+      // Null is a first attempt, and anything in the past is due. Without this
+      // the gap between retries was whatever the cron interval happened to be.
+      .or(`confirmation_url_next_retry_at.is.null,confirmation_url_next_retry_at.lte.${new Date().toISOString()}`);
     // Deliberately not filtering on selected_network / blockchain_invoice_id.
     // Those are null for every invoice that never settled on-chain — exactly
     // the Expired and Refunded ones the merchant most needs to hear about.

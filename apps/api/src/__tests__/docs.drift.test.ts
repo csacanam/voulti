@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { MAX_ATTEMPTS, describeSchedule } from '../business/webhookRetry';
 
 /**
  * The documentation lies eventually. These tests make it lie loudly.
@@ -55,12 +56,21 @@ describe('the webhook statuses the docs promise', () => {
 });
 
 describe('the numbers the docs quote', () => {
-  it('quote the real retry count', () => {
-    const maxRetries = Number(NOTIFICATIONS.match(/private maxRetries = (\d+)/)![1]);
-    expect(maxRetries).toBeGreaterThan(0);
+  it('quote the real attempt count', () => {
+    // The number lives in the retry schedule now, not in a loose constant —
+    // reading it from there is what makes this test survive the next change.
+    expect(NOTIFICATIONS).toContain('private maxRetries = MAX_ATTEMPTS');
 
     // Both surfaces tell an integrator how many times we will knock.
-    expect(ALL_DOCS).toMatch(new RegExp(`retry ${maxRetries} times|${maxRetries} times|${maxRetries} veces`));
+    expect(ALL_DOCS, `docs never state the ${MAX_ATTEMPTS} attempts`).toMatch(
+      new RegExp(`${MAX_ATTEMPTS} times|${MAX_ATTEMPTS} attempts|${MAX_ATTEMPTS} intentos|${MAX_ATTEMPTS} veces`)
+    );
+  });
+
+  it('quote the real backoff schedule', () => {
+    // A merchant plans their retry tolerance around these numbers. If the
+    // schedule moves and the sentence does not, they plan around fiction.
+    expect(ALL_DOCS, `docs never state the schedule "${describeSchedule()}"`).toContain(describeSchedule());
   });
 
   it('quote the real delivery timeout', () => {

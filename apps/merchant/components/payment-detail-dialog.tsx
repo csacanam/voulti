@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Copy, Check, ExternalLink, RefreshCw } from "lucide-react"
+import { Copy, Check, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react"
 import { useLanguage } from "@/components/providers/language-provider"
 import { apiClient } from "@/services/api"
 import { WebhookDeliveryResult, type DeliveryResult } from "@/components/webhook-delivery-result"
@@ -215,8 +215,20 @@ export function PaymentDetailDialog({
           )}
         </div>
 
-        {/* Only the three statuses that produce a delivery. Offering it on a
-            pending charge would promise to re-send something never sent. */}
+        {/* The sale and its notification are separate facts, and the row only
+            shows the first. A merchant who shipped nothing because no webhook
+            arrived needs to see *here* that the money did land and the message
+            did not — otherwise the two look like one failure. */}
+        {link.status !== "active" && link.webhook === "failing" && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              {link.status === "paid" ? t.webhookTest.paidButUndelivered : t.webhookTest.undelivered}
+              {link.webhookAttempts ? ` ${t.webhookTest.attemptsSoFar.replace("{n}", String(link.webhookAttempts))}` : ""}
+            </p>
+          </div>
+        )}
+
         {link.status !== "active" && (
           <div className="mt-3 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between gap-3">

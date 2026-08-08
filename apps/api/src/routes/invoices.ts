@@ -237,7 +237,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
 
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference, description, payer_address, paid_tx_hash, paid_network, paid_token, paid_amount')
+        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference, description, payer_address, paid_tx_hash, paid_network, paid_token, paid_amount, confirmation_url_available, confirmation_url_response, confirmation_url_retries')
         .eq('commerce_id', commerce_id)
         .order('created_at', { ascending: false })
         .limit(50);
