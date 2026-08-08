@@ -33,6 +33,7 @@ interface InvoiceData {
   paid_network?: string;
   paid_amount?: number;
   reference?: string | null;
+  description?: string | null;
 }
 
 interface CommerceData {
@@ -339,7 +340,8 @@ export class NotificationService {
         paid_network: invoice.paid_network,
         paid_amount: invoice.paid_amount,
         status: invoice.status,
-        reference: invoice.reference ?? null
+        reference: invoice.reference ?? null,
+        description: invoice.description ?? null
       };
 
       // Create AbortController for timeout

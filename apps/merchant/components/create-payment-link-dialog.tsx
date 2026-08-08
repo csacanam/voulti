@@ -27,6 +27,7 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
   const { commerce } = useCommerce()
   const { t } = useLanguage()
   const [amount, setAmount] = useState("")
+  const [description, setDescription] = useState("")
   // Picked per link, not fixed by the account: the price currency is only the
   // unit the payer is quoted in, and settlement is in stablecoins either way.
   const [currency, setCurrency] = useState(commerce?.currency || "USD")
@@ -72,6 +73,7 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
         commerce_id: commerce.commerce_id,
         amount_fiat: Number.parseFloat(amount),
         currency,
+        ...(description.trim() ? { description: description.trim() } : {}),
       }
 
       if (enableExpiration) {
@@ -127,6 +129,7 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
 
   const handleClose = () => {
     setAmount("")
+    setDescription("")
     setEnableExpiration(false)
     setExpirationDate("")
     setExpirationTime("")
@@ -188,6 +191,21 @@ export function CreatePaymentLinkDialog({ open, onOpenChange, onCreateLink }: Cr
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground">{t.createLink.currencyNote}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="link-description">{t.createLink.description}</Label>
+                <Input
+                  id="link-description"
+                  placeholder={t.createLink.descriptionPlaceholder}
+                  value={description}
+                  maxLength={300}
+                  disabled={loading}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+                {/* Says who sees it, because the field next to it (reference)
+                    is the opposite: private to the merchant. */}
+                <p className="text-xs text-muted-foreground">{t.createLink.descriptionNote}</p>
               </div>
 
               <div className="space-y-2">

@@ -18,7 +18,7 @@ Key facts:
 
 ## API summary
 
-- `POST /invoices` — create an invoice (no auth): `{ commerce_id, amount_fiat, currency }`. `currency` is required and chosen per invoice (USD, EUR, COP, ARS, BRL, MXN) — a merchant is not tied to one
+- `POST /invoices` — create an invoice (no auth): `{ commerce_id, amount_fiat, currency, reference?, description? }`. `reference` is private to the merchant; `description` is shown to the payer. `currency` is required and chosen per invoice (USD, EUR, COP, ARS, BRL, MXN) — a merchant is not tied to one
 - `GET /invoices/:id` — invoice status: `Pending`, `Paid`, `Expired`, `Refunded` (returned bare, not wrapped in `{success,data}` like POST)
 - Webhook — POST to the merchant's `confirmation_url` on every final status (`Paid`, `Expired`, `Refunded`), with `invoice_id`, `amount_fiat`, `status`, `paid_tx_hash`. Signed with `X-Voulti-Signature`; **respond within ~2s** (verify the signature, ack, then do the re-check and fulfilment after responding) or the delivery is retried.
 - Rate limit: 100 requests/minute per IP. Call from a server — `api.voulti.com` sends no CORS headers for third-party origins.

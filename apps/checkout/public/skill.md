@@ -68,11 +68,21 @@ A past or unparseable `expires_at` is rejected with `400` (`"expires_at must be 
 
 The payer connects any wallet (or MiniPay) and pays in the stablecoin/network of their choice; Voulti handles conversion and settlement.
 
-**Charging several clients?** Pass an optional `reference` (string, ≤ 200 chars) when creating the invoice — your own order id, client name, or memo. It comes back in the invoice responses and in the webhook payload, so you always know who paid what:
+**Two optional text fields, and they are not interchangeable:**
+
+| Field | Who sees it | What it is for |
+|---|---|---|
+| `reference` (≤ 200 chars) | **Only you.** Never shown to the payer. | Your own order id or client name. Comes back in the invoice responses and the webhook, so you can match a payment to your system. |
+| `description` (≤ 300 chars) | **The payer**, on the checkout, under the amount. | What is being bought — "October subscription", "Table 4". An amount on its own asks someone to send money without saying what for. |
+
+Putting an order id in `description` shows the payer a string that means nothing to them; putting a human phrase in `reference` leaves you unable to match it to anything. Send both:
 
 ```json
-{ "commerce_id": "...", "amount_fiat": 150, "reference": "andres-logo-2026" }
+{ "commerce_id": "...", "amount_fiat": 150, "currency": "USD",
+  "reference": "ord_8814", "description": "Logo design — 50% deposit" }
 ```
+
+Both come back on `POST /invoices` and in the webhook payload. Neither is searchable, so keep your own id → invoice mapping at creation time.
 
 ### Option B — Permanent link (payer chooses the amount)
 

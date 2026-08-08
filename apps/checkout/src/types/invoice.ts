@@ -33,6 +33,8 @@ export interface Invoice {
   commerce_name: string;
   amount_fiat: number;
   fiat_currency: string;
+  /** Concepto visible para el pagador. Distinto de reference, que es privada. */
+  description?: string | null;
   amount_usd?: string;
   usd_to_fiat_rate?: number;
   status: 'Pending' | 'Paid' | 'Refunded' | 'Expired';

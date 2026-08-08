@@ -428,6 +428,19 @@ export const CheckoutPage: React.FC = () => {
               <p className="text-3xl font-bold text-gray-900 tracking-tight">
                 {formatAmount(invoice.amount_fiat, invoice.fiat_currency)}
               </p>
+              {/* What the payer is actually buying. An amount on its own asks
+                  someone to send money without saying what for.
+                  Clamped rather than truncated server-side: a long itemised
+                  charge is legitimate, it just should not push the payment
+                  options off the screen. The full text stays on hover. */}
+              {invoice.description && (
+                <p
+                  className="text-gray-600 text-sm mt-1 line-clamp-3 break-words"
+                  title={invoice.description}
+                >
+                  {invoice.description}
+                </p>
+              )}
             </div>
 
             {/* Show Blockchain Transaction when invoice is paid */}

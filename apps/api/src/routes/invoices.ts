@@ -17,7 +17,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
   app.post('/', async (req: AuthenticatedRequest, res) => {
     try {
       const body = (req.body || {}) as any;
-      const { commerce_id, amount_fiat, expires_at, reference } = body;
+      const { commerce_id, amount_fiat, expires_at, reference, description } = body;
       // `fiat_currency` accepted as an alias: it is the name the field carries
       // in every response, so integrators reach for it first.
       const currency = body.currency ?? body.fiat_currency;
@@ -42,6 +42,16 @@ export async function invoicesRoutes(app: FastifyInstance) {
       if (reference !== undefined && (typeof reference !== 'string' || reference.length > 200)) {
         return res.status(400).send({
           error: 'reference must be a string of at most 200 characters'
+        });
+      }
+
+      // Long enough for an itemised charge — "2x plato, 1x postre, domicilio…"
+      // runs past a tweet and is perfectly normal. How much of it the checkout
+      // shows is a presentation problem, solved with CSS, not by rejecting what
+      // the merchant needs to say.
+      if (description !== undefined && (typeof description !== "string" || description.length > 300)) {
+        return res.status(400).send({
+          error: "description must be a string of at most 300 characters"
         });
       }
 
@@ -163,7 +173,8 @@ export async function invoicesRoutes(app: FastifyInstance) {
           expires_at: expirationTime,
           confirmation_url_available: commerce.confirmation_url !== null,
           confirmation_email_available: commerce.confirmation_email !== null,
-          ...(reference !== undefined ? { reference } : {})
+          ...(reference !== undefined ? { reference } : {}),
+          ...(description !== undefined ? { description } : {})
         })
         .select()
         .single();
@@ -186,6 +197,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
           expires_at: invoice.expires_at,
           created_at: invoice.created_at,
           reference: invoice.reference ?? null,
+          description: invoice.description ?? null,
           confirmation_url_available: invoice.confirmation_url_available,
           confirmation_email_available: invoice.confirmation_email_available
         }
@@ -223,7 +235,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
 
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference, payer_address, paid_tx_hash, paid_network')
+        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference, description, payer_address, paid_tx_hash, paid_network')
         .eq('commerce_id', commerce_id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -358,6 +370,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
       fiat_currency: invoice.fiat_currency,
       status: invoice.status,
       expires_at: invoice.expires_at,
+      description: invoice.description ?? null,
       amount_usd: amountInUSD.toFixed(2),
       usd_to_fiat_rate: fiatRate.usd_to_currency_rate,
       commerce_name: commerce.name,
