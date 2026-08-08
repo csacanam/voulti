@@ -406,6 +406,11 @@ export class SweepService {
         }
         const feeAmount = (paidAmount * feePercent) / 10000;
 
+        // The only trace of who paid that crypto offers. Best-effort: the scan
+        // is bounded and can come back empty, and a settled payment must not be
+        // held up over a missing label.
+        const payerAddress = await this.findSenderAddress(deposit).catch(() => null);
+
         await supabase
           .from('invoices')
           .update({
@@ -414,7 +419,10 @@ export class SweepService {
             paid_token: deposit.token_symbol,
             paid_network: deposit.network,
             paid_tx_hash: payTx.hash,
+            // The deposit address, which is ours — the payer goes in its own
+            // column so the two are never mistaken for each other.
             wallet_address: deposit.address,
+            ...(payerAddress ? { payer_address: payerAddress } : {}),
             paid_amount: paidAmount,
             fee_percent: feePercent,
             fee_amount: feeAmount,

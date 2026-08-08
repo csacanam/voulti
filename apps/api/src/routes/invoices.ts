@@ -223,7 +223,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
 
       const { data: invoices, error } = await supabase
         .from('invoices')
-        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference')
+        .select('id, commerce_id, amount_fiat, fiat_currency, status, expires_at, created_at, paid_at, payment_method, reference, payer_address, paid_tx_hash, paid_network')
         .eq('commerce_id', commerce_id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -670,6 +670,12 @@ export async function invoicesRoutes(app: FastifyInstance) {
           paid_network,
           paid_tx_hash,
           wallet_address,
+          // On this path `wallet_address` IS the payer — the checkout sends the
+          // connected wallet. On the deposit path the same column holds the
+          // address Voulti generated. Writing the payer to its own column makes
+          // the two flows agree instead of overloading one field with two
+          // meanings depending on how the invoice happened to be paid.
+          payer_address: wallet_address,
           paid_amount,
           fee_percent: feePercent,
           fee_amount: feeAmount,

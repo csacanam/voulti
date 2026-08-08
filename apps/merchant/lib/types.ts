@@ -51,4 +51,11 @@ export interface PaymentLink {
   expires?: string
   uses: number
   url: string
+  /** The merchant's own identifier for the buyer, set when the invoice was created. */
+  reference?: string
+  /** Where the money came from. Crypto carries no name; this is the closest
+      thing to a customer identity it offers. */
+  payerAddress?: string
+  txHash?: string
+  network?: string
 }

@@ -42,6 +42,7 @@ export const en = {
     createLink: "Create Payment Link",
     amount: "Amount",
     status: "Status",
+    customer: "Customer",
     created: "Created",
     expires: "Expires",
     copyUrl: "Copy",

@@ -18,6 +18,19 @@ import type { PaymentLink } from "@/lib/types"
 
 const CHECKOUT_BASE_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || "http://localhost:5175"
 
+const EXPLORERS: Record<string, string> = {
+  celo: "https://celoscan.io/address/",
+  arbitrum: "https://arbiscan.io/address/",
+  polygon: "https://polygonscan.com/address/",
+  base: "https://basescan.org/address/",
+  bsc: "https://bscscan.com/address/",
+}
+
+function explorerAddress(network: string | undefined, address: string): string {
+  const base = EXPLORERS[(network || "").toLowerCase()] || EXPLORERS.celo
+  return base + address
+}
+
 function formatTimeRemaining(expires: string, t: any): string {
   const diff = new Date(expires).getTime() - Date.now()
   if (diff <= 0) return t.time.expired
@@ -110,6 +123,10 @@ function PaymentLinksTab() {
             expires: inv.expires_at || undefined,
             uses: inv.status === "Paid" ? 1 : 0,
             url: `${CHECKOUT_BASE_URL}/checkout/${inv.id}`,
+            reference: inv.reference || undefined,
+            payerAddress: inv.payer_address || undefined,
+            txHash: inv.paid_tx_hash || undefined,
+            network: inv.paid_network || undefined,
           }
         }))
       } catch { /* empty */ } finally { setLoadingLinks(false) }
@@ -163,6 +180,10 @@ function PaymentLinksTab() {
                   <tr>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.amount}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.status}</th>
+                    {/* The two things that answer "who paid this": the id the
+                        merchant attached at creation, and where the money came
+                        from. Both were already stored and neither was shown. */}
+                    <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.customer}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.created}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground">{t.receive.expires}</th>
                     <th className="text-left p-3 text-xs font-medium text-muted-foreground"></th>
@@ -179,6 +200,24 @@ function PaymentLinksTab() {
                         </td>
                         <td className="p-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>{statusInfo.label}</span>
+                        </td>
+                        <td className="p-3 text-sm">
+                          {link.reference ? (
+                            <div className="text-foreground truncate max-w-[180px]" title={link.reference}>{link.reference}</div>
+                          ) : (
+                            <div className="text-muted-foreground">—</div>
+                          )}
+                          {link.payerAddress && (
+                            <a
+                              href={explorerAddress(link.network, link.payerAddress)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-mono text-primary hover:underline"
+                              title={link.payerAddress}
+                            >
+                              {link.payerAddress.slice(0, 6)}…{link.payerAddress.slice(-4)}
+                            </a>
+                          )}
                         </td>
                         <td className="p-3 text-sm text-muted-foreground">
                           {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
