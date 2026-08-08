@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
 import { WebhookTester } from "@/components/webhook-tester"
+import { WebhookVerifier } from "@/components/webhook-verifier"
 import { CodeBlock } from "@/components/code-block"
 import { QrModal } from "@/components/qr-modal"
 import { useCommerce } from "@/components/providers/commerce-provider"
@@ -704,6 +705,13 @@ app.post("/webhooks/voulti", (req, res) => {
 
         <div className="pt-5 border-t border-border/50">
           <WebhookTester commerceId={cid} hasUrl={Boolean(commerce?.confirmation_url)} />
+        </div>
+
+        {/* After the test button, because it only means something once a valid
+            delivery is known to land — and because "does it work" is the
+            question people ask first. */}
+        <div className="pt-5 border-t border-border/50">
+          <WebhookVerifier commerceId={cid} hasUrl={Boolean(commerce?.confirmation_url)} />
         </div>
       </Card>
     </div>

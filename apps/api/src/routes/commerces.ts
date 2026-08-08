@@ -10,6 +10,7 @@ import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { buildTestPayload } from '../business/webhookDelivery';
 import { deliverAndLog } from '../business/webhookLog';
+import { runConformanceProbes, summarise } from '../business/webhookProbes';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 import { sendTelegramAlert } from '../utils/notify';
 
@@ -398,6 +399,48 @@ export async function commercesRoutes(app: FastifyInstance) {
     } catch (error: any) {
       console.error('Webhook test error:', error);
       return res.status(500).send({ error: error.message || 'Failed to send test webhook' });
+    }
+  });
+
+  /**
+   * Ask the merchant's endpoint to say no, and see whether it can.
+   *
+   * The test button proves an endpoint is reachable. This proves it is not
+   * gullible — the distinction that decides whether anyone who learns the URL
+   * can make the merchant ship goods. Only we can run it: we hold the secret,
+   * so we are the only party able to sign wrongly on purpose.
+   *
+   * Same ownership rules and same stored URL as the test button: nothing here
+   * accepts a target from the request body.
+   */
+  app.post('/:id/webhook-verify', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet, confirmation_url, webhook_secret')
+        .eq('id', id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      if (!commerce.confirmation_url) {
+        return res.status(400).send({ error: 'Set a webhook URL first' });
+      }
+
+      const results = await runConformanceProbes({
+        url: commerce.confirmation_url,
+        secret: commerce.webhook_secret || null,
+        commerceId: id,
+      });
+
+      return res.send({ success: true, data: { results, summary: summarise(results) } });
+    } catch (error: any) {
+      console.error('Webhook verify error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to run checks' });
     }
   });
 

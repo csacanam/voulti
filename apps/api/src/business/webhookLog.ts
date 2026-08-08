@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { deliverWebhook, DeliveryResult, WebhookPayload } from './webhookDelivery';
+import { deliverWebhook, DeliveryResult, WebhookPayload, DeliverOptions } from './webhookDelivery';
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
@@ -29,9 +29,10 @@ export async function deliverAndLog(
   url: string,
   secret: string | null | undefined,
   payload: WebhookPayload,
-  context: DeliveryContext
+  context: DeliveryContext,
+  opts: DeliverOptions = {}
 ): Promise<DeliveryResult> {
-  const result = await deliverWebhook(url, secret, payload);
+  const result = await deliverWebhook(url, secret, payload, opts);
 
   // Recording is never allowed to affect delivery. If the insert fails the
   // merchant has still been notified, and turning a logging problem into a

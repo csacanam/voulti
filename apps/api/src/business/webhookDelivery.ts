@@ -61,17 +61,32 @@ export interface DeliveryResult {
  * Never throws: a network failure is a result, not an exception, because every
  * caller wants to show it rather than handle it.
  */
+export interface DeliverOptions {
+  /**
+   * Replace the signature we would compute.
+   *
+   * Exists for the conformance probes and nothing else: a string is sent
+   * verbatim, `null` omits the header entirely. Both are ways of asking a
+   * receiver to say no, which is the only way to find out whether it can.
+   * Leave it undefined and a real signature is computed.
+   */
+  signature?: string | null;
+}
+
 export async function deliverWebhook(
   url: string,
   secret: string | null | undefined,
-  payload: WebhookPayload
+  payload: WebhookPayload,
+  opts: DeliverOptions = {}
 ): Promise<DeliveryResult> {
   const body = JSON.stringify(payload);
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
   // Stripe-style, replay-resistant:
   //   X-Voulti-Signature: t=<unix_seconds>,v1=hex(hmacSHA256(secret, `${t}.${body}`))
-  if (secret) {
+  if (opts.signature !== undefined) {
+    if (opts.signature !== null) headers['X-Voulti-Signature'] = opts.signature;
+  } else if (secret) {
     const t = Math.floor(Date.now() / 1000);
     const v1 = createHmac('sha256', secret).update(`${t}.${body}`).digest('hex');
     headers['X-Voulti-Signature'] = `t=${t},v1=${v1}`;
@@ -104,7 +119,7 @@ export async function deliverWebhook(
       body: text,
       durationMs: Date.now() - startedAt,
       error: null,
-      signed: Boolean(secret),
+      signed: Boolean(headers['X-Voulti-Signature']),
     };
   } catch (err: any) {
     const durationMs = Date.now() - startedAt;
@@ -117,7 +132,7 @@ export async function deliverWebhook(
       error: aborted
         ? `No answer within ${WEBHOOK_TIMEOUT_MS}ms — the delivery was aborted`
         : err?.message || 'Request failed',
-      signed: Boolean(secret),
+      signed: Boolean(headers['X-Voulti-Signature']),
     };
   } finally {
     clearTimeout(timeoutId);

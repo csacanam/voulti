@@ -197,6 +197,14 @@ export const en = {
     webhookUrlLabel: "Webhook URL",
   },
 
+  webhookVerify: {
+    title: "Does your server refuse what it should?",
+    subtitle: "We send deliveries signed wrong on purpose. If it accepts them, anyone who learns your URL can make it believe an order was paid. Only Voulti can run this: we hold the secret, so we are the only ones who can mis-sign deliberately.",
+    run: "Run checks",
+    running: "Running…",
+    notReady: "Anything red here is a way to get goods without paying. Worth fixing before going live.",
+  },
+
   webhookTest: {
     title: "Test my webhook",
     subtitle: "We send your URL a real event of each kind, marked test: true, and show you what came back.",

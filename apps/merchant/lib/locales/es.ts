@@ -197,6 +197,14 @@ export const es = {
     webhookUrlLabel: "URL del webhook",
   },
 
+  webhookVerify: {
+    title: "¿Tu servidor rechaza lo que debe rechazar?",
+    subtitle: "Le mandamos entregas firmadas mal a propósito. Si las acepta, cualquiera que conozca tu URL puede hacerle creer que un pedido se pagó. Solo Voulti puede hacer esta prueba: somos los únicos que tenemos el secreto y podemos firmar mal a propósito.",
+    run: "Revisar",
+    running: "Revisando…",
+    notReady: "Con algo en rojo no conviene salir a producción: son formas de cobrar sin pagar.",
+  },
+
   webhookTest: {
     title: "Probar mi webhook",
     subtitle: "Le enviamos a tu URL un evento real de cada tipo, marcado con test: true, y te mostramos qué respondió.",
