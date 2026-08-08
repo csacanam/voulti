@@ -21,17 +21,28 @@ interface LanguageProviderProps {
   children: ReactNode;
 }
 
-export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(defaultLanguage);
+/**
+ * Resolved during the first render, not in an effect.
+ *
+ * An effect runs after paint, so deciding there means the shopper sees one
+ * frame of the wrong language on a page that is asking them for money. There
+ * is no server rendering this app, so reading storage while rendering is safe
+ * — there is no server output for it to disagree with.
+ *
+ * Only an explicit pick is stored. Persisting the detected language too would
+ * freeze the first guess forever: a shopper who later switches their browser
+ * to Spanish would keep reading English with no way to tell why, because a
+ * guess is indistinguishable from a choice once saved.
+ */
+const resolveInitialLanguage = (): Language => {
+  if (typeof window === 'undefined') return defaultLanguage;
 
-  useEffect(() => {
-    // Only an explicit pick is stored. Persisting the detected language too
-    // would freeze the first guess forever: a shopper who later switches their
-    // browser to Spanish would keep reading English with no way to tell why,
-    // because a guess is indistinguishable from a choice once saved.
-    const chosen = localStorage.getItem(STORAGE_KEY) as Language | null;
-    setLanguage(chosen && translations[chosen] ? chosen : detectBrowserLanguage());
-  }, []);
+  const chosen = localStorage.getItem(STORAGE_KEY) as Language | null;
+  return chosen && translations[chosen] ? chosen : detectBrowserLanguage();
+};
+
+export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
+  const [language, setLanguage] = useState<Language>(resolveInitialLanguage);
 
   // index.html is served as lang="en". Left that way, Chrome sees English
   // markup full of Spanish and offers to translate it — machine translation

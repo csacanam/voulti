@@ -1,7 +1,13 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { translations, detectBrowserLanguage, defaultLanguage, type Language, type TranslationKeys } from "@/lib/locales"
+import {
+  translations,
+  LANGUAGE_COOKIE,
+  LANGUAGE_COOKIE_MAX_AGE,
+  type Language,
+  type TranslationKeys,
+} from "@/lib/locales"
 
 interface LanguageContextType {
   language: Language
@@ -11,36 +17,42 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
-// Deliberately not the old "voulti-lang". That key holds a mix of real picks
-// and guesses the previous code wrote on first load, and nothing in the value
-// says which is which — so every merchant who ever opened the dashboard is
-// pinned to whatever it guessed then, which is the bug. Retiring the key is
-// the only way to let detection run again; the cost is one re-pick for the
-// merchants who had actually chosen.
-const STORAGE_KEY = "voulti-lang.chosen"
+export function LanguageProvider({
+  children,
+  initialLanguage,
+}: {
+  children: ReactNode
+  /**
+   * Resolved on the server from the cookie, falling back to Accept-Language.
+   * The provider does not detect anything itself: the server knew before it
+   * rendered, and a second detection path here could only disagree with the
+   * HTML that already painted.
+   */
+  initialLanguage: Language
+}) {
+  const [language, setLang] = useState<Language>(initialLanguage)
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLang] = useState<Language>(defaultLanguage)
-
-  useEffect(() => {
-    // Only an explicit pick is stored. Persisting the detected language too
-    // would freeze the first guess forever: a merchant who later switches
-    // their browser to Spanish would keep reading English with no way to tell
-    // why, because a guess is indistinguishable from a choice once saved.
-    const chosen = localStorage.getItem(STORAGE_KEY) as Language | null
-    setLang(chosen && translations[chosen] ? chosen : detectBrowserLanguage())
-  }, [])
-
-  // The document is served as lang="en" because the layout is static. Left
-  // that way, Chrome sees English markup full of Spanish and offers to
-  // translate it — machine translation layered on top of real translations.
   useEffect(() => {
     document.documentElement.lang = language
   }, [language])
 
+  // Carries over the picks made in the few hours when the choice lived in
+  // localStorage. Safe to delete once those visitors have come back once.
+  useEffect(() => {
+    if (document.cookie.includes(`${LANGUAGE_COOKIE}=`)) return
+
+    const stranded = localStorage.getItem(LANGUAGE_COOKIE) as Language | null
+    if (stranded && translations[stranded]) {
+      setLanguage(stranded)
+      localStorage.removeItem(LANGUAGE_COOKIE)
+    }
+  }, [])
+
   const setLanguage = (lang: Language) => {
     setLang(lang)
-    localStorage.setItem(STORAGE_KEY, lang)
+    // Not httpOnly: the client is what writes it. Lax is enough — reading it
+    // wrong costs a language, not an account.
+    document.cookie = `${LANGUAGE_COOKIE}=${lang}; path=/; max-age=${LANGUAGE_COOKIE_MAX_AGE}; SameSite=Lax`
   }
 
   return (
