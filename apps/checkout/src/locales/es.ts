@@ -168,6 +168,8 @@ export const es = {
   commerce: {
     title: 'Paga con cripto en {name}',
     subtitle: 'Realiza tu pago de forma segura usando {name} con Voulti.',
+    currencyLabel: '¿En qué moneda pagas?',
+    currencyPlaceholder: 'Elige una moneda',
     amountLabel: 'Ingresa el valor a pagar',
     amountPlaceholder: '0',
     generateButton: 'Continuar',

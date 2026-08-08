@@ -15,16 +15,13 @@ export const CommercePage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   /**
-   * The permanent link can carry the currency it charges in: /pay/<id>?currency=USD
+   * The permanent link carries the currency it charges in:
+   * /pay/<id>?currency=USD
    *
-   * Without it there is no caller to state one, so it falls back to the
-   * commerce's — which is otherwise just the unit its dashboard totals use.
-   * With it, one merchant can hand a EUR link to Europe and a COP link at
-   * home, from the same account, without changing an account-wide setting.
-   *
-   * Only the unit shown is decided here; the API validates the code against
-   * the same whitelist every invoice goes through, so a hand-edited URL cannot
-   * invent a currency.
+   * One merchant can hand a EUR link to Europe and a COP link at home from the
+   * same account. Only the unit shown is decided here; the API validates the
+   * code against the same whitelist every invoice goes through, so a
+   * hand-edited URL cannot invent a currency.
    */
   const CURRENCY_SYMBOLS: Record<string, string> = {
     USD: '$', COP: '$', MXN: '$', ARS: '$', BRL: 'R$', EUR: '€',
@@ -33,9 +30,20 @@ export const CommercePage: React.FC = () => {
   const currencyCode = CURRENCY_SYMBOLS[requested] ? requested : undefined;
   const { commerce, error, loading } = useCommerce(commerceId || '');
 
-  const effectiveCurrency = currencyCode || commerce?.currency || 'USD';
-  const effectiveSymbol =
-    CURRENCY_SYMBOLS[effectiveCurrency] || commerce?.currency_symbol || '$';
+  /**
+   * With no currency in the link there is nothing to infer from: the merchant
+   * never stated one, so guessing would price an amount in a unit nobody
+   * chose — and USD vs COP is three orders of magnitude. The payer picks it,
+   * deliberately and with no option pre-selected, which also means unit and
+   * amount are decided by the same person in the same gesture.
+   *
+   * Links generated from the dashboard always carry the parameter, so this
+   * path is only reached by a hand-written URL.
+   */
+  const [chosenCurrency, setChosenCurrency] = useState<string>('');
+  const mustChooseCurrency = !currencyCode;
+  const effectiveCurrency = currencyCode || chosenCurrency;
+  const effectiveSymbol = effectiveCurrency ? CURRENCY_SYMBOLS[effectiveCurrency] : '';
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [amount, setAmount] = useState<string>('');
@@ -147,6 +155,7 @@ export const CommercePage: React.FC = () => {
   };
 
   const handleGenerateLink = async () => {
+    if (!effectiveCurrency) return;
     if (!validateAmount()) return;
     // Wait for the commerce: without it there is no fallback currency and no
     // limits to have validated against.
@@ -221,14 +230,33 @@ export const CommercePage: React.FC = () => {
 
           {/* Amount Input */}
           <div className="space-y-4">
+            {mustChooseCurrency && (
+              <div>
+                <label htmlFor="pay-currency" className="block text-gray-900 font-medium mb-2">
+                  {t.commerce.currencyLabel}
+                </label>
+                <select
+                  id="pay-currency"
+                  value={chosenCurrency}
+                  onChange={(e) => setChosenCurrency(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white text-gray-900"
+                >
+                  <option value="" disabled>{t.commerce.currencyPlaceholder}</option>
+                  {Object.keys(CURRENCY_SYMBOLS).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-gray-900 font-medium mb-2">
-                {t.commerce.amountLabel} {language === 'es' ? 'en' : 'in'} {effectiveCurrency}
+                {t.commerce.amountLabel}{effectiveCurrency ? ` ${language === 'es' ? 'en' : 'in'} ${effectiveCurrency}` : ''}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-400 text-sm font-medium">
-                    {effectiveCurrency} {effectiveSymbol}
+                    {effectiveCurrency ? `${effectiveCurrency} ${effectiveSymbol}` : ''}
                   </span>
                 </div>
                 <input
@@ -268,9 +296,9 @@ export const CommercePage: React.FC = () => {
             {/* Generate Button */}
             <button
               onClick={handleGenerateLink}
-              disabled={isGenerating || !amount || !!amountError}
+              disabled={isGenerating || !amount || !!amountError || !effectiveCurrency}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
-                isGenerating || !amount || !!amountError
+                isGenerating || !amount || !!amountError || !effectiveCurrency
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   : 'bg-violet-600 hover:bg-violet-700 text-white'
               }`}
