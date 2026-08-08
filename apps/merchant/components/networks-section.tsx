@@ -8,6 +8,7 @@ import { Loader2, Check, X, RefreshCw } from "lucide-react"
 import { API_CONFIG } from "@/services/config"
 import { getAuthToken } from "@/services/api"
 import { useToast } from "@/hooks/use-toast"
+import { useLanguage } from "@/components/providers/language-provider"
 
 interface NetworkStatus {
   network: string
@@ -31,6 +32,7 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const { toast } = useToast()
+  const { t } = useLanguage()
 
   const fetchNetworks = async () => {
     try {
@@ -42,7 +44,7 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
       const { data } = await res.json()
       setNetworks(data || [])
     } catch {
-      toast({ title: "Failed to load networks", variant: "destructive" })
+      toast({ title: t.networks.loadFailed, variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -61,14 +63,16 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || "Failed")
-      }
-      toast({ title: currentlyActive ? `${NETWORK_LABELS[network]} disabled` : `${NETWORK_LABELS[network]} enabled` })
+      if (!res.ok) throw new Error(String(res.status))
+      const label = NETWORK_LABELS[network] || network
+      toast({
+        title: (currentlyActive ? t.networks.disabled : t.networks.enabled).replace("{network}", label),
+      })
       await fetchNetworks()
-    } catch (err: any) {
-      toast({ title: err.message || "Failed", variant: "destructive" })
+    } catch {
+      // Deliberately not the API's message: it is written in one language and
+      // the merchant may be reading the other one.
+      toast({ title: t.networks.updateFailed, variant: "destructive" })
     } finally {
       setUpdating(null)
     }
@@ -78,9 +82,9 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
     <Card className="p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Networks</h3>
+          <h3 className="text-lg font-semibold text-foreground">{t.networks.title}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Enable or disable networks to accept payments
+            {t.networks.subtitle}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={fetchNetworks} disabled={loading}>
@@ -111,17 +115,21 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
                       // saying "Inactive" here tells a merchant they cannot
                       // charge on a network where they can charge right now.
                       <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs">
-                        Couldn&apos;t check
+                        {t.networks.unknown}
                       </Badge>
                     ) : isFullyActive ? (
                       <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
-                        Active
+                        {t.networks.active}
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                      <Badge variant="secondary" className="text-xs">{t.networks.inactive}</Badge>
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {n.readError ? 'status unavailable' : `${tokensEnabled}/${totalTokens} tokens`}
+                      {n.readError
+                        ? t.networks.statusUnavailable
+                        : t.networks.tokens
+                            .replace("{enabled}", String(tokensEnabled))
+                            .replace("{total}", String(totalTokens))}
                     </span>
                   </div>
                 </div>
@@ -137,9 +145,9 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
                   {updating === n.network ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : isFullyActive ? (
-                    <><X className="w-3.5 h-3.5" /> Disable</>
+                    <><X className="w-3.5 h-3.5" /> {t.networks.disable}</>
                   ) : (
-                    <><Check className="w-3.5 h-3.5" /> Enable</>
+                    <><Check className="w-3.5 h-3.5" /> {t.networks.enable}</>
                   )}
                 </Button>
               </div>

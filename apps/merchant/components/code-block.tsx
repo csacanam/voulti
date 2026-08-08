@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react"
 import { Copy, Check } from "lucide-react"
+import { useLanguage } from "@/components/providers/language-provider"
 
 /**
  * A code block that is readable and that copies exactly what it shows.
@@ -75,6 +76,7 @@ export function CodeBlock({
   label?: string
 }) {
   const [copied, setCopied] = useState(false)
+  const { t } = useLanguage()
 
   return (
     <div>
@@ -93,7 +95,7 @@ export function CodeBlock({
             setTimeout(() => setCopied(false), 2000)
           }}
           className="absolute top-2 right-2 p-1.5 rounded-md bg-background/80 border border-border text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Copy code"
+          aria-label={t.code.copy}
         >
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
         </button>

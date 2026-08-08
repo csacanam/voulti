@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Download, ExternalLink, Calendar, Wallet, Hash, Mail } from "lucide-react"
+import { useLanguage } from "@/components/providers/language-provider"
 import type { Payout } from "@/lib/types"
 
 interface PayoutDetailDialogProps {
@@ -13,22 +14,28 @@ interface PayoutDetailDialogProps {
 }
 
 export function PayoutDetailDialog({ open, onOpenChange, payout }: PayoutDetailDialogProps) {
+  const { t } = useLanguage()
+
   if (!payout) return null
 
-  const handleDownloadReceipt = () => {
-    const receipt = `
-PAYOUT RECEIPT
-==============
+  const r = t.payoutDetail
 
-ID: ${payout.id}
-Date: ${payout.date}
-Recipient: ${payout.recipientName}
-Email: ${payout.email}
-Wallet: ${payout.walletAddress}
-Amount: $${payout.amountUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD
-Local Amount: ${payout.amount.toLocaleString()} ${payout.currency}
-Status: ${payout.status}
-TX Hash: ${payout.txHash}
+  const handleDownloadReceipt = () => {
+    // The receipt is a file the merchant keeps, so it follows the dashboard's
+    // language too — not just the screen it was downloaded from.
+    const receipt = `
+${r.receiptTitle}
+${"=".repeat(r.receiptTitle.length)}
+
+${r.receiptId}: ${payout.id}
+${r.receiptDate}: ${payout.date}
+${r.receiptRecipient}: ${payout.recipientName}
+${r.receiptEmail}: ${payout.email}
+${r.receiptWallet}: ${payout.walletAddress}
+${r.receiptAmount}: $${payout.amountUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })} USD
+${r.receiptLocalAmount}: ${payout.amount.toLocaleString()} ${payout.currency}
+${r.receiptStatus}: ${payout.status}
+${r.receiptTxHash}: ${payout.txHash}
     `.trim()
 
     const blob = new Blob([receipt], { type: "text/plain" })
@@ -46,7 +53,7 @@ TX Hash: ${payout.txHash}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-2xl">Payout Details</DialogTitle>
+          <DialogTitle className="text-2xl">{r.title}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6 py-4">
@@ -62,18 +69,18 @@ TX Hash: ${payout.txHash}
             </div>
 
             <Badge className="bg-accent text-accent-foreground">
-              {payout.statusOriginal || "Unknown"}
+              {payout.statusOriginal || r.unknownStatus}
             </Badge>
           </div>
 
           <div className="border-t border-b border-border py-6">
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Amount Transferred</p>
+              <p className="text-sm text-muted-foreground">{r.amountTransferred}</p>
               <p className="text-4xl font-bold text-foreground">
                 ${payout.amountUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </p>
               <p className="text-lg text-muted-foreground">
-                {payout.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} {payout.currency} to recipient
+                {payout.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} {payout.currency} {r.toRecipient}
               </p>
             </div>
           </div>
@@ -82,7 +89,7 @@ TX Hash: ${payout.txHash}
             <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
               <Mail className="w-5 h-5 text-muted-foreground mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground mb-1">Email</p>
+                <p className="text-sm font-medium text-foreground mb-1">{r.email}</p>
                 <p className="text-sm text-muted-foreground">{payout.email}</p>
               </div>
             </div>
@@ -90,7 +97,7 @@ TX Hash: ${payout.txHash}
             <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
               <Wallet className="w-5 h-5 text-muted-foreground mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground mb-1">Wallet Address</p>
+                <p className="text-sm font-medium text-foreground mb-1">{r.wallet}</p>
                 <p className="text-sm text-muted-foreground font-mono break-all">{payout.walletAddress}</p>
               </div>
             </div>
@@ -98,7 +105,7 @@ TX Hash: ${payout.txHash}
             <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
               <Hash className="w-5 h-5 text-muted-foreground mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground mb-1">Transaction Hash</p>
+                <p className="text-sm font-medium text-foreground mb-1">{r.txHash}</p>
                 <p className="text-sm text-muted-foreground font-mono break-all">{payout.txHash}</p>
               </div>
             </div>
@@ -112,12 +119,12 @@ TX Hash: ${payout.txHash}
             onClick={() => window.open(explorerUrl, "_blank")}
           >
             <ExternalLink className="w-4 h-4" />
-            View on Explorer
+            {r.viewOnExplorer}
           </Button>
 
           <Button className="flex-1 gap-2" onClick={handleDownloadReceipt}>
             <Download className="w-4 h-4" />
-            Download Receipt
+            {r.downloadReceipt}
           </Button>
         </div>
       </DialogContent>

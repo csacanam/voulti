@@ -12,15 +12,24 @@ export const defaultLanguage: Language = "en"
 export function detectBrowserLanguage(): Language {
   if (typeof window === "undefined") return defaultLanguage
 
-  const browserLang = navigator.language.toLowerCase()
+  // navigator.language is only the first entry of navigator.languages, so
+  // reading it alone gives up as soon as the top preference is a language we
+  // do not have. A merchant whose list is [fr-FR, es-CO, en] wanted Spanish
+  // before English and used to get English.
+  const preferences = navigator.languages?.length ? navigator.languages : [navigator.language]
 
-  if (supportedLanguages.includes(browserLang as Language)) {
-    return browserLang as Language
-  }
+  for (const preference of preferences) {
+    const tag = preference.toLowerCase()
 
-  const baseLang = browserLang.split("-")[0]
-  if (supportedLanguages.includes(baseLang as Language)) {
-    return baseLang as Language
+    if (supportedLanguages.includes(tag as Language)) {
+      return tag as Language
+    }
+
+    // 'es-419' and 'es-CO' are both Spanish to us.
+    const base = tag.split("-")[0]
+    if (supportedLanguages.includes(base as Language)) {
+      return base as Language
+    }
   }
 
   return defaultLanguage
