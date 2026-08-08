@@ -1,4 +1,5 @@
-import { deliverWebhook, buildPayload, DeliveryResult } from './webhookDelivery';
+import { buildPayload, DeliveryResult } from './webhookDelivery';
+import { deliverAndLog } from './webhookLog';
 import { createClient } from '@supabase/supabase-js';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { getNetworkByChainId, NETWORKS } from '../blockchain/config/networks';
@@ -339,7 +340,11 @@ export class NotificationService {
       return { ok: false, status: null, body: null, durationMs: 0, error: 'No confirmation URL configured', signed: false };
     }
 
-    return deliverWebhook(commerce.confirmation_url, commerce.webhook_secret, buildPayload(invoice));
+    return deliverAndLog(commerce.confirmation_url, commerce.webhook_secret, buildPayload(invoice), {
+      commerceId: commerce.id,
+      invoiceId: invoice.id,
+      event: invoice.status,
+    });
   }
 
   /** One line naming what actually went wrong, for the email and the logs. */

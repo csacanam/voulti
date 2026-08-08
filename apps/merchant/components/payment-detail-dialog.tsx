@@ -7,6 +7,7 @@ import { Copy, Check, ExternalLink, RefreshCw } from "lucide-react"
 import { useLanguage } from "@/components/providers/language-provider"
 import { apiClient } from "@/services/api"
 import { WebhookDeliveryResult, type DeliveryResult } from "@/components/webhook-delivery-result"
+import { WebhookHistory } from "@/components/webhook-history"
 import type { PaymentLink } from "@/lib/types"
 
 /**
@@ -227,6 +228,10 @@ export function PaymentDetailDialog({
             </div>
             {resendError && <p className="mt-2 text-xs text-red-500">{resendError}</p>}
             {resendResult && <WebhookDeliveryResult result={resendResult} />}
+
+            <div className="mt-3">
+              <WebhookHistory invoiceId={link.id} />
+            </div>
           </div>
         )}
 

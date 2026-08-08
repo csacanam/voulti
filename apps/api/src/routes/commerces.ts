@@ -8,7 +8,8 @@ import { getProvider, getWallet } from '../blockchain/utils/web3';
 import AccessManagerABI from '../blockchain/abi/AccessManager.json';
 import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
-import { deliverWebhook, buildTestPayload } from '../business/webhookDelivery';
+import { buildTestPayload } from '../business/webhookDelivery';
+import { deliverAndLog } from '../business/webhookLog';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 import { sendTelegramAlert } from '../utils/notify';
 
@@ -386,7 +387,12 @@ export async function commercesRoutes(app: FastifyInstance) {
         fiat_currency: commerce.currency || 'USD',
       });
 
-      const result = await deliverWebhook(commerce.confirmation_url, commerce.webhook_secret, payload);
+      const result = await deliverAndLog(commerce.confirmation_url, commerce.webhook_secret, payload, {
+        commerceId: id,
+        invoiceId: null,
+        event: requested,
+        isTest: true,
+      });
 
       return res.send({ success: true, data: { ...result, payload } });
     } catch (error: any) {

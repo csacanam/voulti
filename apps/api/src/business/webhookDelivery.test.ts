@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createHmac } from 'crypto';
+import { readFileSync, readdirSync, statSync } from 'fs';
 import { createServer, Server } from 'http';
+import { join } from 'path';
 import { deliverWebhook, buildTestPayload, buildPayload, TEST_INVOICE_ID } from './webhookDelivery';
 
 /**
@@ -178,5 +180,36 @@ describe('test payloads', () => {
 
     expect(refunded.status).toBe('Refunded');
     expect(refunded.paid_tx_hash).toBeTruthy();
+  });
+});
+
+describe('nothing delivers a webhook without recording it', () => {
+  /**
+   * `deliverWebhook` sends but does not log; `deliverAndLog` does both. A new
+   * call site reaching for the raw function would silently reintroduce exactly
+   * the blindness the delivery log exists to remove — and nobody would notice,
+   * because the webhook would still arrive.
+   *
+   * So the invariant is checked rather than documented.
+   */
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((entry) => {
+      const full = join(dir, entry);
+      return statSync(full).isDirectory() ? walk(full) : full.endsWith('.ts') ? [full] : [];
+    });
+
+  it('only webhookLog.ts imports the raw sender', () => {
+    const src = join(__dirname, '..');
+    const offenders = walk(src)
+      .filter((f) => !/webhookDelivery\.(ts|test\.ts)$|webhookLog\.ts$/.test(f))
+      .filter((f) => /from '\.[./]*(business\/)?webhookDelivery'/.test(readFileSync(f, 'utf8')))
+      .filter((f) => {
+        const body = readFileSync(f, 'utf8');
+        const importLine = body.match(/import \{([^}]+)\} from '[^']*webhookDelivery'/);
+        return Boolean(importLine && /\bdeliverWebhook\b/.test(importLine[1]));
+      })
+      .map((f) => f.replace(src, 'src'));
+
+    expect(offenders, 'import deliverAndLog from webhookLog instead').toEqual([]);
   });
 });

@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import Fastify from 'fastify';
+import { guardProductionDatabase } from './guards/productionDatabase';
 import { invoicesRoutes } from './routes/invoices';
 import { blockchainRoutes } from './routes/blockchain';
 import { commercesRoutes } from './routes/commerces';
@@ -18,6 +19,8 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 
 async function main() {
+  guardProductionDatabase();
+
   const app = Fastify();
 
   // Rate limiting

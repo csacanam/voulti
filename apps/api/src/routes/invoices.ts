@@ -6,7 +6,8 @@ import { NETWORKS } from '../blockchain/config/networks';
 import { getProvider } from '../blockchain/utils/web3';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
-import { deliverWebhook, buildPayload } from '../business/webhookDelivery';
+import { buildPayload } from '../business/webhookDelivery';
+import { deliverAndLog } from '../business/webhookLog';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -572,7 +573,11 @@ export async function invoicesRoutes(app: FastifyInstance) {
         });
       }
 
-      const result = await deliverWebhook(commerce.confirmation_url, commerce.webhook_secret, buildPayload(invoice));
+      const result = await deliverAndLog(commerce.confirmation_url, commerce.webhook_secret, buildPayload(invoice), {
+        commerceId: invoice.commerce_id,
+        invoiceId: invoice.id,
+        event: invoice.status,
+      });
 
       // A manual resend that lands closes the invoice out of the retry queue;
       // one that fails must not consume a retry the cron still owes it.
@@ -587,6 +592,58 @@ export async function invoicesRoutes(app: FastifyInstance) {
     } catch (error: any) {
       console.error('Resend webhook error:', error);
       return res.status(500).send({ error: error.message || 'Failed to resend webhook' });
+    }
+  });
+
+  /**
+   * Every delivery attempt for one invoice, newest first.
+   *
+   * This is the difference between "the webhook doesn't arrive" and "your
+   * endpoint has been answering 404 since 3:41". The merchant is the one who
+   * has to fix their server, and they cannot do it from a boolean.
+   */
+  app.get('/:id/webhook-deliveries', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: invoice } = await supabase
+        .from('invoices')
+        .select('id, commerce_id')
+        .eq('id', id)
+        .single();
+
+      if (!invoice) {
+        return res.status(404).send({ error: 'Invoice not found' });
+      }
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', invoice.commerce_id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const { data, error } = await supabase
+        .from('webhook_deliveries')
+        .select('id, event, url, ok, status_code, response_body, error, duration_ms, signed, is_test, created_at')
+        .eq('invoice_id', id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // An empty history and a broken query look identical to the caller unless
+      // this says so — and "no attempts" is a meaningful answer here.
+      if (error) {
+        console.error('Webhook deliveries query error:', error);
+        return res.status(500).send({ error: 'Failed to read delivery history' });
+      }
+
+      return res.send({ success: true, data: data || [] });
+    } catch (error: any) {
+      console.error('Webhook deliveries error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to read delivery history' });
     }
   });
 
