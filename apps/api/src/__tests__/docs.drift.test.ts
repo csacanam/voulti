@@ -73,6 +73,51 @@ describe('the numbers the docs quote', () => {
     expect(ALL_DOCS, `docs never state the schedule "${describeSchedule()}"`).toContain(describeSchedule());
   });
 
+  it('never quote a stale attempt count alongside the real one', () => {
+    /**
+     * The hole that let a merchant's agent find this before we did: the test
+     * above only asserted the *right* number appears somewhere. Adding the
+     * backoff paragraph satisfied it while three sentences elsewhere still
+     * said "up to 5 times" and "once the 5th is spent" — so the file claimed
+     * both, and the reader had to guess.
+     */
+    const claims = [...ALL_DOCS.matchAll(/\b(\d+)\s+(?:times|attempts|retries|intentos|reintentos)\b/gi)]
+      .map((m) => Number(m[1]))
+      .filter((n) => n > 1); // "1 time" is never a retry-policy claim
+
+    const wrong = [...new Set(claims)].filter((n) => n !== MAX_ATTEMPTS);
+
+    expect(wrong, `docs claim a retry count that is not ${MAX_ATTEMPTS}`).toEqual([]);
+  });
+
+  it('document every validation error the create route can return', () => {
+    /**
+     * The other half of the existing check. That one asserts documented errors
+     * exist in the code; this asserts the code's errors are documented. A
+     * merchant's agent hit exactly this gap: `currency` became required, got
+     * its own 400, and the error table never mentioned it — so the table still
+     * implied only two fields were mandatory.
+     */
+    const handler = INVOICE_ROUTES.slice(
+      INVOICE_ROUTES.indexOf("app.post('/'"),
+      INVOICE_ROUTES.indexOf("app.get('/by-commerce")
+    );
+    expect(handler.length, 'could not isolate the create handler').toBeGreaterThan(500);
+
+    // Only 400s. A 500 means we broke, not that the caller did, and there is
+    // nothing an integrator can do with it but retry.
+    const returned = [
+      ...handler.matchAll(/status\(400\)\.send\(\{\s*\n?\s*error: ['`]([^'`$]{15,})['`]/g),
+    ].map((m) => m[1]);
+    expect(returned.length, 'no 400 error strings found in the create handler').toBeGreaterThan(3);
+
+    // A distinctive prefix, because the table abbreviates long messages with an
+    // ellipsis rather than repeating a sentence nobody reads to the end.
+    const undocumented = returned.filter((msg) => !SKILL.includes(msg.slice(0, 30)));
+
+    expect(undocumented, 'the create route returns an error the skill never documents').toEqual([]);
+  });
+
   it('quote the real delivery timeout', () => {
     const timeoutMs = Number(DELIVERY.match(/WEBHOOK_TIMEOUT_MS = (\d+)/)![1]);
     const seconds = timeoutMs / 1000;
