@@ -105,7 +105,11 @@ PUT https://api.voulti.com/invoices/<invoice_id>/status
 { "status": "Expired" }
 ```
 
-The one write on an invoice a merchant may make, and the only one — it needs the merchant's dashboard session, not the no-auth access the rest of this file uses, so **you cannot call it from an integration**. Ask the human to do it, or simply let the charge expire on its own. `Paid` and `Refunded` are settled on-chain and cannot be set by hand at all; a charge that is already anything other than `Pending` answers `409`.
+The one write on an invoice a merchant may make, and the only one. It needs the merchant's dashboard session, not the no-auth access the rest of this file uses, so **you cannot call it from an integration** — and that is a limit of the current design, not an oversight you can work around. Every other endpoint here is unauthenticated and identified only by `commerce_id`, which is public; a cancel endpoint on those terms would let anyone with a charge link kill anyone's payment. Until there are API keys, cancelling stays behind the dashboard.
+
+**So do not design a flow that needs it.** Set `expires_at` to the window you actually want when you create the charge — that is the cancellation, decided up front. A quote good for ten minutes should be created with ten minutes on it, not created open-ended and revoked later. If a human must call one off early, they can, from **Receive Payments** in their dashboard.
+
+`Paid` and `Refunded` are settled on-chain and cannot be set by hand at all; a charge that is already anything other than `Pending` answers `409`.
 
 ---
 
@@ -139,7 +143,7 @@ GET https://api.voulti.com/invoices/<invoice_id>
 
 `status` transitions: `Pending` → `Paid`, `Expired` or `Refunded` — **and `Expired` → `Refunded`**. Only `Paid` and `Refunded` are truly final.
 
-> ⚠️ **`Expired` is not the end of the story.** Voulti watches the deposit address for 24h after expiry, so an invoice you already saw as `Expired` can flip to `Refunded` later, when late funds arrive and are sent back. If your poller stops re-checking on `Expired`, you will never learn the payer actually paid — and they *will* contact the merchant saying so. Keep re-checking expired invoices for 24h, or rely on the webhook, which fires again on the flip.
+> ⚠️ **`Expired` is not the end of the story.** Voulti watches the deposit address for 24h counted from `expires_at` — not from the moment the sweep flips the status, which can lag it by up to ~5 minutes, so an invoice you already saw as `Expired` can flip to `Refunded` later, when late funds arrive and are sent back. If your poller stops re-checking on `Expired`, you will never learn the payer actually paid — and they *will* contact the merchant saying so. Keep re-checking expired invoices for 24h, or rely on the webhook, which fires again on the flip.
 
 | Status | Meaning |
 |---|---|
@@ -182,6 +186,18 @@ Deduplicate on `invoice_id` plus `status`: there is no delivery id or attempt co
 
 **Retries back off, so a short outage is survivable.** A delivery that does not answer `2xx` within 2 s is retried on this schedule: 1m, 5m, 30m, 2h, 6h, 12h, 24h — 8 attempts spanning about two days. **Your handler must be idempotent**: the same event will arrive more than once whenever a response is slow or lost, and the merchant can also replay it by hand from their dashboard. Key your cache on `invoice_id` **plus `status`**, as above — never on `invoice_id` alone. One charge can legitimately deliver twice with different statuses (`Expired`, then `Refunded` when late funds are returned), and a cache keyed on the id alone swallows the second one: the order stays shipped after the money went back. After the last attempt the invoice leaves the delivery queue for good; only a manual resend brings it back.
 
+**`paid_network` values, and the explorer for each.** The field is lower-case and is *not* the display name used elsewhere in this file — `tokens[]` on `GET /invoices/<id>` capitalises the same networks (`Celo`, `Arbitrum`…), and the Facts section spells them for humans (`Arbitrum One`). Match on this column, not on those:
+
+| `paid_network` | Explorer for `paid_tx_hash` |
+|---|---|
+| `celo` | `https://celoscan.io/tx/<hash>` |
+| `arbitrum` | `https://arbiscan.io/tx/<hash>` |
+| `polygon` | `https://polygonscan.com/tx/<hash>` |
+| `base` | `https://basescan.org/tx/<hash>` |
+| `bsc` | `https://bscscan.com/tx/<hash>` |
+
+A few rows created before this settled carry `Celo` capitalised, so lower-case the value before comparing.
+
 **`test: true` means nobody paid.** The merchant can fire any of the three events at their own URL from the dashboard's *Test my webhook* button. Those deliveries are byte-identical to real ones except for a `test: true` field, are signed with the same secret, and carry `invoice_id: "00000000-0000-0000-0000-000000000000"`. Return `2xx` so the merchant sees their endpoint works — and ship nothing. Real deliveries never carry the field at all, so branch on its presence, not on its value.
 
 **Verify the signature.** The `X-Voulti-Signature: t=<unix_seconds>,v1=<hex>` header carries an HMAC-SHA256 of `` `${t}.${rawBody}` `` keyed with the commerce's webhook signing secret. It is present **whenever that commerce has a signing secret configured, and absent when it does not** — so if your handler rejects unsigned deliveries (it should), make sure the merchant actually set a secret, or every delivery will `401` and burn every attempt we make.
@@ -192,7 +208,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 function verifyVoultiWebhook(rawBody, signatureHeader, secret, toleranceSeconds = 300) {
   if (!signatureHeader) return false;
   const { t, v1 } = Object.fromEntries(
-    signatureHeader.split(",").map((p) => p.trim().split("="))
+    signatureHeader.split(",").map((p) => p.trim().split(/=(.*)/s).slice(0, 2))
   );
   if (!t || !v1) return false;
   if (Math.abs(Date.now() / 1000 - Number(t)) > toleranceSeconds) return false; // replay guard
@@ -221,7 +237,7 @@ export async function POST(req) {
   }
   after(async () => {
     const e = JSON.parse(rawBody);
-    if (e.test) return;                               // dashboard rehearsal, no money moved
+    if ("test" in e) return;                          // rehearsal — presence, not value: test:false is not real money
     const key = `${e.invoice_id}:${e.status}`;        // id alone would swallow Expired → Refunded
     if (await seen(key)) return;
     await fulfill(e);                                 // re-check + deliver goods
