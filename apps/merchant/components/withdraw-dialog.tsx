@@ -154,33 +154,6 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     }
   }
 
-  // Get gas sent so the merchant can withdraw the full amount themselves.
-  // Cheaper for everyone than the flat fee it replaces.
-  const [toppingUp, setToppingUp] = useState(false)
-  const handleGasTopUp = async () => {
-    if (!commerce) return
-    setToppingUp(true)
-    setError(null)
-
-    try {
-      const resp = await apiClient.post<{ success: boolean; data: { funded: boolean } }>(
-        `/commerces/${commerce.commerce_id}/gas-topup`,
-        { network, token_address: networkEntry.tokenAddress }
-      )
-      if (resp.success) {
-        setHasGas(true)
-        toast({
-          title: t.send?.gasSent || "Gas sent",
-          description: t.send?.gasSentDesc || "You can now withdraw the full amount with no fee.",
-        })
-      }
-    } catch (err: any) {
-      setError(err.message || "Could not send gas")
-    } finally {
-      setToppingUp(false)
-    }
-  }
-
   // Gasless withdraw — backend pays gas, charges fee
   const handleGaslessWithdraw = async () => {
     if (!commerce || !validRecipient) return
@@ -246,24 +219,17 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
                     <span className="text-muted-foreground">{t.send?.withdrawFee || "Withdrawal fee"}</span>
                     <span className="font-medium text-amber-600">-{fmt(fee)} {symbol}</span>
                   </div>
-                  {/* The fee is avoidable, so say so where it is charged
-                      rather than letting the merchant discover it later. */}
-                  <div className="border-t pt-3 space-y-2">
+                  {/* Avoidable, so say so where it is charged instead of
+                      letting the merchant find out after the fact. */}
+                  <div className="border-t pt-3 space-y-1.5">
                     <p className="text-xs text-muted-foreground">
-                      {t.send?.avoidFee ||
-                        "This fee only applies because your wallet has no gas. Get gas sent to it and withdraw the full amount for free."}
+                      {(t.send?.avoidFee ||
+                        "This fee only applies because your wallet has no {native} for gas. Send a small amount to it and withdraw the full balance for free."
+                      ).replace("{native}", NETWORKS[network]?.nativeCurrency?.symbol || "gas")}
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      disabled={toppingUp}
-                      onClick={handleGasTopUp}
-                    >
-                      {toppingUp
-                        ? (t.send?.sendingGas || "Sending gas…")
-                        : (t.send?.getGas || "Send me gas — withdraw with no fee")}
-                    </Button>
+                    <p className="text-xs font-mono break-all text-muted-foreground/80">
+                      {commerce?.wallet}
+                    </p>
                   </div>
 
                   {netAmount > 0 ? (
