@@ -649,11 +649,28 @@ app.post("/webhooks/voulti", (req, res) => {
           <p className="text-xs text-muted-foreground">{t.dev.s3Raw}</p>
         </Step>
 
+        {/* `by-commerce` and `balances` used to sit here as bare curls. Both
+            carry requireAuth and answer 401, so anyone who copied them got a
+            failure with nothing to explain it — and there is no public way to
+            list a commerce's charges at all, which is a fact worth stating
+            rather than contradicting with a command that cannot work. */}
         <div className="pt-4 border-t border-border/50 space-y-2">
           <p className="text-xs text-muted-foreground">{t.dev.pollNote}</p>
           <CodeBlock code={`curl ${apiBase}/invoices/{invoice_id}`} lang="bash" />
-          <CodeBlock code={`curl ${apiBase}/invoices/by-commerce/${cid}`} lang="bash" label={t.dev.listInvoices} />
-          <CodeBlock code={`curl ${apiBase}/commerces/${cid}/balances`} lang="bash" label={t.dev.getBalances} />
+          <p className="text-xs text-muted-foreground">{t.dev.noList}</p>
+        </div>
+
+        <div className="pt-4 border-t border-border/50">
+          <a
+            href={skillUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1.5"
+          >
+            {t.dev.fullReference}
+            <ExternalLink className="w-3 h-3" />
+          </a>
+          <p className="text-xs text-muted-foreground mt-1">{t.dev.fullReferenceDesc}</p>
         </div>
       </Card>
 
