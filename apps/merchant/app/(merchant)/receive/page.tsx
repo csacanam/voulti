@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
 import { WebhookTester } from "@/components/webhook-tester"
+import { CodeBlock } from "@/components/code-block"
 import { QrModal } from "@/components/qr-modal"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -480,23 +481,70 @@ function WebhookSecret({ commerceId }: { commerceId: string }) {
 }
 
 // ─── Developers Tab ───
+/**
+ * Three sections, one per person who opens this tab.
+ *
+ * It used to be five cards in the order they were built. It opened with a value
+ * (the commerce id) before anything said what it was for; it taught polling as
+ * step 3 and webhooks 500px below, so a developer reading top-down implemented
+ * the worse of two mechanisms and never reached the better one; configuration,
+ * documentation and testing shared one card; and the AI-agent path — the
+ * shortest route that exists today — was the last card, under a drawer labelled
+ * "Other endpoints".
+ *
+ * Now: point an agent at it (fastest), integrate by hand (the real flow, in
+ * order, webhook-first), or change settings (what you come back for).
+ */
 function DevelopersTab() {
   const { commerce } = useCommerce()
   const { t, language } = useLanguage()
-  const [copied, setCopied] = useState<string | null>(null)
-
-  const copy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(id)
-    setTimeout(() => setCopied(null), 2000)
-  }
+  const es = language === 'es'
 
   const apiBase = API_CONFIG.BASE_URL
   const cid = commerce?.commerce_id || "YOUR_COMMERCE_ID"
+  const skillUrl = `${CHECKOUT_BASE_URL}/skill.md`
+
+  /**
+   * One paste. The agent needs the skill file and the one value it cannot
+   * discover — everything else it reads for itself, which is the whole reason
+   * this beats reading the section below.
+   */
+  const agentPrompt = es
+    ? `Integra los pagos de Voulti en este proyecto.
+
+Documentación completa: ${skillUrl}
+Mi commerce_id: ${cid}
+
+Léela primero y luego implementa el cobro y el webhook.`
+    : `Add Voulti payments to this project.
+
+Full documentation: ${skillUrl}
+My commerce_id: ${cid}
+
+Read it first, then implement charging and the webhook.`
 
   const createCode = `curl -X POST ${apiBase}/invoices \\
   -H "Content-Type: application/json" \\
-  -d '{"commerce_id":"${cid}","amount_fiat":50,"currency":"USD","reference":"order-123","description":"Logo design"}'`
+  -d '{
+    "commerce_id": "${cid}",
+    "amount_fiat": 50,
+    "currency": "USD",
+    "reference": "order-123",
+    "description": "Logo design"
+  }'`
+
+  const responseCode = `{
+  "success": true,
+  "data": {
+    "id": "invoice-uuid",
+    "amount_fiat": 50,
+    "fiat_currency": "USD",
+    "status": "Pending",
+    "expires_at": "2026-03-30T06:00:00Z",
+    "reference": "order-123",
+    "description": "Logo design"
+  }
+}`
 
   // Timing-safe compare, and a timestamp tolerance so a captured delivery
   // cannot be replayed back at them tomorrow. Both are the kind of thing that
@@ -532,28 +580,18 @@ app.post("/webhooks/voulti", (req, res) => {
   res.json({ received: true });
 });`
 
-  const responseCode = `{
-  "success": true,
-  "data": {
-    "id": "invoice-uuid",
-    "amount_fiat": 50,
-    "fiat_currency": "USD",
-    "status": "Pending",
-    "expires_at": "2026-03-30T06:00:00Z",
-    "reference": "order-123",
-    "description": "Logo design"
-  }
-}`
-
-  function CB({ code, id, label }: { code: string; id: string; label?: string }) {
+  function Step({ n, title, desc, children }: { n: number; title: string; desc: ReactNode; children: ReactNode }) {
     return (
-      <div>
-        {label && <p className="text-sm font-medium mb-2">{label}</p>}
-        <div className="relative">
-          <pre className="p-3 bg-muted rounded-lg text-sm overflow-x-auto font-mono">{code}</pre>
-          <Button variant="ghost" size="sm" className="absolute top-1 right-1" onClick={() => copy(code, id)}>
-            {copied === id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-          </Button>
+      <div className="flex gap-3">
+        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">
+          {n}
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+          </div>
+          {children}
         </div>
       </div>
     )
@@ -561,111 +599,86 @@ app.post("/webhooks/voulti", (req, res) => {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">{t.receive.devSubtitle}</p>
-
-      {/* Commerce ID */}
-      <Card className="p-5">
-        <div className="flex items-center gap-2 mb-2">
-          <Key className="w-4 h-4 text-primary" />
-          <p className="text-sm font-semibold">{t.receive.commerceId}</p>
+      {/* ── 1. The fastest path, first ── */}
+      <Card className="p-5 border-primary/30 bg-primary/[0.03]">
+        <div className="flex items-center gap-2 mb-1">
+          <Bot className="w-4 h-4 text-primary" />
+          <p className="text-sm font-semibold">{t.dev.agentTitle}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 p-2 bg-muted rounded text-sm font-mono break-all">{cid}</code>
-          <Button variant="outline" size="sm" onClick={() => copy(cid, "id")}>
-            {copied === "id" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          </Button>
+        <p className="text-xs text-muted-foreground mb-3">{t.dev.agentDesc}</p>
+        <CodeBlock code={agentPrompt} lang="bash" />
+        <p className="text-xs text-muted-foreground mt-2">{t.dev.agentFooter}</p>
+      </Card>
+
+      {/* ── 2. By hand, in the order it actually happens ── */}
+      <Card className="p-5 space-y-5">
+        <div>
+          <p className="text-sm font-semibold">{t.dev.manualTitle}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t.dev.manualDesc}</p>
+        </div>
+
+        <Step n={1} title={t.dev.s1Title} desc={t.dev.s1Desc}>
+          <CodeBlock code={createCode} lang="bash" />
+          <CodeBlock code={responseCode} lang="json" label={t.dev.response} />
+        </Step>
+
+        <Step n={2} title={t.dev.s2Title} desc={t.dev.s2Desc}>
+          <CodeBlock code={`${CHECKOUT_BASE_URL}/checkout/{invoice_id}`} lang="bash" />
+        </Step>
+
+        {/* Webhooks are step 3, not a separate card below the fold. Polling used
+            to hold this slot and taught the wrong mechanism to anyone who read
+            in order — it is now the footnote at the end. */}
+        <Step
+          n={3}
+          title={t.dev.s3Title}
+          desc={
+            <>
+              {t.dev.s3Desc}{" "}
+              {["Paid", "Expired", "Refunded"].map((s, i) => (
+                <span key={s}>
+                  {i > 0 && ", "}
+                  <code className="bg-muted px-1 py-0.5 rounded font-mono">{s}</code>
+                </span>
+              ))}
+              . {t.dev.s3Null}
+            </>
+          }
+        >
+          <CodeBlock code={verifyCode} lang="js" />
+          <p className="text-xs text-muted-foreground">{t.dev.s3Raw}</p>
+        </Step>
+
+        <div className="pt-4 border-t border-border/50 space-y-2">
+          <p className="text-xs text-muted-foreground">{t.dev.pollNote}</p>
+          <CodeBlock code={`curl ${apiBase}/invoices/{invoice_id}`} lang="bash" />
+          <CodeBlock code={`curl ${apiBase}/invoices/by-commerce/${cid}`} lang="bash" label={t.dev.listInvoices} />
+          <CodeBlock code={`curl ${apiBase}/commerces/${cid}/balances`} lang="bash" label={t.dev.getBalances} />
         </div>
       </Card>
 
-      {/* Steps */}
-      <Card className="p-5 space-y-4">
+      {/* ── 3. Settings: the part you come back to ── */}
+      <Card className="p-5 space-y-5">
         <div>
-          <p className="text-sm font-semibold mb-1">{t.receive.step1Title}</p>
-          <p className="text-xs text-muted-foreground mb-2">{t.receive.step1Desc}{t.receive.step1DescEnd}</p>
-          <CB code={createCode} id="create" />
-          <p className="text-xs text-muted-foreground mt-2 mb-1">{t.receive.response}</p>
-          <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto font-mono text-green-500">{responseCode}</pre>
+          <p className="text-sm font-semibold">{t.dev.settingsTitle}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t.dev.settingsDesc}</p>
         </div>
 
         <div>
-          <p className="text-sm font-semibold mb-1">{t.receive.step2Title}</p>
-          <p className="text-xs text-muted-foreground mb-2">{t.receive.step2Desc}</p>
-          <CB code={`${CHECKOUT_BASE_URL}/checkout/{invoice_id}`} id="url" />
+          <p className="text-xs font-medium mb-1.5">{t.dev.commerceIdLabel}</p>
+          <CodeBlock code={cid} lang="bash" />
         </div>
 
         <div>
-          <p className="text-sm font-semibold mb-1">{t.receive.step3Title}</p>
-          <p className="text-xs text-muted-foreground mb-2">
-            {t.receive.step3Desc} <code className="bg-muted px-1 rounded text-xs">Paid</code> {t.receive.step3Or} <code className="bg-muted px-1 rounded text-xs">Expired</code>
-          </p>
-          <CB code={`curl ${apiBase}/invoices/{invoice_id}`} id="get" />
+          <p className="text-xs font-medium mb-1.5">{t.dev.webhookUrlLabel}</p>
+          <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
         </div>
-      </Card>
 
-      {/* Webhook */}
-      <Card className="p-5">
-        <p className="text-sm font-semibold mb-2">Webhook URL</p>
-        {/* This said "when an invoice is paid", which was wrong: we also deliver
-            on Expired and Refunded. A handler built to that sentence throws on
-            the first expiry and, worse, leaves an order shipped after a refund. */}
-        <p className="text-xs text-muted-foreground mb-3">
-          {language === 'es'
-            ? 'Recibirás un POST cuando un cobro cambie a uno de estos tres estados:'
-            : 'You\'ll receive a POST when a payment reaches one of these three statuses:'}
-        </p>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {['Paid', 'Expired', 'Refunded'].map((s) => (
-            <code key={s} className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{s}</code>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          {language === 'es'
-            ? 'En Expired y Refunded los campos de pago (paid_tx_hash, paid_at, paid_amount…) llegan en null. Reintentamos hasta 5 veces con 2 s de tiempo límite, así que tu handler debe ser idempotente.'
-            : 'On Expired and Refunded the payment fields (paid_tx_hash, paid_at, paid_amount…) arrive as null. We retry up to 5 times with a 2 s timeout, so your handler must be idempotent.'}
-        </p>
-        <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
-        <p className="text-xs text-muted-foreground mt-2">
-          Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount, paid_at, reference, description {'}'}
-        </p>
         <WebhookSecret commerceId={cid} />
 
-        {/* The scheme was documented only in /skill.md, which is written for AI
-            agents. A human opening this tab was handed a signing secret and no
-            hint of what to do with it — so the most security-critical part of
-            the integration was the one part with no instructions. */}
-        <div className="mt-5 pt-5 border-t border-border/50">
-          <p className="text-sm font-semibold mb-1">
-            {language === 'es' ? 'Verificar la firma' : 'Verify the signature'}
-          </p>
-          <p className="text-xs text-muted-foreground mb-2">
-            {language === 'es'
-              ? 'Firmamos con HMAC-SHA256 sobre `${t}.${cuerpo crudo}`. Compará sobre el cuerpo tal cual llegó: si lo volvés a serializar, el orden de las claves cambia y la firma no da.'
-              : 'We sign HMAC-SHA256 over `${t}.${raw body}`. Compare against the body exactly as received: re-serialising it reorders keys and the signature will not match.'}
-          </p>
-          <CB code={verifyCode} id="verify" />
-        </div>
-
-        <div className="mt-5 pt-5 border-t border-border/50">
+        <div className="pt-5 border-t border-border/50">
           <WebhookTester commerceId={cid} hasUrl={Boolean(commerce?.confirmation_url)} />
         </div>
-      </Card>
-
-      {/* Other */}
-      <Card className="p-5 space-y-3">
-        <p className="text-sm font-semibold">{t.receive.otherEndpoints}</p>
-        <CB code={`curl ${apiBase}/invoices/by-commerce/${cid}`} id="list" label={t.receive.listInvoices} />
-        <CB code={`curl ${apiBase}/commerces/${cid}/balances`} id="bal" label={t.receive.getBalances} />
-      </Card>
-
-      {/* AI Agents */}
-      <Card className="p-5">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot className="w-4 h-4 text-primary" />
-          <p className="text-sm font-semibold">{t.receive.aiAgentsTitle}</p>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">{t.receive.aiAgentsDesc}</p>
-        <p className="text-xs text-muted-foreground mb-1">{t.receive.aiAgentsSkillUrl}</p>
-        <CB code={`${CHECKOUT_BASE_URL}/skill.md`} id="skill" />
       </Card>
     </div>
   )
