@@ -13,6 +13,8 @@ interface NetworkStatus {
   network: string
   chainId: number
   active: boolean
+  /** Set when the on-chain read failed — the network's real state is unknown. */
+  readError?: string
   tokens: { symbol: string; address: string; whitelisted: boolean }[]
 }
 
@@ -104,20 +106,31 @@ export function NetworksSection({ commerceId }: { commerceId: string }) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{NETWORK_LABELS[n.network] || n.network}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {isFullyActive ? (
+                    {n.readError ? (
+                      // Not the same as inactive. Public RPCs rate-limit, and
+                      // saying "Inactive" here tells a merchant they cannot
+                      // charge on a network where they can charge right now.
+                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs">
+                        Couldn&apos;t check
+                      </Badge>
+                    ) : isFullyActive ? (
                       <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
                         Active
                       </Badge>
                     ) : (
                       <Badge variant="secondary" className="text-xs">Inactive</Badge>
                     )}
-                    <span className="text-xs text-muted-foreground">{tokensEnabled}/{totalTokens} tokens</span>
+                    <span className="text-xs text-muted-foreground">
+                      {n.readError ? 'status unavailable' : `${tokensEnabled}/${totalTokens} tokens`}
+                    </span>
                   </div>
                 </div>
                 <Button
                   variant={isFullyActive ? "outline" : "default"}
                   size="sm"
-                  disabled={updating === n.network}
+                  // Toggling on an unknown state would send a transaction based
+                  // on a guess — and cost gas from the wallet that funds sweeps.
+                  disabled={updating === n.network || Boolean(n.readError)}
                   onClick={() => toggle(n.network, isFullyActive)}
                   className="gap-1.5 flex-shrink-0"
                 >
