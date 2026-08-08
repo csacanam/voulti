@@ -33,15 +33,15 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl w-full">
         <div className="flex flex-col items-center gap-2 p-4">
-          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-            <Globe className="w-5 h-5 text-blue-500" />
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Globe className="w-5 h-5 text-primary" />
           </div>
           <h3 className="font-medium text-sm">{t.landing.networks}</h3>
           <p className="text-xs text-muted-foreground">{t.landing.networksDesc}</p>
         </div>
         <div className="flex flex-col items-center gap-2 p-4">
-          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-green-500" />
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-primary" />
           </div>
           <h3 className="font-medium text-sm">{t.landing.instantSetup}</h3>
           <p className="text-xs text-muted-foreground">{t.landing.instantSetupDesc}</p>
@@ -109,8 +109,8 @@ function Dashboard() {
         <Link href="/receive">
           <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer h-full">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <QrCode className="w-5 h-5 text-green-500" />
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <QrCode className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium text-sm">{t.dashboard.createInvoice}</p>
@@ -122,8 +122,8 @@ function Dashboard() {
         <Link href="/payouts">
           <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer h-full">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                <Send className="w-5 h-5 text-blue-500" />
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Send className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium text-sm">{t.dashboard.sendFunds}</p>

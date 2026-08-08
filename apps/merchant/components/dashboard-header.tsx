@@ -20,7 +20,13 @@ export function DashboardHeader() {
         <div className="flex items-center justify-between">
           {/* Logo + Nav */}
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <Link href="/" className="flex-shrink-0">
+            {/* Same mark as the checkout and the public site. It was a bare
+                wordmark here, so the dashboard did not read as the same
+                product the merchant's customers are looking at. */}
+            <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xs">V</span>
+              </div>
               <span className="text-lg font-bold text-foreground">Voulti</span>
             </Link>
 
