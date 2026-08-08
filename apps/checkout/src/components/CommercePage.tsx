@@ -167,16 +167,33 @@ export const CommercePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto p-4">
-        {/* Language Selector - Top Right */}
-        <div className="flex justify-end mb-2">
+        {/* Same header as the invoice checkout: this is the other door into
+            the product and it should not look like a different one. */}
+        <div className="flex items-center justify-between mb-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">V</span>
+            </div>
+            <span className="text-lg font-bold text-gray-900">Voulti</span>
+          </Link>
           <LanguageSelector />
         </div>
+
         {/* Payment Section */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <div className="text-left mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {interpolate(t.commerce.title, { name: commerce.name })}
-            </h2>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          {/* Who is being paid, shown the way the checkout shows it */}
+          <div className="flex items-center gap-3 mb-6">
+            {commerce.icon_url ? (
+              <img src={commerce.icon_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0">
+                <Store className="w-5 h-5 text-violet-600" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500">{t.order.payingTo}</p>
+              <h2 className="text-gray-900 font-semibold truncate">{commerce.name}</h2>
+            </div>
           </div>
 
           {/* Amount Input */}
@@ -246,15 +263,16 @@ export const CommercePage: React.FC = () => {
             </button>
           </div>
 
-          {/* Supported Tokens Info */}
+          {/* Which tokens are accepted matters after the amount, not before:
+              as a boxed block it competed with the only button on the page. */}
           {commerce.supported_tokens && commerce.supported_tokens.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-gray-900 font-medium mb-2">{t.commerce.supportedTokens}:</h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-5 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500">{t.commerce.supportedTokens}:</span>
+              <div className="flex flex-wrap gap-1.5">
                 {[...new Set(commerce.supported_tokens)].map((token) => (
                   <span
                     key={token}
-                    className="px-3 py-1 bg-violet-50 text-violet-700 border border-violet-200 text-xs font-medium rounded-full"
+                    className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded"
                   >
                     {token}
                   </span>
