@@ -647,91 +647,81 @@ export async function invoicesRoutes(app: FastifyInstance) {
     }
   });
 
+  /**
+   * Cancel a charge that has not been paid.
+   *
+   * This route used to accept any status — including `Paid` — and checked only
+   * that the caller held *a* valid token, never that the invoice was theirs.
+   * Signup is self-service, so anyone with an account and a checkout link could
+   * mark someone else's invoice as paid: the dashboard would show it settled
+   * and an integrator polling `GET /invoices/<id>` would read `Paid` and ship
+   * goods. No client ever called it and the skill never documented it.
+   *
+   * What is left is the one transition a merchant legitimately owns: calling
+   * off a charge nobody has paid. `Paid` and `Refunded` are facts the chain
+   * establishes, not opinions an API caller may assert — setting them by hand
+   * would let the database contradict the money.
+   */
   app.put('/:id/status', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };
-      const { status, reason } = req.body as { status: string; reason?: string };
+      const { status } = (req.body || {}) as { status?: string };
 
-      // Validate required fields
-      if (!status) {
+      if (status !== 'Expired') {
         return res.status(400).send({
-          error: 'Missing required field: status'
+          error: 'Only "Expired" is allowed here — use it to cancel a Pending charge. Paid and Refunded are settled on-chain and cannot be set by hand.',
         });
       }
 
-      // Validate status values
-      const validStatuses = ['Pending', 'Paid', 'Expired', 'Refunded'];
-      if (!validStatuses.includes(status)) {
-        return res.status(400).send({
-          error: `Invalid status: ${status}. Valid statuses: ${validStatuses.join(', ')}`
-        });
-      }
-
-      // Check if invoice exists
-      const { data: existingInvoice, error: fetchError } = await supabase
+      const { data: invoice } = await supabase
         .from('invoices')
         .select('id, status, commerce_id')
         .eq('id', id)
         .single();
 
-      if (fetchError || !existingInvoice) {
-        return res.status(404).send({
-          error: 'Invoice not found'
-        });
+      if (!invoice) {
+        return res.status(404).send({ error: 'Invoice not found' });
       }
 
-      // Prepare update data
-      const updateData: any = {
-        status: status
-      };
-
-      // Add timestamp based on status
-      switch (status) {
-        case 'Paid':
-          updateData.paid_at = new Date().toISOString();
-          break;
-        case 'Expired':
-          updateData.expired_at = new Date().toISOString();
-          break;
-        case 'Refunded':
-          updateData.refunded_at = new Date().toISOString();
-          break;
-      }
-
-      // Update invoice status
-      const { data: updatedInvoice, error: updateError } = await supabase
-        .from('invoices')
-        .update(updateData)
-        .eq('id', id)
-        .select()
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', invoice.commerce_id)
         .single();
 
-      if (updateError) {
-        console.error('Error updating invoice status:', updateError);
-        return res.status(500).send({
-          error: 'Failed to update invoice status'
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      if (invoice.status !== 'Pending') {
+        return res.status(409).send({
+          error: `Only a Pending charge can be cancelled. This one is ${invoice.status}.`,
         });
       }
 
-      // Log the status change for audit
-      console.log(`Invoice ${id} status changed from ${existingInvoice.status} to ${status}${reason ? ` - Reason: ${reason}` : ''}`);
+      const { data: updated, error } = await supabase
+        .from('invoices')
+        .update({ status: 'Expired', expired_at: new Date().toISOString() })
+        .eq('id', id)
+        // Someone may have paid between the read above and this write. Filtering
+        // on Pending makes the update its own check, so a payment landing
+        // mid-request cannot be cancelled out from under the payer.
+        .eq('status', 'Pending')
+        .select('id');
 
-      return res.send({
-        success: true,
-        data: {
-          id: updatedInvoice.id,
-          previousStatus: existingInvoice.status,
-          newStatus: updatedInvoice.status,
-          reason: reason || null
-        },
-        message: `Invoice status updated from ${existingInvoice.status} to ${status}`
-      });
+      if (error) {
+        console.error('Cancel invoice error:', error);
+        return res.status(500).send({ error: 'Failed to cancel invoice' });
+      }
 
+      if (!updated || updated.length === 0) {
+        return res.status(409).send({ error: 'The charge stopped being Pending while cancelling it.' });
+      }
+
+      return res.send({ success: true, data: { id, status: 'Expired' } });
     } catch (error: any) {
-      console.error('Error updating invoice status:', error);
-      return res.status(500).send({
-        error: error.message || 'Failed to update invoice status'
-      });
+      console.error('Cancel invoice error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to cancel invoice' });
     }
   });
 
