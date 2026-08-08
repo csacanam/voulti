@@ -18,6 +18,7 @@ import { timingSafeEqual } from 'crypto';
 import { sweepService } from '../blockchain/services/SweepService';
 import { whitelistCommerceOnChain } from './commerces';
 import { getCommerceNetworkStatus } from '../business/commerceNetworks';
+import { sendTelegramAlert } from '../utils/notify';
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
@@ -148,6 +149,52 @@ export async function adminRoutes(app: FastifyInstance) {
         wallets = data;
       }
 
+      // Repairing every commerce means on-chain reads plus transactions per
+      // network, which runs far past DigitalOcean's gateway timeout — the
+      // caller gets a 503 while the work is still going, with no report. Do it
+      // detached and deliver the summary over Telegram instead.
+      if (wallets.length > 1) {
+        const total = wallets.length;
+        runRepair(wallets)
+          .then(report => {
+            const done = report.filter((r: any) => r.skipped).length;
+            const fixed = report.filter((r: any) => r.repaired?.length).length;
+            const bad = report.filter((r: any) => r.failed?.length);
+
+            return sendTelegramAlert(
+              'whitelist_repair_done',
+              [
+                '🔧 <b>Reparación de whitelist terminada</b>',
+                '',
+                `<b>Comercios:</b> ${total}`,
+                `<b>Ya completos:</b> ${done}`,
+                `<b>Reparados:</b> ${fixed}`,
+                `<b>Con fallos:</b> ${bad.length}`,
+                ...(bad.length
+                  ? ['', ...bad.slice(0, 10).map((r: any) => `<code>${r.commerce}: ${r.failed.join(' | ')}</code>`)]
+                  : []),
+              ].join('\n')
+            );
+          })
+          .catch(err => console.error('[admin] Repair run failed:', err));
+
+        return res.status(202).send({
+          success: true,
+          started: total,
+          message: 'Repair running in background — summary will arrive on Telegram',
+        });
+      }
+
+      const report = await runRepair(wallets);
+      console.log('[admin] Whitelist repair:', JSON.stringify(report));
+      return res.send({ success: true, commerces: report.length, report });
+    } catch (err: any) {
+      console.error('[admin] Whitelist repair failed:', err);
+      return res.status(500).send({ error: err.message || 'Whitelist repair failed' });
+    }
+  });
+
+  async function runRepair(wallets: { id: string; name: string; wallet: string }[]) {
       const report: any[] = [];
       for (const c of wallets) {
         // Look before writing. Whitelisting is idempotent on-chain but not
@@ -184,13 +231,9 @@ export async function adminRoutes(app: FastifyInstance) {
         });
       }
 
-      console.log('[admin] Whitelist repair:', JSON.stringify(report));
-      return res.send({ success: true, commerces: report.length, report });
-    } catch (err: any) {
-      console.error('[admin] Whitelist repair failed:', err);
-      return res.status(500).send({ error: err.message || 'Whitelist repair failed' });
-    }
-  });
+    console.log('[admin] Whitelist repair:', JSON.stringify(report));
+    return report;
+  }
 
   /**
    * Pull leftover native token out of an HD deposit address.
