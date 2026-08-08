@@ -47,6 +47,15 @@ function firstSupported(tags: readonly string[]): Language | null {
  *
  * Returns null when the header is absent or names nothing we speak, so the
  * caller decides what "no answer" means.
+ *
+ * The list is honoured in full, not just its first entry. It is tempting to
+ * simplify this to "Spanish if the browser is Spanish, English otherwise",
+ * and it is wrong: a header like `ca-ES,ca;q=0.9,es;q=0.8,en;q=0.7` is not a
+ * declaration of nationality, it is someone saying they would rather read
+ * Spanish than English. Truncating to the primary tag would hand English to
+ * the Catalan and Galician speakers who said the opposite. Everyone with no
+ * Spanish above English in their list already lands on English by falling off
+ * the end of this loop.
  */
 export function negotiateLanguage(acceptLanguage: string | null | undefined): Language | null {
   if (!acceptLanguage) return null
