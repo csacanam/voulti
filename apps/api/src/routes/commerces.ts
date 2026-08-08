@@ -28,6 +28,33 @@ export async function whitelistCommerceOnChain(wallet: string): Promise<{ networ
 
   const results = [];
 
+  /**
+   * The operator wallet is shared: SweepService funds deposit gas from it every
+   * fifteen seconds, so a whitelist transaction can pick the same nonce as one
+   * of those and lose the race — "replacement fee too low" / "nonce too low".
+   * Nothing is wrong when that happens; the next attempt gets a fresh nonce.
+   */
+  const sendWithNonceRetry = async (
+    label: string,
+    send: () => Promise<any>
+  ): Promise<void> => {
+    const NONCE_CLASH = /replacement fee too low|nonce too low|already known|NONCE_EXPIRED/i;
+
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const tx = await send();
+        await tx.wait();
+        return;
+      } catch (err: any) {
+        const msg = err?.message || '';
+        if (attempt >= 4 || !NONCE_CLASH.test(msg)) throw err;
+
+        console.warn(`[whitelist] ${label}: nonce clash, retry ${attempt}/3`);
+        await new Promise(r => setTimeout(r, 2000 * attempt));
+      }
+    }
+  };
+
   for (const [networkName, contracts] of Object.entries(CONTRACTS)) {
     if (!contracts.ACCESS_MANAGER) {
       results.push({ network: networkName, success: false, error: 'No contract deployed' });
@@ -43,16 +70,18 @@ export async function whitelistCommerceOnChain(wallet: string): Promise<{ networ
       );
 
       // Whitelist the commerce
-      const tx1 = await accessManager.addCommerceToWhitelist(wallet);
-      await tx1.wait();
+      await sendWithNonceRetry(`${networkName}/commerce`, () =>
+        accessManager.addCommerceToWhitelist(wallet)
+      );
 
       // Whitelist all tokens for this commerce on this network
       const networkTokens = TOKENS[networkName];
       if (networkTokens) {
         const tokenAddresses = Object.values(networkTokens).map(t => t.address);
         if (tokenAddresses.length > 0) {
-          const tx2 = await accessManager.addTokenToCommerceWhitelist(wallet, tokenAddresses);
-          await tx2.wait();
+          await sendWithNonceRetry(`${networkName}/tokens`, () =>
+            accessManager.addTokenToCommerceWhitelist(wallet, tokenAddresses)
+          );
         }
       }
 
