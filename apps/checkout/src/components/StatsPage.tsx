@@ -1,8 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { ethers } from 'ethers';
+import { useAccount, useConnect, useSwitchChain } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
 import { MetaTags } from './MetaTags';
+import { SUPPORTED_CHAINS } from '../config/chains';
+
+/**
+ * Withdrawing goes straight from the connected wallet to the contract. The
+ * permission check lives in `onlyTreasuryManagerOrAdmin`, which reads
+ * msg.sender — so routing it through the backend would only add an
+ * authentication scheme and make the operator key pay the gas, without making
+ * anything safer.
+ */
+const PROXY_ABI = ['function withdrawServiceFeesToTreasury(address token, address to)'];
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'https://api.voulti.com';
 
@@ -37,6 +50,8 @@ interface Treasury {
   network: string;
   operator: string | null;
   operatorCanWithdraw: boolean;
+  callerCanWithdraw: boolean;
+  proxy: string | null;
 }
 
 export const StatsPage: React.FC = () => {
@@ -46,30 +61,69 @@ export const StatsPage: React.FC = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [treasury, setTreasury] = useState<Treasury[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
+
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
+  const { switchChainAsync } = useSwitchChain();
+
+  const load = useCallback(async () => {
+    try {
+      const query = address ? `?address=${address}` : '';
+      const [s, t] = await Promise.all([
+        fetch(`${API_BASE}/stats`).then(r => r.json()),
+        fetch(`${API_BASE}/stats/treasury${query}`).then(r => r.json()),
+      ]);
+      // A failed read must not render as zeros on a transparency page.
+      if (s.error) { setError(s.error); return; }
+      setError(null);
+      setStats(s);
+      setTreasury(t.data || []);
+    } catch (err: any) {
+      setError(err.message || 'Could not load stats');
+    }
+  }, [address]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const [s, t] = await Promise.all([
-          fetch(`${API_BASE}/stats`).then(r => r.json()),
-          fetch(`${API_BASE}/stats/treasury`).then(r => r.json()),
-        ]);
-        if (cancelled) return;
-        // A failed read must not render as zeros on a transparency page.
-        if (s.error) { setError(s.error); return; }
-        setStats(s);
-        setTreasury(t.data || []);
-      } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Could not load stats');
-      }
-    };
-
     load();
     const id = setInterval(load, 60_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const canWithdrawOn = (network: string) =>
+    treasury.find(t => t.network === network)?.callerCanWithdraw === true;
+
+  const withdraw = async (network: string, tokenAddress: string, symbol: string) => {
+    setTxError(null);
+    const entry = treasury.find(t => t.network === network);
+    const chain = SUPPORTED_CHAINS.find(c => c.backendNames.some(n => n.toLowerCase() === network));
+
+    if (!entry?.proxy || !chain) {
+      setTxError(`Missing contract configuration for ${network}`);
+      return;
+    }
+
+    setBusy(`${network}:${symbol}`);
+    try {
+      await switchChainAsync({ chainId: chain.chain.id });
+
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const proxy = new ethers.Contract(entry.proxy, PROXY_ABI, signer);
+
+      // Straight to the connected wallet: fees belong to whoever the contract
+      // says can claim them, and adding a destination field would only invite
+      // a typo on an irreversible transfer.
+      const tx = await proxy.withdrawServiceFeesToTreasury(tokenAddress, await signer.getAddress());
+      await tx.wait();
+      await load();
+    } catch (err: any) {
+      setTxError(err?.shortMessage || err?.message || 'Withdrawal failed');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const fmt = (n: string) => Number(n).toLocaleString(es ? 'es-CO' : 'en-US', {
     minimumFractionDigits: 2, maximumFractionDigits: 2,
@@ -162,7 +216,44 @@ export const StatsPage: React.FC = () => {
                     <p className="text-xs text-gray-500 mb-4">
                       {es ? 'Leído de los contratos ahora mismo.' : 'Read from the contracts right now.'}
                     </p>
-                    <Rows rows={stats.revenue.claimable.map(r => ({ ...r, value: r.balance }))} empty={es ? 'Nada pendiente' : 'Nothing pending'} />
+                    <Rows
+                      rows={stats.revenue.claimable.map(r => ({ ...r, value: r.balance }))}
+                      empty={es ? 'Nada pendiente' : 'Nothing pending'}
+                      action={row =>
+                        canWithdrawOn(row.network) ? (
+                          <button
+                            onClick={() => withdraw(row.network, (row as any).tokenAddress, row.symbol)}
+                            disabled={busy !== null}
+                            className="text-xs font-medium text-violet-600 hover:text-violet-700 disabled:text-gray-400"
+                          >
+                            {busy === `${row.network}:${row.symbol}`
+                              ? (es ? 'Retirando…' : 'Withdrawing…')
+                              : (es ? 'Retirar' : 'Withdraw')}
+                          </button>
+                        ) : null
+                      }
+                    />
+
+                    {txError && (
+                      <p className="text-xs text-red-600 mt-3">{txError}</p>
+                    )}
+
+                    {stats.revenue.claimable.length > 0 && !isConnected && (
+                      <button
+                        onClick={() => connect({ connector: injected() })}
+                        className="text-xs text-gray-500 hover:text-gray-700 mt-3 underline"
+                      >
+                        {es ? 'Conectar wallet del operador' : 'Connect operator wallet'}
+                      </button>
+                    )}
+
+                    {isConnected && !treasury.some(t => t.callerCanWithdraw) && (
+                      <p className="text-xs text-gray-400 mt-3">
+                        {es
+                          ? 'Esta wallet no tiene permiso de retiro en ninguna red.'
+                          : 'This wallet holds no withdraw permission on any network.'}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -205,19 +296,23 @@ export const StatsPage: React.FC = () => {
 const Rows: React.FC<{
   rows: { network: string; symbol: string; value: string; usd: string }[];
   empty: string;
-}> = ({ rows, empty }) => {
+  action?: (row: { network: string; symbol: string; value: string; usd: string }) => React.ReactNode;
+}> = ({ rows, empty, action }) => {
   if (rows.length === 0) return <p className="text-sm text-gray-400">{empty}</p>;
 
   return (
     <div className="space-y-2">
       {rows.map(r => (
-        <div key={`${r.network}:${r.symbol}`} className="flex justify-between items-center text-sm">
+        <div key={`${r.network}:${r.symbol}`} className="flex justify-between items-center text-sm gap-3">
           <span className="text-gray-600">
             {NETWORK_LABELS[r.network] || r.network}
             <span className="text-gray-400"> · {r.symbol}</span>
           </span>
-          <span className="font-medium tabular-nums">
-            {Number(r.value).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+          <span className="flex items-center gap-3">
+            <span className="font-medium tabular-nums">
+              {Number(r.value).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+            </span>
+            {action?.(r)}
           </span>
         </div>
       ))}

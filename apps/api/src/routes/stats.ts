@@ -4,9 +4,7 @@ import { ethers } from 'ethers';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { TOKENS } from '../blockchain/config/tokens';
 import { NETWORKS } from '../blockchain/config/networks';
-import { getProvider, getWallet } from '../blockchain/utils/web3';
-import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { getProvider } from '../blockchain/utils/web3';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -180,11 +178,19 @@ export async function statsRoutes(app: FastifyInstance) {
         ? new ethers.Wallet(process.env.BACKEND_PRIVATE_KEY).address
         : null;
 
+      // Optional: ask about a specific wallet, so the stats page knows whether
+      // to offer the withdraw action to whoever just connected. Only decides
+      // what the UI shows — the contract is what actually allows or refuses.
+      const { address } = req.query as { address?: string };
+      const caller = address && ethers.isAddress(address) ? ethers.getAddress(address) : null;
+
       const holders = await Promise.all(
-        prodNetworks().map(async ([network]) => ({
+        prodNetworks().map(async ([network, contracts]) => ({
           network,
           operator,
           operatorCanWithdraw: operator ? await canWithdraw(operator, network).catch(() => false) : false,
+          callerCanWithdraw: caller ? await canWithdraw(caller, network).catch(() => false) : false,
+          proxy: contracts.DERAMP_PROXY || null,
         }))
       );
 
@@ -194,62 +200,4 @@ export async function statsRoutes(app: FastifyInstance) {
     }
   });
 
-  /**
-   * Withdraw accumulated protocol revenue for one token on one network.
-   *
-   * Authorisation is delegated to the contract: the caller's wallet must hold
-   * DEFAULT_ADMIN or TREASURY_MANAGER on that network. Keeping a separate
-   * allowlist here would be a second source of truth that can drift from the
-   * one the contract actually enforces.
-   */
-  app.post('/withdraw', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
-    try {
-      const { network, token_address, to } = req.body as {
-        network: string; token_address: string; to?: string;
-      };
-
-      if (!network || !token_address) {
-        return res.status(400).send({ error: 'network and token_address are required' });
-      }
-      if (network === 'hardhat' || !CONTRACTS[network]?.DERAMP_PROXY) {
-        return res.status(400).send({ error: `Network ${network} not supported` });
-      }
-
-      const caller = req.walletAddress;
-      if (!caller || !(await canWithdraw(caller, network))) {
-        return res.status(403).send({
-          error: 'This wallet does not hold the treasury role on this network',
-        });
-      }
-
-      const destination = to || caller;
-      if (!ethers.isAddress(destination)) {
-        return res.status(400).send({ error: 'Invalid destination address' });
-      }
-
-      const backendKey = process.env.BACKEND_PRIVATE_KEY;
-      if (!backendKey) {
-        return res.status(500).send({ error: 'Backend wallet not configured' });
-      }
-
-      const proxy = new ethers.Contract(
-        CONTRACTS[network].DERAMP_PROXY,
-        DerampProxyABI.abi || DerampProxyABI,
-        getWallet(backendKey, network, false)
-      );
-
-      const tx = await proxy.withdrawServiceFeesToTreasury(token_address, destination);
-      await tx.wait();
-
-      console.log(`[stats] Revenue withdrawn on ${network} to ${destination} by ${caller}: ${tx.hash}`);
-
-      return res.send({
-        success: true,
-        data: { tx_hash: tx.hash, network, to: destination },
-      });
-    } catch (error: any) {
-      console.error('[stats] Revenue withdrawal failed:', error);
-      return res.status(500).send({ error: error.message || 'Withdrawal failed' });
-    }
-  });
 }
