@@ -159,6 +159,8 @@ Deduplicate on `invoice_id` plus `status`: there is no delivery id or attempt co
 
 **`Expired` arrives even for invoices nobody ever opened.** A link that was never clicked still becomes `Expired` and still fires a webhook, so you can rely on it to close out abandoned carts. Expiry is detected by a periodic sweep rather than at the exact second, so expect the status to flip up to ~5 minutes after `expires_at`, with the webhook following seconds later. Don't treat a `Pending` invoice as live purely because `expires_at` has not passed yet, and don't treat one as dead the instant it does.
 
+**`test: true` means nobody paid.** The merchant can fire any of the three events at their own URL from the dashboard's *Test my webhook* button. Those deliveries are byte-identical to real ones except for a `test: true` field, are signed with the same secret, and carry `invoice_id: "00000000-0000-0000-0000-000000000000"`. Return `2xx` so the merchant sees their endpoint works — and ship nothing. Real deliveries never carry the field at all, so branch on its presence, not on its value.
+
 **Verify the signature.** The `X-Voulti-Signature: t=<unix_seconds>,v1=<hex>` header carries an HMAC-SHA256 of `` `${t}.${rawBody}` `` keyed with the commerce's webhook signing secret. It is present **whenever that commerce has a signing secret configured, and absent when it does not** — so if your handler rejects unsigned deliveries (it should), make sure the merchant actually set a secret, or every delivery will `401` and burn all five retries.
 
 ```js

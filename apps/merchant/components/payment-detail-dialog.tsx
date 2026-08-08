@@ -3,8 +3,10 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Copy, Check, ExternalLink } from "lucide-react"
+import { Copy, Check, ExternalLink, RefreshCw } from "lucide-react"
 import { useLanguage } from "@/components/providers/language-provider"
+import { apiClient } from "@/services/api"
+import { WebhookDeliveryResult, type DeliveryResult } from "@/components/webhook-delivery-result"
 import type { PaymentLink } from "@/lib/types"
 
 /**
@@ -80,6 +82,38 @@ export function PaymentDetailDialog({
   statusClass: string
 }) {
   const { t } = useLanguage()
+
+  /**
+   * Re-send this charge's webhook.
+   *
+   * The cron stops after five failures and the invoice leaves the queue for
+   * good; until now the way back was an admin endpoint we ran by hand, so a
+   * merchant whose server was down for ten minutes had to write to us. The
+   * result is shown rather than toasted because the status code and the body
+   * are the reason to press it.
+   */
+  const [resending, setResending] = useState(false)
+  const [resendResult, setResendResult] = useState<DeliveryResult | null>(null)
+  const [resendError, setResendError] = useState<string | null>(null)
+
+  const resend = async () => {
+    if (!link) return
+    setResending(true)
+    setResendResult(null)
+    setResendError(null)
+    try {
+      const res = await apiClient.post<{ success: boolean; data: DeliveryResult }>(
+        `/invoices/${link.id}/resend-webhook`
+      )
+      setResendResult(res.data)
+    } catch (err: any) {
+      setResendError(err?.message || "Request failed")
+    } finally {
+      setResending(false)
+    }
+  }
+
+  // Hooks must run on every render, so this guard comes after them.
   if (!link) return null
 
   const fmtDate = (d: string) =>
@@ -179,6 +213,22 @@ export function PaymentDetailDialog({
             <Row label={t.detail.expires}>{fmtDate(link.expires)}</Row>
           )}
         </div>
+
+        {/* Only the three statuses that produce a delivery. Offering it on a
+            pending charge would promise to re-send something never sent. */}
+        {link.status !== "active" && (
+          <div className="mt-3 pt-3 border-t border-border/50">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">{t.webhookTest.resendHint}</p>
+              <Button variant="outline" size="sm" disabled={resending} onClick={resend} className="gap-2 shrink-0">
+                <RefreshCw className={`w-3.5 h-3.5 ${resending ? "animate-spin" : ""}`} />
+                {resending ? t.webhookTest.resending : t.webhookTest.resend}
+              </Button>
+            </div>
+            {resendError && <p className="mt-2 text-xs text-red-500">{resendError}</p>}
+            {resendResult && <WebhookDeliveryResult result={resendResult} />}
+          </div>
+        )}
 
         <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full mt-2">
           {t.detail.close}

@@ -6,6 +6,7 @@ import { NETWORKS } from '../blockchain/config/networks';
 import { getProvider } from '../blockchain/utils/web3';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { deliverWebhook, buildPayload } from '../business/webhookDelivery';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -524,6 +525,71 @@ export async function invoicesRoutes(app: FastifyInstance) {
   });
 
   // Update invoice status in backend only (admin endpoint, authenticated)
+  /**
+   * Re-send the webhook for one invoice, now, and report what the endpoint said.
+   *
+   * The cron gives up after five failures and the invoice leaves the delivery
+   * queue for good. Until now the only way back was an admin endpoint we ran by
+   * hand — which meant a merchant whose server was down for ten minutes had to
+   * write to us. This is the same delivery, on a button they own.
+   *
+   * It answers with the status code and the response body, so a failure reads
+   * as "your endpoint returned 404" rather than "it didn't work".
+   */
+  app.post('/:id/resend-webhook', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: invoice } = await supabase
+        .from('invoices')
+        .select('id, commerce_id, amount_fiat, fiat_currency, status, paid_at, paid_tx_hash, paid_token, paid_network, paid_amount, reference, description')
+        .eq('id', id)
+        .single();
+
+      if (!invoice) {
+        return res.status(404).send({ error: 'Invoice not found' });
+      }
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet, confirmation_url, webhook_secret')
+        .eq('id', invoice.commerce_id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      if (!commerce.confirmation_url) {
+        return res.status(400).send({ error: 'This commerce has no webhook URL configured' });
+      }
+
+      // Only the three statuses that produce a delivery. Re-sending a Pending
+      // invoice would announce a payment that has not happened.
+      if (!['Paid', 'Expired', 'Refunded'].includes(invoice.status)) {
+        return res.status(400).send({
+          error: `No webhook is sent for status "${invoice.status}". Voulti delivers on Paid, Expired and Refunded.`,
+        });
+      }
+
+      const result = await deliverWebhook(commerce.confirmation_url, commerce.webhook_secret, buildPayload(invoice));
+
+      // A manual resend that lands closes the invoice out of the retry queue;
+      // one that fails must not consume a retry the cron still owes it.
+      if (result.ok) {
+        await supabase
+          .from('invoices')
+          .update({ confirmation_url_response: true })
+          .eq('id', id);
+      }
+
+      return res.send({ success: true, data: result });
+    } catch (error: any) {
+      console.error('Resend webhook error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to resend webhook' });
+    }
+  });
+
   app.put('/:id/status', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };

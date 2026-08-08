@@ -10,6 +10,7 @@ import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, Extern
 import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
+import { WebhookTester } from "@/components/webhook-tester"
 import { QrModal } from "@/components/qr-modal"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -497,6 +498,40 @@ function DevelopersTab() {
   -H "Content-Type: application/json" \\
   -d '{"commerce_id":"${cid}","amount_fiat":50,"currency":"USD","reference":"order-123","description":"Logo design"}'`
 
+  // Timing-safe compare, and a timestamp tolerance so a captured delivery
+  // cannot be replayed back at them tomorrow. Both are the kind of thing that
+  // never gets added later if it is not in the snippet people paste.
+  const verifyCode = `import { createHmac, timingSafeEqual } from "crypto";
+
+function verifyVoulti(rawBody, header, secret, toleranceSeconds = 300) {
+  if (!header) return false;
+  const parts = Object.fromEntries(header.split(",").map(kv => kv.split("=")));
+  if (!parts.t || !parts.v1) return false;
+
+  // Reject a delivery captured and replayed later
+  if (Math.abs(Date.now() / 1000 - Number(parts.t)) > toleranceSeconds) return false;
+
+  const expected = createHmac("sha256", secret)
+    .update(\\\`\\\${parts.t}.\\\${rawBody}\\\`)
+    .digest("hex");
+
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(parts.v1, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// rawBody must be the unparsed string, not JSON.stringify(req.body)
+app.post("/webhooks/voulti", (req, res) => {
+  if (!verifyVoulti(req.rawBody, req.headers["x-voulti-signature"], process.env.VOULTI_WEBHOOK_SECRET)) {
+    return res.status(401).json({ error: "bad signature" });
+  }
+  const e = req.body;
+  if (e.test) return res.json({ received: true });   // dashboard test, ship nothing
+  if (e.status === "Paid")     markPaid(e.reference);
+  if (e.status === "Refunded") markRefunded(e.reference);
+  res.json({ received: true });
+});`
+
   const responseCode = `{
   "success": true,
   "data": {
@@ -570,16 +605,49 @@ function DevelopersTab() {
       {/* Webhook */}
       <Card className="p-5">
         <p className="text-sm font-semibold mb-2">Webhook URL</p>
+        {/* This said "when an invoice is paid", which was wrong: we also deliver
+            on Expired and Refunded. A handler built to that sentence throws on
+            the first expiry and, worse, leaves an order shipped after a refund. */}
         <p className="text-xs text-muted-foreground mb-3">
           {language === 'es'
-            ? 'Recibirás un POST automático cuando un invoice se pague.'
-            : 'You\'ll receive an automatic POST when an invoice is paid.'}
+            ? 'Recibirás un POST cuando un cobro cambie a uno de estos tres estados:'
+            : 'You\'ll receive a POST when a payment reaches one of these three statuses:'}
+        </p>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {['Paid', 'Expired', 'Refunded'].map((s) => (
+            <code key={s} className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{s}</code>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          {language === 'es'
+            ? 'En Expired y Refunded los campos de pago (paid_tx_hash, paid_at, paid_amount…) llegan en null. Reintentamos hasta 5 veces con 2 s de tiempo límite, así que tu handler debe ser idempotente.'
+            : 'On Expired and Refunded the payment fields (paid_tx_hash, paid_at, paid_amount…) arrive as null. We retry up to 5 times with a 2 s timeout, so your handler must be idempotent.'}
         </p>
         <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
         <p className="text-xs text-muted-foreground mt-2">
           Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount, paid_at, reference, description {'}'}
         </p>
         <WebhookSecret commerceId={cid} />
+
+        {/* The scheme was documented only in /skill.md, which is written for AI
+            agents. A human opening this tab was handed a signing secret and no
+            hint of what to do with it — so the most security-critical part of
+            the integration was the one part with no instructions. */}
+        <div className="mt-5 pt-5 border-t border-border/50">
+          <p className="text-sm font-semibold mb-1">
+            {language === 'es' ? 'Verificar la firma' : 'Verify the signature'}
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">
+            {language === 'es'
+              ? 'Firmamos con HMAC-SHA256 sobre `${t}.${cuerpo crudo}`. Compará sobre el cuerpo tal cual llegó: si lo volvés a serializar, el orden de las claves cambia y la firma no da.'
+              : 'We sign HMAC-SHA256 over `${t}.${raw body}`. Compare against the body exactly as received: re-serialising it reorders keys and the signature will not match.'}
+          </p>
+          <CB code={verifyCode} id="verify" />
+        </div>
+
+        <div className="mt-5 pt-5 border-t border-border/50">
+          <WebhookTester commerceId={cid} hasUrl={Boolean(commerce?.confirmation_url)} />
+        </div>
       </Card>
 
       {/* Other */}

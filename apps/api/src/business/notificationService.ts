@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { deliverWebhook, buildPayload, DeliveryResult } from './webhookDelivery';
 import { createClient } from '@supabase/supabase-js';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { getNetworkByChainId, NETWORKS } from '../blockchain/config/networks';
@@ -248,9 +248,9 @@ export class NotificationService {
   private async handleConfirmationUrl(invoice: InvoiceData, commerce: CommerceData): Promise<void> {
 
     try {
-      const success = await this.sendToConfirmationUrl(invoice, commerce);
-      
-      if (success) {
+      const result = await this.sendToConfirmationUrl(invoice, commerce);
+
+      if (result.ok) {
         // Update successful response
         await this.updateInvoiceField(invoice.id, 'confirmation_url_response', true);
         console.log(`Confirmation URL successful for invoice ${invoice.id}`);
@@ -259,11 +259,13 @@ export class NotificationService {
         const newRetryCount = invoice.confirmation_url_retries + 1;
         await this.updateInvoiceField(invoice.id, 'confirmation_url_retries', newRetryCount);
 
-        // Send failure notification email to commerce
-        await this.sendConfirmationUrlFailureEmail(invoice, commerce, newRetryCount, 'HTTP Error Response');
-        await this.alertIfRetriesExhausted(invoice, commerce, newRetryCount, 'HTTP Error Response');
+        // The merchant is the one who has to fix this, so they get the status
+        // code and the response body, not a generic sentence.
+        const detail = this.describeDelivery(result);
+        await this.sendConfirmationUrlFailureEmail(invoice, commerce, newRetryCount, detail);
+        await this.alertIfRetriesExhausted(invoice, commerce, newRetryCount, detail);
 
-        console.log(`Confirmation URL failed for invoice ${invoice.id}, retry ${newRetryCount}/${this.maxRetries}`);
+        console.log(`Confirmation URL failed for invoice ${invoice.id}, retry ${newRetryCount}/${this.maxRetries}: ${detail}`);
       }
           } catch (error) {
         console.error(`Error handling confirmation URL for invoice ${invoice.id}:`, error);
@@ -320,68 +322,31 @@ export class NotificationService {
   }
 
   /**
-   * Send data to commerce confirmation URL
+   * Send data to commerce confirmation URL.
+   *
+   * Delegates to deliverWebhook so the dashboard's resend and test buttons send
+   * a byte-identical request: an integrator who certifies against the button has
+   * certified against this path too.
+   *
+   * Returns the full result rather than a boolean so the failure email can name
+   * the status code instead of saying "HTTP Error Response" — the message that
+   * left us digging through the database by hand when a real payment failed.
    */
-  private async sendToConfirmationUrl(invoice: InvoiceData, commerce: CommerceData): Promise<boolean> {
+  private async sendToConfirmationUrl(invoice: InvoiceData, commerce: CommerceData): Promise<DeliveryResult> {
     // TypeScript requires this check since confirmation_url can be null
     if (!commerce.confirmation_url) {
       console.error(`No confirmation URL configured for commerce ${commerce.id}`);
-      return false;
+      return { ok: false, status: null, body: null, durationMs: 0, error: 'No confirmation URL configured', signed: false };
     }
 
-    try {
-      const payload = {
-        invoice_id: invoice.id,
-        amount_fiat: invoice.amount_fiat,
-        fiat_currency: invoice.fiat_currency,
-        paid_at: invoice.paid_at,
-        paid_tx_hash: invoice.paid_tx_hash,
-        paid_token: invoice.paid_token,
-        paid_network: invoice.paid_network,
-        paid_amount: invoice.paid_amount,
-        status: invoice.status,
-        reference: invoice.reference ?? null,
-        description: invoice.description ?? null
-      };
+    return deliverWebhook(commerce.confirmation_url, commerce.webhook_secret, buildPayload(invoice));
+  }
 
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.urlTimeout); // Use configurable timeout
-
-      try {
-        const body = JSON.stringify(payload);
-
-        // HMAC signature so the merchant can verify the webhook is from Voulti.
-        // Backward compatible: commerces without webhook_secret get the same
-        // unsigned request as before. Scheme (Stripe-style, replay-resistant):
-        //   X-Voulti-Signature: t=<unix_seconds>,v1=hex(hmacSHA256(secret, `${t}.${body}`))
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (commerce.webhook_secret) {
-          const t = Math.floor(Date.now() / 1000);
-          const v1 = createHmac('sha256', commerce.webhook_secret).update(`${t}.${body}`).digest('hex');
-          headers['X-Voulti-Signature'] = `t=${t},v1=${v1}`;
-        }
-
-        const response = await fetch(commerce.confirmation_url, {
-          method: 'POST',
-          headers,
-          body,
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-        return response.ok;
-      } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-          console.error(`Timeout sending to confirmation URL ${commerce.confirmation_url}`);
-        }
-        throw error;
-      }
-    } catch (error) {
-      console.error(`Error sending to confirmation URL ${commerce.confirmation_url}:`, error);
-      return false;
-    }
+  /** One line naming what actually went wrong, for the email and the logs. */
+  private describeDelivery(result: DeliveryResult): string {
+    if (result.error) return result.error;
+    const body = result.body ? ` — ${result.body.slice(0, 200)}` : '';
+    return `HTTP ${result.status} in ${result.durationMs}ms${body}`;
   }
 
   /**

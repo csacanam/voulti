@@ -172,6 +172,23 @@ export const es = {
     getStarted: "Comenzar",
     loading: "Cargando...",
   },
+  webhookTest: {
+    title: "Probar mi webhook",
+    subtitle: "Le enviamos a tu URL un evento real de cada tipo, marcado con test: true, y te mostramos qué respondió.",
+    send: "Enviar",
+    sending: "Enviando…",
+    accepted: "Tu servidor lo aceptó",
+    rejected: "Tu servidor no lo aceptó",
+    unsignedWarning: "Esta entrega salió sin firmar porque el comercio no tiene secreto configurado. Sin firma, cualquiera que conozca tu URL puede simular un pago. Generá el secreto arriba.",
+    noUrl: "Configurá primero la URL del webhook.",
+    resend: "Reenviar webhook",
+    resending: "Reenviando…",
+    resendHint: "Vuelve a enviar el evento de este cobro a tu URL.",
+    eventPaid: "Pago",
+    eventExpired: "Expiración",
+    eventRefunded: "Devolución",
+  },
+
   detail: {
     title: "Detalle del cobro",
     status: "Estado",

@@ -172,6 +172,23 @@ export const en = {
     getStarted: "Get Started",
     loading: "Loading...",
   },
+  webhookTest: {
+    title: "Test my webhook",
+    subtitle: "We send your URL a real event of each kind, marked test: true, and show you what came back.",
+    send: "Send",
+    sending: "Sending…",
+    accepted: "Your server accepted it",
+    rejected: "Your server did not accept it",
+    unsignedWarning: "This delivery went out unsigned because the commerce has no signing secret. Without a signature, anyone who knows your URL can fake a payment. Generate the secret above.",
+    noUrl: "Set your webhook URL first.",
+    resend: "Resend webhook",
+    resending: "Resending…",
+    resendHint: "Send this payment's event to your URL again.",
+    eventPaid: "Payment",
+    eventExpired: "Expiry",
+    eventRefunded: "Refund",
+  },
+
   detail: {
     title: "Payment detail",
     status: "Status",

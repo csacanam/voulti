@@ -8,6 +8,7 @@ import { getProvider, getWallet } from '../blockchain/utils/web3';
 import AccessManagerABI from '../blockchain/abi/AccessManager.json';
 import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { deliverWebhook, buildTestPayload } from '../business/webhookDelivery';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 import { sendTelegramAlert } from '../utils/notify';
 
@@ -338,6 +339,59 @@ export async function commercesRoutes(app: FastifyInstance) {
       return res.send({ success: true });
     } catch (error: any) {
       return res.status(500).send({ error: error.message || 'Failed to update' });
+    }
+  });
+
+  /**
+   * Fire a rehearsal of one of the three events at the merchant's own webhook
+   * URL, and report exactly what came back.
+   *
+   * Why this exists: without it, the only way to see your handler run is to be
+   * paid — which means a funded wallet on one of five chains before you can
+   * debug your first `if`. Iterating a signature check at two minutes and a
+   * real payment per attempt is not a thing anyone does; they skip the check.
+   *
+   * The delivery is byte-identical to a real one but for `test: true`, and it
+   * goes only to the URL already stored for this commerce. Accepting a URL from
+   * the request body would turn this into an SSRF probe wearing our IP.
+   */
+  app.post('/:id/webhook-test', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const { event } = (req.body || {}) as { event?: string };
+
+      const requested = event || 'Paid';
+      if (!['Paid', 'Expired', 'Refunded'].includes(requested)) {
+        return res.status(400).send({
+          error: `Invalid event "${requested}". Valid events: Paid, Expired, Refunded`,
+        });
+      }
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet, confirmation_url, webhook_secret, currency')
+        .eq('id', id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      if (!commerce.confirmation_url) {
+        return res.status(400).send({ error: 'Set a webhook URL first' });
+      }
+
+      const payload = buildTestPayload(requested as 'Paid' | 'Expired' | 'Refunded', {
+        amount_fiat: 1000,
+        fiat_currency: commerce.currency || 'USD',
+      });
+
+      const result = await deliverWebhook(commerce.confirmation_url, commerce.webhook_secret, payload);
+
+      return res.send({ success: true, data: { ...result, payload } });
+    } catch (error: any) {
+      console.error('Webhook test error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to send test webhook' });
     }
   });
 
