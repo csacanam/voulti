@@ -206,6 +206,12 @@ export async function adminRoutes(app: FastifyInstance) {
         try {
           const status = await getCommerceNetworkStatus(c.wallet);
           missing = status
+            // An unreadable network is not a missing one. Whitelisting it
+            // "just in case" costs gas from the same wallet that funds deposit
+            // sweeps, and reporting it as repaired would be a guess dressed up
+            // as a fact. Leave it out and let the next run, on a healthy RPC,
+            // decide.
+            .filter((n: any) => !n.readError)
             .filter((n: any) => !n.active || !n.tokens.some((t: any) => t.whitelisted))
             .map((n: any) => n.network);
         } catch {

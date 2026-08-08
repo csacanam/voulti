@@ -18,6 +18,15 @@ export interface NetworkStatus {
   network: string;
   chainId: number;
   active: boolean; // commerce is whitelisted on-chain
+  /**
+   * Set when the on-chain read failed, which is NOT the same as the commerce
+   * being inactive — `active: false` alone cannot tell the two apart. Public
+   * RPCs rate-limit often enough that treating an unreadable network as
+   * inactive produces confident, wrong answers: it made an audit report
+   * healthy commerces as broken, and it makes the dashboard tell a merchant a
+   * network is off when they can take payments on it right now.
+   */
+  readError?: string;
   tokens: {
     symbol: string;
     address: string;
@@ -68,6 +77,7 @@ export async function getCommerceNetworkStatus(commerceWallet: string): Promise<
             network: networkName,
             chainId: NETWORKS[networkName as keyof typeof NETWORKS]?.chainId || 0,
             active: false,
+            readError: err.message || 'on-chain read failed',
             tokens: [],
           });
         }
