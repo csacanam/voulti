@@ -329,7 +329,14 @@ function CommerceLinkTab() {
       <Card className="p-5 bg-muted/50">
         <p className="text-sm font-medium text-foreground mb-2">{t.receive.howItWorks}</p>
         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-          <li>{t.receive.howStep1} <strong>{commerce?.currency || "your currency"}</strong></li>
+          {/* The account currency sets the price in exactly one place — here —
+              because a permanent link has no caller to state one. Saying only
+              "in COP" left that looking like a leftover rule now that every
+              other charge picks its own currency. */}
+          <li>
+            {t.receive.howStep1} <strong>{commerce?.currency || "your currency"}</strong>
+            {t.receive.howStep1End}
+          </li>
           <li>{t.receive.howStep2}</li>
           <li>{t.receive.howStep3}</li>
         </ul>
