@@ -62,7 +62,7 @@ The invoice id is **`data.id`**. Send the payer this link:
 https://voulti.com/checkout/<invoice_id>
 ```
 
-**Expiration:** invoices expire in **1 hour** by default. If the payer won't pay right away, pass a custom `expires_at` (ISO 8601) when creating: `{ "commerce_id": "...", "amount_fiat": 150, "expires_at": "2026-07-15T00:00:00Z" }` — or use the permanent link (Option B) for slow payers.
+**Expiration:** invoices expire in **1 hour** by default. If the payer won't pay right away, pass a custom `expires_at` (ISO 8601) when creating: `{ "commerce_id": "...", "amount_fiat": 150, "currency": "USD", "expires_at": "2026-07-15T00:00:00Z" }` — or use the permanent link (Option B) for slow payers.
 
 A past or unparseable `expires_at` is rejected with `400` (`"expires_at must be in the future"` / `"must be a valid ISO 8601 date"`), so you cannot accidentally hand a payer a link that was dead on arrival. There is **no maximum**, though: a date ten years out is accepted without complaint. Prefer a window you would actually honour — a link that stays payable for a year is a link whose price is a year stale.
 
@@ -98,6 +98,17 @@ The same merchant can hand out one link per audience — `?currency=EUR` abroad,
 
 ---
 
+### Cancelling a charge nobody paid
+
+```
+PUT https://api.voulti.com/invoices/<invoice_id>/status
+{ "status": "Expired" }
+```
+
+The one write on an invoice a merchant may make, and the only one — it needs the merchant's dashboard session, not the no-auth access the rest of this file uses, so **you cannot call it from an integration**. Ask the human to do it, or simply let the charge expire on its own. `Paid` and `Refunded` are settled on-chain and cannot be set by hand at all; a charge that is already anything other than `Pending` answers `409`.
+
+---
+
 ## Confirm the payment
 
 ### Polling
@@ -121,6 +132,8 @@ GET https://api.voulti.com/invoices/<invoice_id>
   "paid_tx_hash": "0x…", "paid_token": "USDT", "paid_network": "celo",
   "paid_amount": 0.31471, "wallet_address": "0x…", "description": "Logo design", "tokens": [ … ] }
 ```
+
+> ⚠️ **`amount_usd` and `usd_to_fiat_rate` are recomputed on every read, at today's rate.** They are not stored with the invoice, so a charge created months ago comes back priced at this morning's exchange rate — including one that is `Expired`, which quotes a price nobody can pay any more, and one that is `Paid`, where the number never matches what actually settled. For accounting, use `paid_amount` with `paid_token`: those are recorded at settlement and do not move. Treat `amount_usd` as a live quote for a `Pending` invoice and ignore it everywhere else.
 
 **`reference` and `created_at` are not on this response.** `reference` comes back on `POST /invoices` and in the webhook payload, but `GET /invoices/<id>` does not echo it — so you cannot use it to identify an invoice you fetched by id, and there is no way to search by it. Store your own id → invoice mapping at creation time. Likewise, capture `created_at` from the POST response if you need it; the GET will not give it back.
 
@@ -153,6 +166,8 @@ If the merchant configured `confirmation_url`, Voulti POSTs there a **bare** JSO
 
 Deduplicate on `invoice_id` plus `status`: there is no delivery id or attempt counter, and the same final status can arrive more than once.
 
+**Record the key *after* the work succeeds, not when the delivery arrives.** Marking it seen up front looks safer and is the opposite: if the fulfilment or the confirming `GET` then fails, every retry we send is discarded as a duplicate and the order is never filled — a payment lost to a cache entry. Write the key in the same transaction as the fulfilment, or last.
+
 **It fires on every final status, not just `Paid`** — `Expired` and `Refunded` arrive here too, so branch on `status` rather than assuming a delivery means money. On `Expired` and `Refunded` the payment fields (`paid_tx_hash`, `paid_amount`, `paid_at`…) are `null`.
 
 **Delivery is batched, not instantaneous.** A background worker sweeps confirmed invoices and posts them, so the webhook lands seconds after settlement rather than the moment the payer's transaction confirms. If a human is watching a screen, poll alongside the webhook — whichever arrives first wins, and both should reach the same end state.
@@ -165,7 +180,7 @@ Deduplicate on `invoice_id` plus `status`: there is no delivery id or attempt co
 
 > ⚠️ **Do not test your deduplication against a real invoice id.** If you key your cache on `invoice_id` + `status` and fire a test at yourself using a real charge's id, you poison that key — and the *genuine* delivery that follows is discarded as a duplicate, silently, with a `200` that looks like success. The dashboard's test button avoids this by sending `invoice_id: "00000000-0000-0000-0000-000000000000"`, which cannot collide with anything. A manual resend from the dashboard *is* the same event again and your cache should treat it as a duplicate — that is correct, and it is why the merchant reads Delivery history rather than your logs to confirm a resend went out.
 
-**Retries back off, so a short outage is survivable.** A delivery that does not answer `2xx` within 2 s is retried on this schedule: 1m, 5m, 30m, 2h, 6h, 12h, 24h — 8 attempts spanning about two days. **Your handler must be idempotent**: the same event will arrive more than once whenever a response is slow or lost, and the merchant can also replay it by hand from their dashboard. Match on `invoice_id` and ignore what you have already processed. After the last attempt the invoice leaves the delivery queue for good; only a manual resend brings it back.
+**Retries back off, so a short outage is survivable.** A delivery that does not answer `2xx` within 2 s is retried on this schedule: 1m, 5m, 30m, 2h, 6h, 12h, 24h — 8 attempts spanning about two days. **Your handler must be idempotent**: the same event will arrive more than once whenever a response is slow or lost, and the merchant can also replay it by hand from their dashboard. Key your cache on `invoice_id` **plus `status`**, as above — never on `invoice_id` alone. One charge can legitimately deliver twice with different statuses (`Expired`, then `Refunded` when late funds are returned), and a cache keyed on the id alone swallows the second one: the order stays shipped after the money went back. After the last attempt the invoice leaves the delivery queue for good; only a manual resend brings it back.
 
 **`test: true` means nobody paid.** The merchant can fire any of the three events at their own URL from the dashboard's *Test my webhook* button. Those deliveries are byte-identical to real ones except for a `test: true` field, are signed with the same secret, and carry `invoice_id: "00000000-0000-0000-0000-000000000000"`. Return `2xx` so the merchant sees their endpoint works — and ship nothing. Real deliveries never carry the field at all, so branch on its presence, not on its value.
 
@@ -204,7 +219,14 @@ export async function POST(req) {
   if (!verifyVoultiWebhook(rawBody, req.headers.get("x-voulti-signature"), secret)) {
     return Response.json({ error: "bad signature" }, { status: 401 });
   }
-  after(() => fulfill(JSON.parse(rawBody))); // re-check + deliver goods, off the critical path
+  after(async () => {
+    const e = JSON.parse(rawBody);
+    if (e.test) return;                               // dashboard rehearsal, no money moved
+    const key = `${e.invoice_id}:${e.status}`;        // id alone would swallow Expired → Refunded
+    if (await seen(key)) return;
+    await fulfill(e);                                 // re-check + deliver goods
+    await markSeen(key);                              // last: a failure above must stay retryable
+  });
   return Response.json({ received: true });  // well inside the 2s budget
 }
 ```
