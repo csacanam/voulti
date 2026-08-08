@@ -129,6 +129,7 @@ function PaymentLinksTab() {
             uses: inv.status === "Paid" ? 1 : 0,
             url: `${CHECKOUT_BASE_URL}/checkout/${inv.id}`,
             reference: inv.reference || undefined,
+            description: inv.description || undefined,
             payerAddress: inv.payer_address || undefined,
             txHash: inv.paid_tx_hash || undefined,
             network: inv.paid_network || undefined,
@@ -217,6 +218,14 @@ function PaymentLinksTab() {
                           ) : (
                             <div className="text-muted-foreground">—</div>
                           )}
+                          {/* What the payer saw. Without it the merchant can
+                              only recognise a charge by their own code, which
+                              is useless when a customer asks about it. */}
+                          {link.description && (
+                            <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={link.description}>
+                              {link.description}
+                            </div>
+                          )}
                           {link.payerAddress && (
                             <a
                               href={explorerAddress(link.network, link.payerAddress)}
@@ -284,10 +293,11 @@ function PaymentLinksTab() {
                       {/* Mobile hides the desktop columns, so the reference has
                           to travel with the amount or it is not visible at all
                           on the screen most merchants actually use. */}
-                      {link.reference ? (
+                      {link.reference && (
                         <div className="text-sm text-foreground truncate">{link.reference}</div>
-                      ) : (
-                        <div className="text-xs text-muted-foreground">—</div>
+                      )}
+                      {link.description && (
+                        <div className="text-xs text-muted-foreground truncate">{link.description}</div>
                       )}
                       {link.payerAddress && (
                         <a
