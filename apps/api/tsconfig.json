@@ -109,5 +109,9 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
-  }
+  },
+  /* Build only the service. Tests and the vitest config live outside rootDir
+     and are type-checked by vitest itself, not by the production build. */
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "vitest.config.ts"]
 }
