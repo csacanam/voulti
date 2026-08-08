@@ -512,7 +512,7 @@ function verifyVoulti(rawBody, header, secret, toleranceSeconds = 300) {
   if (Math.abs(Date.now() / 1000 - Number(parts.t)) > toleranceSeconds) return false;
 
   const expected = createHmac("sha256", secret)
-    .update(\\\`\\\${parts.t}.\\\${rawBody}\\\`)
+    .update(parts.t + "." + rawBody)
     .digest("hex");
 
   const a = Buffer.from(expected, "hex");
