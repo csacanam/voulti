@@ -213,6 +213,14 @@ Defense in depth still applies: even with a valid signature, confirm with `GET /
 
 **Treat the whole payload as untrusted, not just `status`.** It is tempting to re-check the status against the API but still persist `paid_tx_hash`, `paid_amount` or `paid_at` from the body — especially as a fallback when the API returns `null`. Don't. A forged delivery then writes a real-looking transaction hash onto an unpaid invoice, and your dashboard shows a payment that never happened even though the status stayed correct. **Use the body for `invoice_id` and nothing else**; take every other field from the `GET` response.
 
+**Three things your handler must refuse — and the merchant can prove whether it does.** Voulti can sign deliveries *wrongly on purpose*, which nobody else can, so the merchant has a button that fires four at you from **Receive Payments → Developers**: one signed correctly, one with a tampered signature, one signed genuinely but an hour ago, and one with no signature header at all. The last three must come back non-2xx. Write the handler so they do:
+
+- **A signature that does not match** → reject. This is the one that matters: accept it and anyone who learns the URL can make the merchant believe an order was paid.
+- **A `t` older than a few minutes** → reject. A genuine delivery captured once can otherwise be replayed at you forever. Five minutes of tolerance is plenty.
+- **A missing header** → reject. Absent is not "unsigned mode"; treat it as wrong, and expect it whenever the merchant has not generated a secret.
+
+Order matters: verify **before** any short-circuit. A handler that returns `200` on `test: true` before checking the signature will fail all three, correctly — an attacker can set that field too.
+
 **Answer `2xx` unless you actually want a retry.** Any non-2xx answer costs one of the **8 attempts** described above, and once the last one is spent the invoice leaves the delivery queue permanently — only a manual resend from the merchant's dashboard brings it back. Return `200` for anything a retry cannot fix (unknown invoice, duplicate delivery, order already handled) and reserve `5xx` for genuinely transient problems. A re-check that throws because of a client-side bug will otherwise burn every attempt across two days and look, from the merchant's side, exactly like an outage.
 
 ---
