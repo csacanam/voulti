@@ -244,6 +244,72 @@ export async function commercesRoutes(app: FastifyInstance) {
   });
 
   // Update webhook URL (authenticated + verify ownership)
+  /**
+   * Change the commerce's currency.
+   *
+   * Safe to change at any time: invoices carry their own `fiat_currency`, so
+   * past ones keep the unit they were quoted in. This decides the dashboard's
+   * totals and the unit the permanent `/pay/<id>` link asks for — nothing
+   * retroactive.
+   */
+  app.put('/:id/currency', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const { currency } = (req.body || {}) as { currency?: string };
+
+      if (!currency) {
+        return res.status(400).send({ error: 'currency is required' });
+      }
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      // Same whitelist the invoice route validates against, so the dashboard
+      // can never be set to a unit an invoice could not be priced in.
+      const code = String(currency).toUpperCase();
+      const { data: rate } = await supabase
+        .from('fiat_exchange_rates')
+        .select('currency_code')
+        .eq('currency_code', code)
+        .single();
+
+      if (!rate) {
+        const { data: supported } = await supabase
+          .from('fiat_exchange_rates')
+          .select('currency_code')
+          .order('currency_code');
+        return res.status(400).send({
+          error: `Unsupported currency "${code}". Supported: ${(supported || []).map((c: any) => c.currency_code).join(', ')}`,
+        });
+      }
+
+      const SYMBOLS: Record<string, string> = {
+        USD: '$', COP: '$', MXN: '$', ARS: '$', BRL: 'R$', EUR: '€',
+      };
+
+      const { error } = await supabase
+        .from('commerces')
+        .update({ currency: code, currencySymbol: SYMBOLS[code] || '$' })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Currency update error:', error);
+        return res.status(500).send({ error: 'Failed to update currency' });
+      }
+
+      return res.send({ success: true, data: { currency: code, currency_symbol: SYMBOLS[code] || '$' } });
+    } catch (error: any) {
+      return res.status(500).send({ error: error.message || 'Failed to update currency' });
+    }
+  });
+
   app.put('/:id/webhook', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };

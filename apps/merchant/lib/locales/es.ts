@@ -196,6 +196,8 @@ export const es = {
     wallet: "Dirección de Wallet",
     createdAt: "Fecha de Creación",
     currencySettings: "Configuración de Moneda",
+    currencyNote: "La unidad que usan los totales de tu panel y tu link de pago permanente. Las facturas anteriores conservan la moneda con que se crearon.",
+    currencySaved: "Moneda actualizada",
     currency: "Moneda",
     symbol: "Símbolo",
     minAmount: "Monto Mínimo",

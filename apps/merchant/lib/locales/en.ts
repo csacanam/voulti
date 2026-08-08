@@ -196,6 +196,8 @@ export const en = {
     wallet: "Wallet Address",
     createdAt: "Created",
     currencySettings: "Currency Settings",
+    currencyNote: "The unit your dashboard totals and your permanent payment link use. Past invoices keep the currency they were created in.",
+    currencySaved: "Currency updated",
     currency: "Currency",
     symbol: "Symbol",
     minAmount: "Min Amount",

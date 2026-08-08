@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePrivy } from "@privy-io/react-auth"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Lock, Loader2, Copy, Save, Check } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -77,6 +78,47 @@ export default function AccountPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast({ title: t.dashboard.copy })
+  }
+
+  const [currency, setCurrency] = useState(commerce?.currency || 'USD')
+  const [savingCurrency, setSavingCurrency] = useState(false)
+
+  // Seeded once before `commerce` resolves, so re-sync when it arrives.
+  useEffect(() => {
+    if (commerce?.currency) setCurrency(commerce.currency)
+  }, [commerce?.currency])
+
+  const saveCurrency = async (next: string) => {
+    if (!commerce || next === currency) return
+    const previous = currency
+    setCurrency(next)
+    setSavingCurrency(true)
+
+    try {
+      const token = getAuthToken()
+      const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerce.commerce_id}/currency`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ currency: next }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed to update currency')
+      }
+
+      toast({ title: t.account.currencySaved })
+    } catch (err: any) {
+      // Put the select back rather than leaving it showing a value the server
+      // rejected.
+      setCurrency(previous)
+      toast({ title: err.message, variant: 'destructive' })
+    } finally {
+      setSavingCurrency(false)
+    }
   }
 
   if (!authenticated) {
@@ -183,9 +225,27 @@ export default function AccountPage() {
           {/* Currency Settings */}
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">{t.account.currencySettings}</h3>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">{t.account.currency}</label>
-              <p className="text-foreground mt-1">{commerce.currency}</p>
+            <div className="space-y-2">
+              <label htmlFor="account-currency" className="text-sm font-medium text-muted-foreground">
+                {t.account.currency}
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  id="account-currency"
+                  value={currency}
+                  disabled={savingCurrency}
+                  onChange={(e) => saveCurrency(e.target.value)}
+                  className="px-3 py-2 bg-background border border-input rounded-md text-sm font-medium disabled:opacity-60"
+                >
+                  {["USD", "EUR", "COP", "ARS", "BRL", "MXN"].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {savingCurrency && <Spinner className="w-4 h-4" />}
+              </div>
+              {/* Says what changes and what does not, because "currency" on a
+                  payments account reads like it might re-price past sales. */}
+              <p className="text-xs text-muted-foreground">{t.account.currencyNote}</p>
             </div>
           </div>
 
