@@ -45,6 +45,7 @@ export const en = {
     reference: "Reference",
     idCopied: "Invoice ID copied",
     viewDetail: "Detail",
+    linkCurrency: "Charge in:",
     tx: "tx ↗",
     created: "Created",
     expires: "Expires",
@@ -58,7 +59,7 @@ export const en = {
     preview: "Preview",
     howItWorks: "How it works",
     howStep1: "Customer opens the link and enters the amount in",
-    howStep1End: ", your account currency. This link carries no fixed amount, so there is nowhere to pick another one — fixed-amount charges accept any currency.",
+    howStep1End: ", the currency you picked above for this link.",
     howStep2: "An invoice is created and they choose how to pay",
     howStep3: "Print the QR code for in-person payments",
     // Developers

@@ -6,7 +6,7 @@ Key facts:
 
 - API base: `https://api.voulti.com` — integration endpoints require no API key or authentication.
 - Typical flow: `POST /invoices` with `{ "commerce_id": "<id>", "amount_fiat": 50, "currency": "USD" }` → returns `invoice_id` → send the payer to `https://voulti.com/checkout/<invoice_id>` → poll `GET /invoices/<invoice_id>` until `status: "Paid"`, or receive the webhook on your `confirmation_url`.
-- Permanent payment link per merchant: `https://voulti.com/pay/<commerce_id>`.
+- Permanent payment link per merchant: `https://voulti.com/pay/<commerce_id>?currency=USD` — payer types the amount; `currency` is optional and falls back to the merchant's account currency.
 - Merchants sign up self-service at `https://app.voulti.com` (wallet or email) to get a `commerce_id`. Settlement goes to the merchant's own wallet (self-custody).
 - Contracts (proxy architecture) deployed and verified on all 5 mainnets.
 

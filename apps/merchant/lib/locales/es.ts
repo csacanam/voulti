@@ -45,6 +45,7 @@ export const es = {
     reference: "Referencia",
     idCopied: "ID de factura copiado",
     viewDetail: "Detalle",
+    linkCurrency: "Cobrar en:",
     tx: "tx ↗",
     created: "Creado",
     expires: "Expira",
@@ -58,7 +59,7 @@ export const es = {
     preview: "Vista previa",
     howItWorks: "Cómo funciona",
     howStep1: "El cliente abre el link e ingresa el monto en",
-    howStep1End: ", la moneda de tu cuenta. Este link no lleva monto fijo, asi que no hay donde elegir otra: los cobros con monto fijo si aceptan cualquiera.",
+    howStep1End: ", la moneda que elegiste arriba para este link.",
     howStep2: "Se crea una factura y elige cómo pagar",
     howStep3: "Imprime el código QR para pagos presenciales",
     // Developers

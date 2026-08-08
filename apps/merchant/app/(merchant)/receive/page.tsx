@@ -295,7 +295,19 @@ function CommerceLinkTab() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const commerceUrl = commerce ? `${CHECKOUT_BASE_URL}/pay/${commerce.commerce_id}` : ""
+  // The link carries the currency it charges in. Without it the page falls back
+  // to the account currency, which is the last place that setting still sets a
+  // price — with it the merchant can hand a EUR link to one audience and a COP
+  // one to another from the same account.
+  const [linkCurrency, setLinkCurrency] = useState(commerce?.currency || "USD")
+
+  useEffect(() => {
+    if (commerce?.currency) setLinkCurrency(commerce.currency)
+  }, [commerce?.currency])
+
+  const commerceUrl = commerce
+    ? `${CHECKOUT_BASE_URL}/pay/${commerce.commerce_id}?currency=${linkCurrency}`
+    : ""
 
   const handleCopy = () => {
     navigator.clipboard.writeText(commerceUrl)
@@ -309,6 +321,25 @@ function CommerceLinkTab() {
       <p className="text-sm text-muted-foreground">{t.receive.commerceSubtitle}</p>
 
       <Card className="p-5">
+        {/* Chosen per link rather than taken from the account: one merchant can
+            keep a COP link at home and a EUR one for elsewhere, without an
+            account-wide setting deciding for both. */}
+        <div className="flex items-center gap-2 mb-3">
+          <label htmlFor="link-currency-select" className="text-xs text-muted-foreground">
+            {t.receive.linkCurrency}
+          </label>
+          <select
+            id="link-currency-select"
+            value={linkCurrency}
+            onChange={(e) => setLinkCurrency(e.target.value)}
+            className="px-2 py-1 bg-background border border-input rounded-md text-sm font-medium"
+          >
+            {["USD", "EUR", "COP", "ARS", "BRL", "MXN"].map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
         <p className="text-xs text-muted-foreground mb-2">{t.receive.checkoutUrl}</p>
         <div className="p-3 bg-muted rounded-lg font-mono text-sm break-all mb-4">{commerceUrl}</div>
         <div className="flex gap-2">
@@ -334,7 +365,7 @@ function CommerceLinkTab() {
               "in COP" left that looking like a leftover rule now that every
               other charge picks its own currency. */}
           <li>
-            {t.receive.howStep1} <strong>{commerce?.currency || "your currency"}</strong>
+            {t.receive.howStep1} <strong>{linkCurrency}</strong>
             {t.receive.howStep1End}
           </li>
           <li>{t.receive.howStep2}</li>
@@ -467,7 +498,7 @@ function DevelopersTab() {
 
   const createCode = `curl -X POST ${apiBase}/invoices \\
   -H "Content-Type: application/json" \\
-  -d '{"commerce_id":"${cid}","amount_fiat":50,"currency":"USD","reference":"order-123"}'`
+  -d '{"commerce_id":"${cid}","amount_fiat":50,"currency":"USD","reference":"order-123","description":"Logo design"}'`
 
   const responseCode = `{
   "success": true,
@@ -477,7 +508,8 @@ function DevelopersTab() {
     "fiat_currency": "USD",
     "status": "Pending",
     "expires_at": "2026-03-30T06:00:00Z",
-    "reference": "order-123"
+    "reference": "order-123",
+    "description": "Logo design"
   }
 }`
 
@@ -548,7 +580,7 @@ function DevelopersTab() {
         </p>
         <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
         <p className="text-xs text-muted-foreground mt-2">
-          Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount, paid_at, reference {'}'}
+          Payload: {'{'} invoice_id, amount_fiat, fiat_currency, status, paid_token, paid_network, paid_tx_hash, paid_amount, paid_at, reference, description {'}'}
         </p>
         <WebhookSecret commerceId={cid} />
       </Card>

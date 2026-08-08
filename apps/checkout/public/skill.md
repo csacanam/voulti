@@ -87,10 +87,14 @@ Both come back on `POST /invoices` and in the webhook payload. Neither is search
 ### Option B — Permanent link (payer chooses the amount)
 
 ```
-https://voulti.com/pay/<commerce_id>
+https://voulti.com/pay/<commerce_id>?currency=USD
 ```
 
-Good for tips, donations, or "pay what you owe" flows. No API call needed.
+Good for tips, donations, or "pay what you owe" flows. No API call needed — the payer types an amount and the invoice is created for them.
+
+`currency` is optional here and takes any of the supported codes; the payer types the amount in it. Omit it and the merchant's account currency is used, which is the only place that setting still decides a price. The code is validated server-side against the same whitelist as every invoice, so editing the URL by hand cannot invent a currency.
+
+The same merchant can hand out one link per audience — `?currency=EUR` abroad, `?currency=COP` at home — without changing anything account-wide.
 
 ---
 

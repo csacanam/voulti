@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Store, AlertCircle } from 'lucide-react';
 import { useCommerce } from '../hooks/useCommerce';
 import { createInvoice } from '../services/invoiceService';
@@ -12,7 +12,30 @@ import { useNavigate } from 'react-router-dom';
 
 export const CommercePage: React.FC = () => {
   const { commerceId } = useParams<{ commerceId: string }>();
+  const [searchParams] = useSearchParams();
+
+  /**
+   * The permanent link can carry the currency it charges in: /pay/<id>?currency=USD
+   *
+   * Without it there is no caller to state one, so it falls back to the
+   * commerce's — which is otherwise just the unit its dashboard totals use.
+   * With it, one merchant can hand a EUR link to Europe and a COP link at
+   * home, from the same account, without changing an account-wide setting.
+   *
+   * Only the unit shown is decided here; the API validates the code against
+   * the same whitelist every invoice goes through, so a hand-edited URL cannot
+   * invent a currency.
+   */
+  const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$', COP: '$', MXN: '$', ARS: '$', BRL: 'R$', EUR: '€',
+  };
+  const requested = (searchParams.get('currency') || '').toUpperCase();
+  const currencyCode = CURRENCY_SYMBOLS[requested] ? requested : undefined;
   const { commerce, error, loading } = useCommerce(commerceId || '');
+
+  const effectiveCurrency = currencyCode || commerce?.currency || 'USD';
+  const effectiveSymbol =
+    CURRENCY_SYMBOLS[effectiveCurrency] || commerce?.currency_symbol || '$';
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [amount, setAmount] = useState<string>('');
@@ -63,7 +86,7 @@ export const CommercePage: React.FC = () => {
     if (commerce?.min_amount && numAmount < commerce.min_amount) {
       setAmountError(interpolate(t.commerce.amountMin, {
         min: commerce.min_amount.toLocaleString(),
-        currency: `${commerce.currency} ${commerce.currency_symbol}`
+        currency: `${effectiveCurrency} ${effectiveSymbol}`
       }));
       return false;
     }
@@ -72,7 +95,7 @@ export const CommercePage: React.FC = () => {
     if (commerce?.max_amount && numAmount > commerce.max_amount) {
       setAmountError(interpolate(t.commerce.amountMax, {
         max: commerce.max_amount.toLocaleString(),
-        currency: `${commerce.currency} ${commerce.currency_symbol}`
+        currency: `${effectiveCurrency} ${effectiveSymbol}`
       }));
       return false;
     }
@@ -104,7 +127,7 @@ export const CommercePage: React.FC = () => {
     if (commerce?.min_amount && numAmount < commerce.min_amount) {
       setAmountError(interpolate(t.commerce.amountMin, {
         min: commerce.min_amount.toLocaleString(),
-        currency: `${commerce.currency} ${commerce.currency_symbol}`
+        currency: `${effectiveCurrency} ${effectiveSymbol}`
       }));
       return false;
     }
@@ -113,7 +136,7 @@ export const CommercePage: React.FC = () => {
     if (commerce?.max_amount && numAmount > commerce.max_amount) {
       setAmountError(interpolate(t.commerce.amountMax, {
         max: commerce.max_amount.toLocaleString(),
-        currency: `${commerce.currency} ${commerce.currency_symbol}`
+        currency: `${effectiveCurrency} ${effectiveSymbol}`
       }));
       return false;
     }
@@ -125,8 +148,8 @@ export const CommercePage: React.FC = () => {
 
   const handleGenerateLink = async () => {
     if (!validateAmount()) return;
-    // The API requires a currency and this page's only source for it is the
-    // loaded commerce, so refuse rather than send a request that would 400.
+    // Wait for the commerce: without it there is no fallback currency and no
+    // limits to have validated against.
     if (!commerce) return;
 
     setIsGenerating(true);
@@ -136,7 +159,7 @@ export const CommercePage: React.FC = () => {
         commerce_id: commerceId || '',
         amount_fiat: parseFloat(amount),
         // The unit shown next to the input the payer just typed into
-        currency: commerce.currency
+        currency: effectiveCurrency
       });
 
       if (response.success && response.data) {
@@ -200,12 +223,12 @@ export const CommercePage: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-gray-900 font-medium mb-2">
-                {t.commerce.amountLabel} {language === 'es' ? 'en' : 'in'} {commerce.currency}
+                {t.commerce.amountLabel} {language === 'es' ? 'en' : 'in'} {effectiveCurrency}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-400 text-sm font-medium">
-                    {commerce.currency} {commerce.currency_symbol || '$'}
+                    {effectiveCurrency} {effectiveSymbol}
                   </span>
                 </div>
                 <input
@@ -233,10 +256,10 @@ export const CommercePage: React.FC = () => {
               {(commerce?.min_amount || commerce?.max_amount) && (
                 <div className="text-gray-400 text-xs mt-2">
                   {commerce?.min_amount && (
-                    <div>{t.commerce.minimum}: {commerce.currency} {commerce.currency_symbol} {commerce.min_amount.toLocaleString()}</div>
+                    <div>{t.commerce.minimum}: {effectiveCurrency} {effectiveSymbol} {commerce.min_amount.toLocaleString()}</div>
                   )}
                   {commerce?.max_amount && (
-                    <div>{t.commerce.maximum}: {commerce.currency} {commerce.currency_symbol} {commerce.max_amount.toLocaleString()}</div>
+                    <div>{t.commerce.maximum}: {effectiveCurrency} {effectiveSymbol} {commerce.max_amount.toLocaleString()}</div>
                   )}
                 </div>
               )}
