@@ -342,13 +342,32 @@ export class NotificationService {
     const failureCount = invoice.confirmation_url_retries + 1;
     const next = nextRetryAt(failureCount);
 
-    await supabase
+    const { error: bookingError } = await supabase
       .from('invoices')
       .update({
         confirmation_url_retries: failureCount,
         confirmation_url_next_retry_at: next ? next.toISOString() : null,
       })
       .eq('id', invoice.id);
+
+    // This one cannot be shrugged off. The delivery query selects on
+    // `retries < MAX_ATTEMPTS`, so a counter that fails to advance means this
+    // invoice is retried forever at cron speed — us hammering a merchant's
+    // server indefinitely, which is worse than any delivery we might lose.
+    if (bookingError) {
+      console.error(`[webhook] FAILED to book retry for ${invoice.id}:`, bookingError.message);
+      await sendTelegramAlert(
+        `webhook_booking_failed_${invoice.id}`,
+        [
+          '\u26a0\ufe0f <b>No se pudo agendar el reintento del webhook</b>',
+          '',
+          `<b>Invoice:</b> <code>${invoice.id}</code>`,
+          `<b>Error:</b> <code>${String(bookingError.message).slice(0, 200)}</code>`,
+          '',
+          'El contador no avanzó: esta invoice se va a reintentar sin parar hasta que se arregle.',
+        ].join('\n')
+      );
+    }
 
     // One email when it starts failing and one when we stop trying. Sending one
     // per attempt filled a mailbox with news the merchant had after the first.
