@@ -61,4 +61,6 @@ export interface PaymentLink {
   payerAddress?: string
   txHash?: string
   network?: string
+  paidToken?: string
+  paidAmount?: number
 }

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2, Save, Bot } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
+import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
 import { QrModal } from "@/components/qr-modal"
 import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -17,24 +18,6 @@ import { API_CONFIG } from "@/services/config"
 import type { PaymentLink } from "@/lib/types"
 
 const CHECKOUT_BASE_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || "http://localhost:5175"
-
-const EXPLORERS: Record<string, string> = {
-  celo: "https://celoscan.io/address/",
-  arbitrum: "https://arbiscan.io/address/",
-  polygon: "https://polygonscan.com/address/",
-  base: "https://basescan.org/address/",
-  bsc: "https://bscscan.com/address/",
-}
-
-function explorerAddress(network: string | undefined, address: string): string {
-  const base = EXPLORERS[(network || "").toLowerCase()] || EXPLORERS.celo
-  return base + address
-}
-
-function explorerTx(network: string | undefined, hash: string): string {
-  const base = EXPLORERS[(network || "").toLowerCase()] || EXPLORERS.celo
-  return base.replace("/address/", "/tx/") + hash
-}
 
 function formatTimeRemaining(expires: string, t: any): string {
   const diff = new Date(expires).getTime() - Date.now()
@@ -94,6 +77,7 @@ function PaymentLinksTab() {
   const [links, setLinks] = useState<PaymentLink[]>([])
   const [loadingLinks, setLoadingLinks] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [detail, setDetail] = useState<PaymentLink | null>(null)
 
   useEffect(() => {
     if (!commerce?.commerce_id) { setLoadingLinks(false); return }
@@ -133,6 +117,8 @@ function PaymentLinksTab() {
             payerAddress: inv.payer_address || undefined,
             txHash: inv.paid_tx_hash || undefined,
             network: inv.paid_network || undefined,
+            paidToken: inv.paid_token || undefined,
+            paidAmount: inv.paid_amount ?? undefined,
           }
         }))
       } catch { /* empty */ } finally { setLoadingLinks(false) }
@@ -200,7 +186,7 @@ function PaymentLinksTab() {
                   {links.map((link) => {
                     const statusInfo = statusConfig[link.status]
                     return (
-                      <tr key={link.id} className="hover:bg-muted/50">
+                      <tr key={link.id} onClick={() => setDetail(link)} className="hover:bg-muted/50 cursor-pointer">
                         <td className="p-3">
                           {/* The truncated invoice id used to live here. Cut to
                               eight characters it could not be searched, copied
@@ -213,29 +199,14 @@ function PaymentLinksTab() {
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusInfo.className}`}>{statusInfo.label}</span>
                         </td>
                         <td className="p-3 text-sm">
+                          {/* One line. Everything else about this charge lives
+                              in the detail view, where it can carry a label. */}
                           {link.reference ? (
-                            <div className="text-foreground truncate max-w-[180px]" title={link.reference}>{link.reference}</div>
+                            <div className="text-foreground truncate max-w-[220px]" title={link.reference}>{link.reference}</div>
+                          ) : link.description ? (
+                            <div className="text-muted-foreground truncate max-w-[220px]" title={link.description}>{link.description}</div>
                           ) : (
                             <div className="text-muted-foreground">—</div>
-                          )}
-                          {/* What the payer saw. Without it the merchant can
-                              only recognise a charge by their own code, which
-                              is useless when a customer asks about it. */}
-                          {link.description && (
-                            <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={link.description}>
-                              {link.description}
-                            </div>
-                          )}
-                          {link.payerAddress && (
-                            <a
-                              href={explorerAddress(link.network, link.payerAddress)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs font-mono text-primary hover:underline"
-                              title={link.payerAddress}
-                            >
-                              {link.payerAddress.slice(0, 6)}…{link.payerAddress.slice(-4)}
-                            </a>
                           )}
                         </td>
                         <td className="p-3 text-sm text-muted-foreground">
@@ -247,31 +218,12 @@ function PaymentLinksTab() {
                               another system: the id Voulti knows it by, and the
                               transaction anyone can verify on-chain. Both were
                               stored; neither was reachable from this table. */}
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
-                              <Copy className="w-4 h-4" /> {t.receive.copyUrl}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title={link.id}
-                              onClick={() => { navigator.clipboard.writeText(link.id); toast({ title: t.receive.idCopied }) }}
-                              className="gap-1.5 text-muted-foreground"
-                            >
-                              ID
-                            </Button>
-                            {link.txHash && link.network && (
-                              <a
-                                href={explorerTx(link.network, link.txHash)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={link.txHash}
-                                className="text-xs text-primary hover:underline px-2"
-                              >
-                                {t.receive.tx}
-                              </a>
-                            )}
-                          </div>
+                          {/* "Copy" and "ID" were icons with no object: copy
+                              what, the id of what. The detail view names each
+                              value and offers the copy next to it. */}
+                          <Button variant="ghost" size="sm" onClick={() => setDetail(link)} className="gap-1.5">
+                            {t.receive.viewDetail}
+                          </Button>
                         </td>
                       </tr>
                     )
@@ -293,22 +245,13 @@ function PaymentLinksTab() {
                       {/* Mobile hides the desktop columns, so the reference has
                           to travel with the amount or it is not visible at all
                           on the screen most merchants actually use. */}
-                      {link.reference && (
+                      {/* One identifying line, same as the desktop row. The
+                          rest is a tap away rather than stacked and truncated. */}
+                      {link.reference ? (
                         <div className="text-sm text-foreground truncate">{link.reference}</div>
-                      )}
-                      {link.description && (
-                        <div className="text-xs text-muted-foreground truncate">{link.description}</div>
-                      )}
-                      {link.payerAddress && (
-                        <a
-                          href={explorerAddress(link.network, link.payerAddress)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-mono text-primary hover:underline"
-                        >
-                          {link.payerAddress.slice(0, 6)}…{link.payerAddress.slice(-4)}
-                        </a>
-                      )}
+                      ) : link.description ? (
+                        <div className="text-sm text-muted-foreground truncate">{link.description}</div>
+                      ) : null}
                     </div>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${statusInfo.className}`}>{statusInfo.label}</span>
                   </div>
@@ -316,15 +259,28 @@ function PaymentLinksTab() {
                     <div>{t.receive.created}: {new Date(link.created).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
                     <div>{t.receive.expires}: {link.status !== "active" ? "—" : link.expires ? formatTimeRemaining(link.expires, t) : "—"}</div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5 w-full">
-                    <Copy className="w-4 h-4" /> {t.receive.copyUrl}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleCopyUrl(link.url)} className="gap-1.5">
+                      <Copy className="w-4 h-4" /> {t.receive.copyUrl}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setDetail(link)}>
+                      {t.receive.viewDetail}
+                    </Button>
+                  </div>
                 </Card>
               )
             })}
           </div>
         </>
       )}
+
+      <PaymentDetailDialog
+        link={detail}
+        open={detail !== null}
+        onOpenChange={(o) => !o && setDetail(null)}
+        statusLabel={detail ? statusConfig[detail.status].label : ""}
+        statusClass={detail ? statusConfig[detail.status].className : ""}
+      />
 
       <CreatePaymentLinkDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} onCreateLink={handleCreateLink} />
     </div>
