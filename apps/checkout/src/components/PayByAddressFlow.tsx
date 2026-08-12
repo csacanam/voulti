@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Copy, Check, ArrowLeft, Loader2, AlertTriangle, CheckCircle2, Shield, Clock, Smartphone } from 'lucide-react';
 import { NetworkSelector } from './NetworkSelector';
 import { QRCodeComponent } from './QRCode';
@@ -54,6 +54,58 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
     deposit ? invoice.id : null,
     !!deposit
   );
+
+  /**
+   * The full amount has arrived and is being settled. Not terminal — the sweep
+   * is still running — but there is nothing left for the payer to send.
+   *
+   * `partial` is deliberately not here: that payer still owes the remainder and
+   * needs the address to finish.
+   */
+  const hasFullDeposit = depositStatus === 'detected' || depositStatus === 'sweeping';
+
+  const isSettled =
+    depositStatus === 'swept' ||
+    depositStatus === 'refunded' ||
+    depositStatus === 'failed' ||
+    invoiceStatus === 'Paid';
+
+  /**
+   * Once the money is in, the address, the QR and the "send exactly X" stop
+   * being instructions and become a trap.
+   *
+   * The payer scrolled down to copy the address, so the banner announcing their
+   * deposit renders above their viewport, where they never see it. If the
+   * payment details stayed put, nothing in the part of the screen they are
+   * actually looking at would change — and someone unsure whether their
+   * transfer went through is left staring at a page still asking for it, with
+   * the address right there. The second transfer is refunded rather than lost,
+   * but it costs them a scare and a round trip that should not exist.
+   *
+   * Hiding the block collapses the page instead, which is a change they cannot
+   * miss whatever they are reading.
+   */
+  const showPaymentDetails = !isSettled && !hasFullDeposit;
+
+  // Collapsing the block above already drags the viewport up, but by how much
+  // depends on the browser and on how far down the payer had scrolled. Taking
+  // them to the banner is the only version that behaves the same everywhere.
+  // Guarded on the transition rather than on the status, so a payer who scrolls
+  // back down to read the details is not yanked to the top on the next poll.
+  //
+  // Above the early return below, because a hook that runs on some renders and
+  // not others is a crash, not a subtle bug.
+  const scrolledToBanner = useRef(false);
+  useEffect(() => {
+    if (showPaymentDetails) {
+      scrolledToBanner.current = false;
+      return;
+    }
+    if (scrolledToBanner.current) return;
+
+    scrolledToBanner.current = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [showPaymentDetails]);
 
   if (invoiceStatus === 'Paid' || depositStatus === 'swept') {
     onSuccess();
@@ -113,7 +165,6 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
 
   const chainConfig = selectedChainId ? findChainConfigByChainId(selectedChainId) : null;
   const networkName = chainConfig?.chain.name || deposit?.network || '';
-  const isTerminal = depositStatus === 'swept' || depositStatus === 'refunded' || depositStatus === 'failed' || invoiceStatus === 'Paid';
 
   return (
     <div className="space-y-4">
@@ -274,8 +325,8 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
             </div>
           )}
 
-          {/* -- Payment details (hide after terminal state) -- */}
-          {!isTerminal && (
+          {/* -- Payment details: only while there is still something to send -- */}
+          {showPaymentDetails && (
             <>
               {/* Network + Token badges */}
               <div className="flex items-center justify-center gap-2">
