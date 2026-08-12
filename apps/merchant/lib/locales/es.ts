@@ -194,12 +194,14 @@ export const es = {
     settingsTitle: "Configuración",
     settingsDesc: "Lo que necesitás a mano cuando ya integraste.",
     commerceIdLabel: "Tu commerce_id",
+    commerceIdHelp: "Identifica tu comercio al crear cobros. Es público —va en el link de pago—, así que no es una credencial: no lo trates como secreto ni lo uses como si autenticara algo.",
     webhookUrlLabel: "URL del webhook",
+    webhookUrlHelp: "Tu servidor, avisado. Te mandamos un POST cuando un cobro queda Pagado, Vencido o Devuelto, y reintentamos por dos días hasta que respondas 2xx. Es de donde tenés que despachar el pedido: pasa aunque el pagador cierre la pestaña.",
   },
 
   returnDomains: {
     label: "Dominios de retorno",
-    help: "A dónde podés devolver al pagador con return_url. Solo estos dominios y sus subdominios; el resto se rechaza al crear el cobro.",
+    help: "El pagador de vuelta en tu sitio. Al crear el cobro mandás return_url y lo llevamos ahí cuando termina — pero solo a estos dominios y sus subdominios. Sin esta lista cualquiera podría crear un cobro a tu nombre y desviar a tu cliente a otro lado, porque tu commerce_id es público.",
     add: "Agregar",
     empty: "Sin dominios autorizados — por ahora cualquier return_url se rechaza.",
   },

@@ -106,6 +106,39 @@ Matching is by domain: an entry of `yourdomain.com` also accepts `www.yourdomain
 
 > ⚠️ **Never trust the landing URL as proof of payment.** The payer controls their address bar, so anyone can open your thank-you page with any invoice id in it. Before you release anything of value there — a download, a certificate, a licence key — call `GET /invoices/<invoice_id>` and check `status` is `Paid`. This is the same rule as the webhook section below, and it matters more here, because a page that hands out something valuable is a page someone has a reason to forge their way into.
 
+**Building the page.** It gets one query parameter and must decide everything else for itself. Note it has to handle **all three** final statuses, not just `Paid`: expired and refunded invoices show the payer a button back to you as well, so they can and will arrive here having paid nothing.
+
+```tsx
+// app/orders/[id]/thanks/page.tsx
+export default async function Thanks({ searchParams }) {
+  const { invoice } = await searchParams
+
+  // Bare object, no { success, data } wrapper on this endpoint.
+  const res = await fetch(`https://api.voulti.com/invoices/${invoice}`, { cache: "no-store" })
+  if (!res.ok) return <p>We could not find that payment.</p>
+  const { status, paid_amount, paid_token, paid_tx_hash } = await res.json()
+
+  // The only branch that may release anything. Everything the payer is told
+  // below comes from this response, never from the URL they arrived with.
+  if (status === "Paid") {
+    return <Certificate amount={paid_amount} token={paid_token} tx={paid_tx_hash} />
+  }
+
+  // Reached the address but arrived too late; Voulti already sent it back.
+  // The payer genuinely paid, so do not tell them nothing happened.
+  if (status === "Refunded") return <p>Your payment arrived late and has been returned.</p>
+
+  if (status === "Expired") return <p>This charge expired. <a href="/checkout">Start again</a></p>
+
+  // Pending: they opened the link by hand, or reloaded it early.
+  return <p>We have not received this payment yet.</p>
+}
+```
+
+**Do not fulfil here.** This page runs when a browser happens to load it — a payer who closes the tab on the redirect never triggers it, and one who refreshes triggers it five times. Fulfil from the webhook, which retries for two days and does not depend on anyone's browser, and let this page only *report* what the webhook already recorded. Reading it as the confirmation and shipping from it is how an order goes unfilled because someone's phone died on the redirect.
+
+`cache: "no-store"` is not decoration: a framework that caches this fetch will show the next payer the previous one's status.
+
 ### Option B — Permanent link (payer chooses the amount)
 
 ```

@@ -786,12 +786,14 @@ app.post("/webhooks/voulti", (req, res) => {
         </div>
 
         <div>
-          <p className="text-xs font-medium mb-1.5">{t.dev.commerceIdLabel}</p>
+          <p className="text-xs font-medium mb-0.5">{t.dev.commerceIdLabel}</p>
+          <p className="text-xs text-muted-foreground mb-1.5">{t.dev.commerceIdHelp}</p>
           <CodeBlock code={cid} lang="bash" />
         </div>
 
         <div>
-          <p className="text-xs font-medium mb-1.5">{t.dev.webhookUrlLabel}</p>
+          <p className="text-xs font-medium mb-0.5">{t.dev.webhookUrlLabel}</p>
+          <p className="text-xs text-muted-foreground mb-1.5">{t.dev.webhookUrlHelp}</p>
           <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
         </div>
 

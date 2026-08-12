@@ -194,12 +194,14 @@ export const en = {
     settingsTitle: "Settings",
     settingsDesc: "What you need at hand once you have integrated.",
     commerceIdLabel: "Your commerce_id",
+    commerceIdHelp: "Identifies your commerce when creating charges. It is public — it travels in your payment link — so it is not a credential: don't treat it as a secret or rely on it to authenticate anything.",
     webhookUrlLabel: "Webhook URL",
+    webhookUrlHelp: "Your server, told. We POST there when a charge becomes Paid, Expired or Refunded, retrying for two days until you answer 2xx. This is where you should fulfil the order: it happens even if the payer closes the tab.",
   },
 
   returnDomains: {
     label: "Return domains",
-    help: "Where you can send the payer back with return_url. Only these domains and their subdomains; anything else is refused when the invoice is created.",
+    help: "The payer back on your site. You pass return_url when creating the charge and we take them there once it settles — but only to these domains and their subdomains. Without this list anyone could create a charge in your name and divert your customer elsewhere, because your commerce_id is public.",
     add: "Add",
     empty: "No domains authorised — every return_url is refused for now.",
   },
