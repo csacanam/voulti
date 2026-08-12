@@ -314,6 +314,8 @@ export const en = {
   payByAddress: {
     back: 'Back to payment methods',
     selectNetwork: 'Select Network',
+    networkUnavailable: 'Unavailable right now',
+    networkDepleted: 'This network is unavailable right now. Pick another one to continue.',
     selectToken: 'Select Token',
     noTokens: 'No tokens available on this network for this invoice.',
     youWillSend: 'You will send',

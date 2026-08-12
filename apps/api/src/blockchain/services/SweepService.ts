@@ -5,6 +5,7 @@ import { HDWalletService, type DepositAddressRecord } from './HDWalletService';
 import { NETWORKS, type NetworkName } from '../config/networks';
 import { CONTRACTS } from '../config/contracts';
 import { TOKENS } from '../config/tokens';
+import { GAS_APPROVE, GAS_PAY_INVOICE, GAS_TRANSFER, GAS_BUFFER } from '../config/gas';
 import { getProvider, getWallet } from '../utils/web3';
 import { sendTelegramAlert } from '../../utils/notify';
 import DerampProxyABI from '../abi/DerampProxy.json';
@@ -22,14 +23,6 @@ const ERC20_ABI = [
 
 const POLL_INTERVAL = Number(process.env.SWEEP_POLL_INTERVAL_MS || 15000);
 const MAX_RETRIES = Number(process.env.SWEEP_MAX_RETRIES || 5);
-const GAS_BUFFER = 1.5;
-
-// Gas units reserved per operation. The node holds back gasLimit * maxFeePerGas
-// up front, so these have to cover the gasLimit ethers estimates, not the gas
-// actually burned (payInvoice estimates ~330k on Celo).
-const GAS_APPROVE = 100_000n;
-const GAS_PAY_INVOICE = 450_000n;
-const GAS_TRANSFER = 120_000n;
 
 // Sender lookup: how far back to scan, and how wide a single eth_getLogs may be
 const MAX_SENDER_LOOKBACK_SECONDS = 6 * 3600;
@@ -38,7 +31,10 @@ const LOG_PAGE_SIZE = 4_000;
 
 // How long after expiry a deposit address is still watched for late arrivals.
 // Bounded so expired rows eventually stop being polled forever.
-const LATE_DEPOSIT_WINDOW_MS = 24 * 3600 * 1000;
+// Exported because networkGasHealth has to reserve gas for exactly the rows
+// this service will still act on — no more, or stale rows would hold a network
+// disabled forever; no less, or a late arrival finds an empty hot wallet.
+export const LATE_DEPOSIT_WINDOW_MS = 24 * 3600 * 1000;
 
 export class SweepService {
   private pollInterval: ReturnType<typeof setInterval> | null = null;

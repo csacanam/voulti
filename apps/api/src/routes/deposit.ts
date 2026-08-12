@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import { HDWalletService } from '../blockchain/services/HDWalletService';
 import { NETWORKS, type NetworkName, getNetworkByChainId } from '../blockchain/config/networks';
+import { getNetworkGasHealth, getAllNetworkGasHealth } from '../business/networkGasHealth';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -50,6 +51,21 @@ export async function depositRoutes(app: FastifyInstance) {
         return res.status(400).send({ error: `Unsupported chain ID: ${chainId}` });
       }
 
+      // Refuse before the payer is committed. Filtering the network out of the
+      // checkout list is not enough on its own: a tab opened before the hot
+      // wallet ran low, or any direct call, reaches this endpoint with a
+      // network the list would no longer offer. This is the point where the
+      // payer is about to be handed an address and send real money to it, so
+      // it is the only place the check actually protects anyone.
+      const gasHealth = await getNetworkGasHealth(network);
+      if (!gasHealth.depositEnabled) {
+        return res.status(503).send({
+          error: 'This network is temporarily unavailable for deposits. Please choose another one.',
+          code: 'NETWORK_GAS_DEPLETED',
+          network,
+        });
+      }
+
       // Generate deposit address
       const deposit = await HDWalletService.generateDepositAddress(
         invoiceId,
@@ -80,6 +96,29 @@ export async function depositRoutes(app: FastifyInstance) {
     } catch (error: any) {
       console.error('Generate deposit address error:', error);
       return res.status(500).send({ error: error.message || 'Failed to generate deposit address' });
+    }
+  });
+
+  // Which networks can currently accept a pay-by-address deposit.
+  // Read by the checkout to grey out networks the sweeper could not fund.
+  app.get('/networks', async (_req, res) => {
+    try {
+      const health = await getAllNetworkGasHealth();
+
+      return res.send({
+        success: true,
+        data: health.map(h => ({
+          network: h.network,
+          chainId: h.chainId,
+          depositEnabled: h.depositEnabled,
+        })),
+      });
+    } catch (error: any) {
+      console.error('Network gas health error:', error);
+
+      // Fail open: the checkout falls back to its configured list rather than
+      // showing a payer no networks at all because one query failed.
+      return res.status(500).send({ error: error.message || 'Failed to read network availability' });
     }
   });
 

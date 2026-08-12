@@ -90,7 +90,16 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
       });
       setDeposit(data);
     } catch (err: any) {
-      setError(err.message);
+      // The network ran out of gas between rendering the list and this click.
+      // Send them back to the picker rather than leaving a dead selection on
+      // screen with an error under it.
+      if (err.code === 'NETWORK_GAS_DEPLETED') {
+        setError(t.payByAddress.networkDepleted);
+        setSelectedChainId(null);
+        setSelectedToken(null);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

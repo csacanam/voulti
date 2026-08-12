@@ -36,7 +36,37 @@ export interface DepositStatusData {
   }>;
 }
 
+export interface DepositError extends Error {
+  code?: string;
+}
+
+export interface NetworkAvailability {
+  network: string;
+  chainId: number;
+  depositEnabled: boolean;
+}
+
 export const depositService = {
+  /**
+   * Networks whose hot wallet can still fund a sweep.
+   *
+   * Returns null — not an empty list — when the check itself fails, so callers
+   * can tell "every network is out of gas" apart from "we could not ask". The
+   * two must not collapse into the same UI, or one failed request leaves a
+   * payer staring at a checkout with no way to pay at all.
+   */
+  async getNetworkAvailability(): Promise<NetworkAvailability[] | null> {
+    try {
+      const res = await fetch(`${API_URL}/deposit/networks`);
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      return Array.isArray(data?.data) ? data.data : null;
+    } catch {
+      return null;
+    }
+  },
+
   async generateAddress(params: GenerateDepositRequest): Promise<DepositData> {
     const res = await fetch(`${API_URL}/deposit/generate`, {
       method: 'POST',
@@ -46,7 +76,12 @@ export const depositService = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to generate deposit address');
+      const error = new Error(err.error || 'Failed to generate deposit address') as DepositError;
+      // Carried through so the UI can show a translated message instead of the
+      // API's English one — the payer picked this network and needs to be told
+      // to pick another, in their own language.
+      error.code = err.code;
+      throw error;
     }
 
     const data = await res.json();
