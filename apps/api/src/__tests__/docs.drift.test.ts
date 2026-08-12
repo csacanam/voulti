@@ -87,6 +87,41 @@ describe('the return_url rules the docs promise', () => {
   });
 });
 
+describe('where the docs say the money is', () => {
+  const PROXY = read('contracts/core/contracts/DerampProxy.sol');
+  const PROCESSOR = read('contracts/core/contracts/modules/PaymentProcessor.sol');
+
+  it('does not claim self-custody, because the contract takes custody', () => {
+    /**
+     * skill.md said, in five places, that funds go straight to the merchant's
+     * wallet and that "Voulti never holds funds". The contract does the
+     * opposite: payInvoice pulls the tokens into the proxy and credits a
+     * ledger. A merchant's wallet holds nothing until they withdraw.
+     *
+     * It went unnoticed for months because nothing ties the sentence to a
+     * literal — and it confused the person who wrote the contract, who went
+     * looking for a merchant's money at an address that is a shared contract.
+     * "Self-custody" is also a claim with weight beyond documentation, so it
+     * is worth failing a build over.
+     */
+    expect(PROXY).toContain('safeTransferFrom(msg.sender, address(this), amount)');
+    expect(PROCESSOR).toContain('addToBalance(invoice.commerce, token, commerceAmount)');
+
+    expect(SKILL, 'skill.md claims self-custody; the contract escrows').not.toMatch(/self-custody/i);
+    expect(SKILL, 'skill.md claims Voulti never holds funds; it does').not.toMatch(/never holds funds/i);
+    expect(SKILL, 'skill.md says funds go straight to the wallet; they do not').not.toMatch(
+      /straight to the merchant's wallet/i
+    );
+  });
+
+  it('warns against sending money to a contract address', () => {
+    // A plain transfer into the settlement contract credits nobody and fails
+    // silently. Anyone reading "this is where the money arrives" about a
+    // contract address is one copy-paste away from losing funds.
+    expect(SKILL).toMatch(/[Nn]ever publish a contract address/);
+  });
+});
+
 describe('the multi-commerce warning', () => {
   const DELIVERY = read('apps/api/src/business/webhookDelivery.ts');
 

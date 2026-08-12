@@ -1,11 +1,11 @@
 ---
 name: voulti
-description: Accept crypto payments (USDC, USDT and stablecoins) on Celo, Base, Arbitrum, Polygon and BSC with a no-auth REST API. Create an invoice with one POST, share a hosted checkout link, and confirm payment via polling or webhook. Use when a merchant or agent needs to charge in crypto, generate a payment link, sell something for stablecoins, or add crypto checkout to an app. 1% fee, instant self-custody settlement.
+description: Accept crypto payments (USDC, USDT and stablecoins) on Celo, Base, Arbitrum, Polygon and BSC with a no-auth REST API. Create an invoice with one POST, share a hosted checkout link, and confirm payment via polling or webhook. Use when a merchant or agent needs to charge in crypto, generate a payment link, sell something for stablecoins, or add crypto checkout to an app. 1% fee, settled on-chain to a balance the merchant withdraws.
 ---
 
 # Voulti — Accept Crypto Payments
 
-You help merchants (or agents selling services) accept crypto payments: USDC, USDT and stablecoin variants on 5 networks — Celo, Base, Arbitrum, Polygon, BSC. 1% fee, instant settlement, self-custody (funds go straight to the merchant's wallet).
+You help merchants (or agents selling services) accept crypto payments: USDC, USDT and stablecoin variants on 5 networks — Celo, Base, Arbitrum, Polygon, BSC. 1% fee, settled on-chain into a balance the merchant withdraws from their dashboard — **not** straight to their wallet. See "Where the money actually is" before telling anyone where to look for their money.
 
 **API base:** `https://api.voulti.com` — integration endpoints require **no API key and no authentication**.
 **Machine-readable index:** `https://voulti.com/llms.txt`
@@ -205,13 +205,31 @@ GET https://api.voulti.com/invoices/<invoice_id>
 
 | Status | Meaning |
 |---|---|
-| `Paid` | Settled on-chain. The funds are in the merchant's wallet. This is the only status that means "release the goods". Final. |
+| `Paid` | Settled on-chain and credited to the merchant's balance, which they withdraw when they choose — it does **not** appear in their wallet on its own. This is the only status that means "release the goods". Final. |
 | `Expired` | The time limit passed and nothing had arrived *yet*. May still become `Refunded` within 24h. |
 | `Refunded` | Money reached the deposit address but never settled — it arrived after expiry, or too late to complete. Voulti returned it to the sending address automatically. **The merchant receives nothing**, so treat it like `Expired` for fulfilment, but expect the payer to say they paid: they did, and they already have it back. |
 
 Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471` USDT), not the fiat total — compare `amount_fiat` if you need to verify the price. Poll every few seconds while the payer is at checkout; if the link was sent for later (chat/email), check when the payer says they paid — or rely on the webhook. Never reuse an expired link; create a new invoice instead.
 
-**Where the money lands (tell your human this):** Voulti never holds funds. Settlement is instant and self-custody — the crypto goes straight to the **wallet configured in the merchant account at signup** (visible in the dashboard), minus the 1% fee. Voulti does not "deposit" anything later; the merchant's own wallet balance is the source of truth.
+### Where the money actually is
+
+**Tell your human this, because the obvious guess is wrong.** A paid invoice does **not** transfer stablecoins to the merchant's wallet. It moves them into Voulti's settlement contract on that network and credits the merchant's balance in a ledger inside it, minus the 1% fee. The money is theirs, and it is not in their wallet.
+
+The wallet on the account is an **identity**, not a destination. It is the key that proves ownership — it is what authorises changing the webhook URL, reading the signing secret, and withdrawing. Nothing is ever sent to it automatically.
+
+**Withdrawing is a separate, deliberate action** the merchant takes from **Receive Payments → Balance** in their dashboard. They can send the funds to any address, not only the wallet they sign in with. There is a **$1 flat fee** per withdrawal, which is why it is worth accumulating rather than withdrawing per sale — on a $5 charge that fee is 20%, far more than anything gas costs.
+
+So three balances answer three different questions, and only one of them is the merchant's money:
+
+| Where you look | What you are seeing |
+|---|---|
+| The merchant's wallet on a block explorer | **Nothing**, until they withdraw. This is expected, not a fault. |
+| Voulti's settlement contract on a block explorer | Every merchant's funds on that network, pooled. Not any one merchant's balance. |
+| **Receive Payments → Balance** in the dashboard | What this merchant can actually withdraw. The only number that answers "how much do I have". |
+
+> ⚠️ **Never publish a contract address as somewhere to send money.** Only a payment through a Voulti checkout link credits anyone: a plain transfer into the settlement contract raises its token balance with **no merchant credited and no invoice paid**. It does not fail, it does not error, and the sender gets nothing. Publishing the merchant's own wallet is a different mistake with a quieter cost — the transfer arrives, but outside Voulti: no invoice, no webhook, no receipt. Share the checkout link, never an address.
+
+**On custody, accurately:** funds sit in a contract Voulti owns and operates. No function in it lets Voulti move a merchant's balance — the admin withdrawals only touch Voulti's own accumulated fees — and a merchant can withdraw theirs at any time without asking. But the owner can replace the contract's modules, so a merchant's balance ultimately rests on Voulti not changing the code. It is **custodial in the way that matters**, and telling someone otherwise while they decide whether to leave a balance sitting here would be misleading.
 
 ### Webhook (recommended for production)
 
@@ -349,7 +367,7 @@ Failures do **not** use the `{ success, data }` envelope — they come back as `
 | Payment shows on-chain but status is `Pending` | Wait — confirmation follows the chain's finality. If it persists minutes, tell the human to check app.voulti.com. |
 | Payer sent to the deposit address **after** the invoice expired | Voulti keeps watching that address for 24h and returns the funds to the sending address. The invoice becomes `Refunded`, not `Paid` — a late payment is never credited. Tell the payer to expect the money back and use a fresh invoice. |
 | Invoice went `Refunded` | Nothing settled, so nothing is owed to the merchant. The payer has already been repaid automatically; no action needed beyond not fulfilling the order. |
-| Refunding a **completed** sale (`Paid`) | Voulti never holds funds — a settled payment is already in the merchant's wallet, so reversing it is a manual transfer they make themselves. Only unsettled deposits are returned automatically. |
+| Refunding a **completed** sale (`Paid`) | There is no reverse operation. The payment is credited to the merchant's balance in the settlement contract, and undoing it is a transfer they make themselves — from that balance if they have not withdrawn it, or from their own wallet if they have. Only unsettled deposits are returned automatically. |
 
 ---
 
