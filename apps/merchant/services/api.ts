@@ -33,9 +33,21 @@ interface RequestOptions extends RequestInit {
   skipAuth?: boolean
 }
 
-function getHeaders(options?: RequestOptions): Record<string, string> {
+/**
+ * `hasBody` decides whether we announce a JSON body, because Fastify rejects a
+ * request that claims one and does not have it: Content-Type: application/json
+ * with nothing after the headers is a 400 FST_ERR_CTP_EMPTY_JSON_BODY, thrown
+ * before any route handler runs.
+ *
+ * That is not hypothetical — it is what "Bad Request" in the webhook verifier
+ * was. Both endpoints that take no arguments (webhook-verify, resend-webhook)
+ * were unreachable from this client, and the failure looks like a server
+ * problem rather than a header we sent, so it went unnoticed on two buttons at
+ * once.
+ */
+function getHeaders(options?: RequestOptions, hasBody = true): Record<string, string> {
   const headers: Record<string, string> = {
-    ...API_CONFIG.HEADERS,
+    ...(hasBody ? API_CONFIG.HEADERS : {}),
     ...(options?.headers as Record<string, string>),
   }
 
@@ -86,7 +98,7 @@ export const apiClient = {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`
     const response = await fetchWithTimeout(url, {
       method: "GET",
-      headers: getHeaders(options),
+      headers: getHeaders(options, false),
       ...options,
     })
     return handleResponse<T>(response)
@@ -96,8 +108,8 @@ export const apiClient = {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`
     const response = await fetchWithTimeout(url, {
       method: "POST",
-      headers: getHeaders(options),
-      body: data ? JSON.stringify(data) : undefined,
+      headers: getHeaders(options, data !== undefined),
+      body: data !== undefined ? JSON.stringify(data) : undefined,
       ...options,
     })
     return handleResponse<T>(response)
@@ -107,8 +119,8 @@ export const apiClient = {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`
     const response = await fetchWithTimeout(url, {
       method: "PUT",
-      headers: getHeaders(options),
-      body: data ? JSON.stringify(data) : undefined,
+      headers: getHeaders(options, data !== undefined),
+      body: data !== undefined ? JSON.stringify(data) : undefined,
       ...options,
     })
     return handleResponse<T>(response)
@@ -118,7 +130,7 @@ export const apiClient = {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`
     const response = await fetchWithTimeout(url, {
       method: "DELETE",
-      headers: getHeaders(options),
+      headers: getHeaders(options, false),
       ...options,
     })
     return handleResponse<T>(response)
