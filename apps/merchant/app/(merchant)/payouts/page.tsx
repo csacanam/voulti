@@ -12,6 +12,7 @@ import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Spinner } from "@/components/ui/spinner"
 import { TokenBalanceCard } from "@/components/token-balance-card"
+import { WalletFunds } from "@/components/wallet-funds"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowUpRight, CalendarIcon, Lock } from "lucide-react"
@@ -119,6 +120,11 @@ export default function PayoutsPage() {
           ))}
         </div>
       )}
+
+      {/* Below the Voulti balance and its withdrawals, never merged with them:
+          this money is already the merchant's and needs no withdrawal. Renders
+          nothing at all when the wallet is empty, which is the normal case. */}
+      {authenticated && commerce?.commerce_id && <WalletFunds commerceId={commerce.commerce_id} />}
 
       {/* Withdrawal history */}
       {authenticated && payouts.length > 0 && (

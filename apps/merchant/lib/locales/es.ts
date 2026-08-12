@@ -201,6 +201,20 @@ export const es = {
     webhookUrlHelp: "Tu servidor, avisado. Te mandamos un POST cuando un cobro queda Pagado, Vencido o Devuelto, y reintentamos por dos días hasta que respondas 2xx. Es de donde tenés que despachar el pedido: pasa aunque el pagador cierre la pestaña.",
   },
 
+  walletFunds: {
+    title: "En tu wallet",
+    subtitle: "Plata que llegó directo a tu dirección, por fuera de Voulti. No es el saldo de arriba: esto ya es tuyo y no hace falta retirarlo — solo moverlo si querés.",
+    send: "Enviar",
+    sendAll: "Enviar {amount}",
+    getGas: "Conseguir gas",
+    noGas: "Esta red necesita su moneda nativa para poder enviar. Te la ponemos nosotros: alcanza para una transferencia.",
+    gasSent: "Gas enviado — ya podés transferir",
+    gasNotNeeded: "Ya tenías gas suficiente",
+    sent: "Transferencia enviada",
+    badAddress: "Esa no es una dirección válida",
+    noWallet: "No encontramos tu wallet. Volvé a iniciar sesión.",
+  },
+
   returnDomains: {
     label: "Dominios de retorno",
     help: "El pagador de vuelta en tu sitio. Al crear el cobro mandás return_url y lo llevamos ahí cuando termina — pero solo a estos dominios y sus subdominios. Sin esta lista cualquiera podría crear un cobro a tu nombre y desviar a tu cliente a otro lado, porque tu commerce_id es público.",

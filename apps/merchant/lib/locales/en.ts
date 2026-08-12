@@ -201,6 +201,20 @@ export const en = {
     webhookUrlHelp: "Your server, told. We POST there when a charge becomes Paid, Expired or Refunded, retrying for two days until you answer 2xx. This is where you should fulfil the order: it happens even if the payer closes the tab.",
   },
 
+  walletFunds: {
+    title: "In your wallet",
+    subtitle: "Money that arrived straight at your address, outside Voulti. This is not the balance above: it is already yours and needs no withdrawal — only moving, if you want to.",
+    send: "Send",
+    sendAll: "Send {amount}",
+    getGas: "Get gas",
+    noGas: "This network needs its native coin before you can send. We cover it — enough for one transfer.",
+    gasSent: "Gas sent — you can transfer now",
+    gasNotNeeded: "You already had enough gas",
+    sent: "Transfer sent",
+    badAddress: "That is not a valid address",
+    noWallet: "We could not find your wallet. Please sign in again.",
+  },
+
   returnDomains: {
     label: "Return domains",
     help: "The payer back on your site. You pass return_url when creating the charge and we take them there once it settles — but only to these domains and their subdomains. Without this list anyone could create a charge in your name and divert your customer elsewhere, because your commerce_id is public.",

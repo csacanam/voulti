@@ -13,6 +13,7 @@ import { deliverAndLog } from '../business/webhookLog';
 import { runConformanceProbes, summarise } from '../business/webhookProbes';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 import { normaliseAllowedDomain } from '../business/returnUrl';
+import { getWalletBalances, fundWalletGas } from '../business/walletFunds';
 import { randomBytes } from 'crypto';
 
 /**
@@ -337,6 +338,70 @@ export async function commercesRoutes(app: FastifyInstance) {
    * Same shape as the webhook route below on purpose: authenticate, confirm the
    * wallet owns the commerce, write one column.
    */
+  /**
+   * What the commerce holds in its own wallet — deliberately NOT merged into
+   * /balances, which reports what Voulti collected and still owes them.
+   *
+   * Two pots, one of them not ours. Adding them into a single figure would
+   * produce a number no screen can act on: half of it needs a withdrawal and
+   * half of it is already home.
+   */
+  app.get('/:id/wallet-balances', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const balances = await getWalletBalances(commerce.wallet);
+      return res.send({ success: true, data: { wallet: commerce.wallet, balances } });
+    } catch (error: any) {
+      console.error('Wallet balances error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to read wallet balances' });
+    }
+  });
+
+  /**
+   * Top the wallet up with enough native token to sign one transfer.
+   *
+   * Voulti creates this wallet — signing up with email mints a Privy embedded
+   * one — so a merchant holding tokens in it has no other way to get the gas
+   * that would let them move their own money.
+   */
+  app.post('/:id/wallet-gas', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const { network } = (req.body || {}) as { network?: string };
+
+      if (!network) return res.status(400).send({ error: 'network is required' });
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const result = await fundWalletGas(commerce.wallet, network);
+      return res.send({ success: true, data: result });
+    } catch (error: any) {
+      console.error('Wallet gas error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to fund gas' });
+    }
+  });
+
   app.put('/:id/return-domains', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };
