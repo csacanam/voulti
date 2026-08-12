@@ -201,6 +201,11 @@ export const es = {
     webhookUrlHelp: "Tu servidor, avisado. Te mandamos un POST cuando un cobro queda Pagado, Vencido o Devuelto, y reintentamos por dos días hasta que respondas 2xx. Es de donde tenés que despachar el pedido: pasa aunque el pagador cierre la pestaña.",
   },
 
+  voultiFunds: {
+    title: "Cobros por retirar",
+    subtitle: "Lo que Voulti te cobró y todavía no retiraste. Está en el contrato de Voulti hasta que lo saques.",
+  },
+
   walletFunds: {
     title: "En tu wallet",
     subtitle: "Plata que llegó directo a tu dirección, por fuera de Voulti. No es el saldo de arriba: esto ya es tuyo y no hace falta retirarlo — solo moverlo si querés.",

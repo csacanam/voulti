@@ -134,17 +134,20 @@ export function WalletFunds({ commerceId }: { commerceId: string }) {
   if (!balances || balances.length === 0) return null
 
   return (
-    <Card className="p-6 space-y-4">
+    /* Same heading shape as "Payments to withdraw" above. The two sections are
+       siblings that must not be confused, and matching their hierarchy is what
+       makes the difference between them legible. */
+    <div className="space-y-2">
       <div>
         <div className="flex items-center gap-2">
           <Wallet className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm font-semibold">{t.walletFunds.title}</p>
+          <h2 className="text-lg font-semibold">{t.walletFunds.title}</h2>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">{t.walletFunds.subtitle}</p>
+        <p className="text-xs text-muted-foreground">{t.walletFunds.subtitle}</p>
         <code className="text-xs font-mono text-muted-foreground break-all">{address}</code>
       </div>
 
-      <div className="space-y-2">
+      <Card className="p-4 space-y-2">
         {balances.map((b) => {
           const chain = getNetworkByChainId(b.chainId)
           const busy = sending === key(b) || fuelling === key(b)
@@ -197,7 +200,7 @@ export function WalletFunds({ commerceId }: { commerceId: string }) {
             </div>
           )
         })}
-      </div>
-    </Card>
+      </Card>
+    </div>
   )
 }

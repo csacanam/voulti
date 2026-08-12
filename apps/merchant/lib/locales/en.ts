@@ -201,6 +201,11 @@ export const en = {
     webhookUrlHelp: "Your server, told. We POST there when a charge becomes Paid, Expired or Refunded, retrying for two days until you answer 2xx. This is where you should fulfil the order: it happens even if the payer closes the tab.",
   },
 
+  voultiFunds: {
+    title: "Payments to withdraw",
+    subtitle: "What Voulti collected for you and you have not withdrawn yet. It sits in Voulti's contract until you take it out.",
+  },
+
   walletFunds: {
     title: "In your wallet",
     subtitle: "Money that arrived straight at your address, outside Voulti. This is not the balance above: it is already yours and needs no withdrawal — only moving, if you want to.",

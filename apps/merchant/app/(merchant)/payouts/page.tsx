@@ -112,12 +112,21 @@ export default function PayoutsPage() {
         fiatRate={fiatRate}
       />
 
-      {/* Token balances with withdraw */}
+      {/* Named, because the section below it looks almost identical — the same
+          "X USDT on network Y" cards — and means the opposite thing. An
+          unlabelled grid next to a labelled one does not read as a contrast; it
+          reads as the totals, followed by something unexplained. */}
       {authenticated && aggregated.length > 0 && (
-        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {aggregated.map((token) => (
-            <TokenBalanceCard key={token.symbol} token={token} onWithdrawSuccess={refreshBalances} />
-          ))}
+        <div className="space-y-2">
+          <div>
+            <h2 className="text-lg font-semibold">{t.voultiFunds.title}</h2>
+            <p className="text-xs text-muted-foreground">{t.voultiFunds.subtitle}</p>
+          </div>
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {aggregated.map((token) => (
+              <TokenBalanceCard key={token.symbol} token={token} onWithdrawSuccess={refreshBalances} />
+            ))}
+          </div>
         </div>
       )}
 
