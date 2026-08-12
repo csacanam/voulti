@@ -111,7 +111,8 @@ export const en = {
     errorFragmented: "Your {symbol} is spread across networks ({breakdown}). No single network has {amount} {symbol}. Send a smaller amount or consolidate first.",
     errorNoNetwork: "No network available with sufficient balance and contract deployed",
     stats: {
-      balance: "Balance",
+      balance: "Balance in Voulti",
+      balanceHint: "Payments Voulti collected that you have not withdrawn yet. Anything sitting in your wallet from elsewhere does not show here — it is already yours and needs no withdrawal.",
       totalSent: "Total Sent",
       totalTransfers: "Total Transfers",
       loginBalance: "Please login to view your balance",

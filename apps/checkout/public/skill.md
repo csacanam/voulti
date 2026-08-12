@@ -223,9 +223,11 @@ So three balances answer three different questions, and only one of them is the 
 
 | Where you look | What you are seeing |
 |---|---|
-| The merchant's wallet on a block explorer | **Nothing**, until they withdraw. This is expected, not a fault. |
-| Voulti's settlement contract on a block explorer | Every merchant's funds on that network, pooled. Not any one merchant's balance. |
-| **Receive Payments → Balance** in the dashboard | What this merchant can actually withdraw. The only number that answers "how much do I have". |
+| The merchant's wallet on a block explorer | Whatever it received **by any other means** — transfers, swaps, a salary. **Nothing from Voulti** until they withdraw. An empty wallet next to paid invoices is expected, not a fault. |
+| Voulti's settlement contract on a block explorer | Every merchant's funds on that network, pooled together. Never any one merchant's balance — reading its token balance as a single merchant's is the mistake this table exists to prevent. |
+| **Receive Payments → Balance** in the dashboard | Only what Voulti collected and has not paid out yet. This is the number to withdraw against. |
+
+None of the three is "everything the merchant owns", and no screen adds them up. Money sent straight to their wallet never appears in Voulti and needs no withdrawal — it is already where it was going. A merchant holding both will see two different numbers that are both correct.
 
 > ⚠️ **Never publish a contract address as somewhere to send money.** Only a payment through a Voulti checkout link credits anyone: a plain transfer into the settlement contract raises its token balance with **no merchant credited and no invoice paid**. It does not fail, it does not error, and the sender gets nothing. Publishing the merchant's own wallet is a different mistake with a quieter cost — the transfer arrives, but outside Voulti: no invoice, no webhook, no receipt. Share the checkout link, never an address.
 

@@ -111,7 +111,8 @@ export const es = {
     errorFragmented: "Tu {symbol} está distribuido en varias redes ({breakdown}). Ninguna red tiene {amount} {symbol}. Envía un monto menor o consolida primero.",
     errorNoNetwork: "No hay red disponible con saldo suficiente y contrato desplegado",
     stats: {
-      balance: "Saldo",
+      balance: "Saldo en Voulti",
+      balanceHint: "Cobros recibidos por Voulti que todavía no retiraste. Lo que tengas en tu wallet por fuera no aparece acá — ya es tuyo y no hace falta retirarlo.",
       totalSent: "Total Enviado",
       totalTransfers: "Total Transferencias",
       loginBalance: "Inicia sesión para ver tu saldo",

@@ -89,6 +89,13 @@ export function StatsCards({ balance, totalPaid, payoutCount, currency = "USD", 
               <span className="text-lg font-normal text-primary-foreground/70 ml-2">{currency}</span>
             </h2>
           </div>
+          {/* Labelled "Balance" alone, this number reads as "my money", and a
+              merchant whose wallet also holds funds sent to it directly sees
+              two figures that disagree and assumes one is broken. Both are
+              right; they answer different questions. */}
+          <p className="text-xs text-primary-foreground/70 leading-relaxed pt-1">
+            {t.send.stats?.balanceHint}
+          </p>
         </div>
       </Card>
 
