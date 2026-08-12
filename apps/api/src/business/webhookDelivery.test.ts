@@ -139,6 +139,64 @@ describe('deliverWebhook', () => {
   });
 });
 
+/**
+ * A receiver serving several commerces cannot pick which secret to verify
+ * against: the payload carries no commerce id, and the conformance probes use
+ * an invoice id of all zeros that maps to nothing it could look up. So two
+ * commerces behind one URL fail every delivery, and the 401 that comes back
+ * reads as a broken handler rather than the wrong key. This header is how they
+ * choose — a key hint, in the role `kid` plays in a JWT, never a credential.
+ */
+describe('X-Voulti-Commerce', () => {
+  it('names the commerce so a shared endpoint can pick the right secret', async () => {
+    let seen: string | undefined;
+    const url = await serve((req, res) => {
+      seen = req.headers['x-voulti-commerce'] as string;
+      res.writeHead(200).end('ok');
+    });
+
+    await deliverWebhook(url, 'secret', buildTestPayload('Paid', { amount_fiat: 10, fiat_currency: 'USD' }), {
+      commerceId: 'c-abc',
+    });
+
+    expect(seen).toBe('c-abc');
+  });
+
+  it('does not stand in for the signature', async () => {
+    // Someone will read the header and decide it identifies the sender. It does
+    // not: it is unauthenticated, and a delivery that carries it still has to
+    // be verified. This test exists so the header is never quietly promoted
+    // into a credential by a future change that signs based on it.
+    let signature: string | undefined;
+    const url = await serve((req, res) => {
+      signature = req.headers['x-voulti-signature'] as string;
+      res.writeHead(200).end('ok');
+    });
+
+    const result = await deliverWebhook(
+      url,
+      null, // no secret
+      buildTestPayload('Paid', { amount_fiat: 10, fiat_currency: 'USD' }),
+      { commerceId: 'c-abc' }
+    );
+
+    expect(signature).toBeUndefined();
+    expect(result.signed).toBe(false);
+  });
+
+  it('is omitted when no commerce is given, rather than sent empty', async () => {
+    let has = true;
+    const url = await serve((req, res) => {
+      has = 'x-voulti-commerce' in req.headers;
+      res.writeHead(200).end('ok');
+    });
+
+    await deliverWebhook(url, 'secret', buildTestPayload('Paid', { amount_fiat: 10, fiat_currency: 'USD' }));
+
+    expect(has).toBe(false);
+  });
+});
+
 describe('test payloads', () => {
   it('marks test deliveries so a production handler can refuse them', async () => {
     let received: any = null;

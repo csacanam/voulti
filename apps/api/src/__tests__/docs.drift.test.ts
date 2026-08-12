@@ -87,6 +87,25 @@ describe('the return_url rules the docs promise', () => {
   });
 });
 
+describe('the multi-commerce warning', () => {
+  const DELIVERY = read('apps/api/src/business/webhookDelivery.ts');
+
+  it('names a header the code actually sends', () => {
+    // The instruction to read this header is the only workaround we offer a
+    // shared endpoint. If it were renamed and the doc left standing, an
+    // integrator would branch on a header that never arrives.
+    expect(SKILL).toContain('X-Voulti-Commerce');
+    expect(DELIVERY).toContain("headers['X-Voulti-Commerce']");
+  });
+
+  it('never advertises it as proof of who sent the delivery', () => {
+    // Someone will read a header naming the commerce and decide it identifies
+    // the sender. It is unauthenticated; only the signature proves anything.
+    const section = SKILL.slice(SKILL.indexOf('X-Voulti-Commerce'));
+    expect(section.slice(0, 1200)).toMatch(/not a credential|unauthenticated/i);
+  });
+});
+
 describe('the numbers the docs quote', () => {
   it('quote the real attempt count', () => {
     // The number lives in the retry schedule now, not in a loose constant —

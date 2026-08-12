@@ -260,6 +260,14 @@ A few rows created before this settled carry `Celo` capitalised, so lower-case t
 
 **Verify the signature.** The `X-Voulti-Signature: t=<unix_seconds>,v1=<hex>` header carries an HMAC-SHA256 of `` `${t}.${rawBody}` `` keyed with the commerce's webhook signing secret. It is present **whenever that commerce has a signing secret configured, and absent when it does not** — so if your handler rejects unsigned deliveries (it should), make sure the merchant actually set a secret, or every delivery will `401` and burn every attempt we make.
 
+> ⚠️ **Serving more than one commerce? Do not point them at the same URL.** Signing secrets are **per commerce**, so one endpoint holding one secret rejects every delivery for the second commerce — and the `401` that comes back looks exactly like a broken handler, which is a slow thing to diagnose from either end.
+>
+> Give each commerce its own route (`/webhooks/voulti/<something>`), so the route itself decides which secret to use. If you must share one, read **`X-Voulti-Commerce: <commerce_id>`** to choose the secret, then verify as usual.
+>
+> **`X-Voulti-Commerce` is a key hint, not a credential** — the same role `kid` plays in a JWT. It is unauthenticated: it tells you which secret to try, and the signature is what proves the delivery is ours. Trusting it on its own to identify the sender means anyone who learns the URL can name any commerce they like. Never branch on it before the signature checks out, and never treat it as proof of anything after.
+>
+> You cannot substitute the payload for it either: the body has no `commerce_id`, and the dashboard's conformance probes carry an invoice id of all zeros that maps to nothing you could look up.
+
 ```js
 import { createHmac, timingSafeEqual } from "crypto";
 

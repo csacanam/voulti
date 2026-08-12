@@ -32,7 +32,14 @@ export async function deliverAndLog(
   context: DeliveryContext,
   opts: DeliverOptions = {}
 ): Promise<DeliveryResult> {
-  const result = await deliverWebhook(url, secret, payload, opts);
+  // Taken from the context rather than asked for again: every caller already
+  // says which commerce it is delivering for, and a header that some paths set
+  // and others forget is worse than no header — a receiver keying on it would
+  // work in testing and drop real deliveries.
+  const result = await deliverWebhook(url, secret, payload, {
+    commerceId: context.commerceId,
+    ...opts,
+  });
 
   // Recording is never allowed to affect delivery. If the insert fails the
   // merchant has still been notified, and turning a logging problem into a

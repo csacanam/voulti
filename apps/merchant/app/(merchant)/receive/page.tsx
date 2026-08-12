@@ -486,6 +486,8 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
   const [url, setUrl] = useState(currentUrl || '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [sharedWith, setSharedWith] = useState<{ id: string; name: string }[]>([])
+  const { t } = useLanguage()
   const { toast } = useToast()
 
   const handleSave = async () => {
@@ -502,6 +504,8 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
         body: JSON.stringify({ confirmation_url: url || null }),
       })
       if (!res.ok) throw new Error()
+      const body = await res.json().catch(() => ({}))
+      setSharedWith(body?.data?.sharedWith ?? [])
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       toast({ title: 'Webhook URL saved' })
@@ -513,12 +517,22 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
   }
 
   return (
-    <div className="flex gap-2">
-      <Input placeholder="https://yourdomain.com/webhook" value={url} onChange={(e) => setUrl(e.target.value)} className="font-mono text-sm" />
-      <Button onClick={handleSave} disabled={saving} variant="outline" size="sm" className="gap-1.5 shrink-0">
-        {saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
-        {saved ? 'Saved' : 'Save'}
-      </Button>
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input placeholder="https://yourdomain.com/webhook" value={url} onChange={(e) => setUrl(e.target.value)} className="font-mono text-sm" />
+        <Button onClick={handleSave} disabled={saving} variant="outline" size="sm" className="gap-1.5 shrink-0">
+          {saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
+          {saved ? 'Saved' : 'Save'}
+        </Button>
+      </div>
+
+      {/* Said at the moment it becomes true, rather than left to be discovered
+          later as a 401 that looks like a broken handler. */}
+      {sharedWith.length > 0 && (
+        <p className="text-xs text-amber-600">
+          {t.dev.webhookUrlShared.replace("{commerces}", sharedWith.map((c) => c.name).join(', '))}
+        </p>
+      )}
     </div>
   )
 }

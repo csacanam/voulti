@@ -71,6 +71,22 @@ export interface DeliverOptions {
    * Leave it undefined and a real signature is computed.
    */
   signature?: string | null;
+
+  /**
+   * Which commerce this delivery belongs to, sent as `X-Voulti-Commerce`.
+   *
+   * Signing secrets are per commerce, so a receiver serving several of them
+   * cannot pick the right one to verify against — the payload carries no
+   * commerce id, and the conformance probes use an invoice id of all zeros that
+   * maps to nothing, so there is no way to look it up either. Two commerces
+   * behind one URL therefore fail every delivery, and the 401 that comes back
+   * looks like a broken handler rather than the wrong key.
+   *
+   * This is a key hint, not a credential — the same role `kid` plays in a JWT.
+   * A receiver uses it to choose a secret and then verifies as usual; a forged
+   * value simply selects a key the signature will not match.
+   */
+  commerceId?: string;
 }
 
 export async function deliverWebhook(
@@ -81,6 +97,8 @@ export async function deliverWebhook(
 ): Promise<DeliveryResult> {
   const body = JSON.stringify(payload);
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  if (opts.commerceId) headers['X-Voulti-Commerce'] = opts.commerceId;
 
   // Stripe-style, replay-resistant:
   //   X-Voulti-Signature: t=<unix_seconds>,v1=hex(hmacSHA256(secret, `${t}.${body}`))

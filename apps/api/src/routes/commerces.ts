@@ -415,7 +415,32 @@ export async function commercesRoutes(app: FastifyInstance) {
         return res.status(500).send({ error: 'Failed to update webhook URL' });
       }
 
-      return res.send({ success: true });
+      /**
+       * Tell them if one of their other commerces already points here.
+       *
+       * Secrets are per commerce, so one endpoint cannot verify two of them
+       * against a single key — every delivery for the second commerce comes
+       * back 401, and that 401 reads as a broken handler rather than the wrong
+       * secret. It cost hours to diagnose once from the receiving end.
+       *
+       * A warning and not a refusal: a receiver that tries each secret it holds,
+       * or that reads X-Voulti-Commerce to pick one, is doing something valid.
+       * Scoped to this owner's own commerces, because cross-checking every
+       * merchant would answer "who else uses this URL" to anyone who asks.
+       */
+      let sharedWith: { id: string; name: string }[] = [];
+      if (confirmation_url) {
+        const { data: siblings } = await supabase
+          .from('commerces')
+          .select('id, name')
+          .eq('wallet', commerce.wallet)
+          .eq('confirmation_url', confirmation_url)
+          .neq('id', id);
+
+        sharedWith = siblings || [];
+      }
+
+      return res.send({ success: true, data: { sharedWith } });
     } catch (error: any) {
       return res.status(500).send({ error: error.message || 'Failed to update' });
     }

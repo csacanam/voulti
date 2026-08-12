@@ -196,6 +196,7 @@ export const es = {
     commerceIdLabel: "Tu commerce_id",
     commerceIdHelp: "Identifica tu comercio al crear cobros. Es público —va en el link de pago—, así que no es una credencial: no lo trates como secreto ni lo uses como si autenticara algo.",
     webhookUrlLabel: "URL del webhook",
+    webhookUrlShared: "Ojo: {commerces} ya usa esta misma URL. Cada comercio firma con su propio secreto, así que un endpoint solo puede verificar uno — al otro le va a rechazar todas las entregas. Usá una ruta por comercio, o leé la cabecera X-Voulti-Commerce para elegir el secreto correcto.",
     webhookUrlHelp: "Tu servidor, avisado. Te mandamos un POST cuando un cobro queda Pagado, Vencido o Devuelto, y reintentamos por dos días hasta que respondas 2xx. Es de donde tenés que despachar el pedido: pasa aunque el pagador cierre la pestaña.",
   },
 
