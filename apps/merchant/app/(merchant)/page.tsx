@@ -8,6 +8,7 @@ import { useCommerce } from "@/components/providers/commerce-provider"
 import { useAggregatedBalances } from "@/hooks/use-aggregated-balances"
 import { useLanguage } from "@/components/providers/language-provider"
 import { TokenBalanceCard } from "@/components/token-balance-card"
+import { WalletFunds } from "@/components/wallet-funds"
 import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 
@@ -166,6 +167,13 @@ function Dashboard() {
         )}
       </div>
 
+      {/* Anything sitting in the wallet, right above the card that publishes
+          its address — this page printing the address under a heading that
+          excludes what the address holds is how a merchant concludes their
+          money vanished. Renders nothing when the wallet is empty.
+          showAddress={false}: the card below already prints it. */}
+      {commerce?.commerce_id && <WalletFunds commerceId={commerce.commerce_id} showAddress={false} />}
+
       {/* Wallet address */}
       {commerce?.wallet && (
         <Card className="p-4">
@@ -173,6 +181,7 @@ function Dashboard() {
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground mb-1">{t.dashboard.yourWallet}</p>
               <p className="text-sm font-mono break-all">{commerce.wallet}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t.dashboard.yourWalletDesc}</p>
             </div>
             <Button
               variant="ghost"

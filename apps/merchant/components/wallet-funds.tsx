@@ -41,7 +41,14 @@ interface WalletBalance {
 
 const ERC20_ABI = ["function transfer(address to, uint256 amount) returns (bool)"]
 
-export function WalletFunds({ commerceId }: { commerceId: string }) {
+export function WalletFunds({
+  commerceId,
+  showAddress = true,
+}: {
+  commerceId: string
+  /** Off where the page already prints the wallet address on its own card. */
+  showAddress?: boolean
+}) {
   const { t } = useLanguage()
   const { wallets } = useWallets()
   const { toast } = useToast()
@@ -144,7 +151,9 @@ export function WalletFunds({ commerceId }: { commerceId: string }) {
           <h2 className="text-lg font-semibold">{t.walletFunds.title}</h2>
         </div>
         <p className="text-xs text-muted-foreground">{t.walletFunds.subtitle}</p>
-        <code className="text-xs font-mono text-muted-foreground break-all">{address}</code>
+        {showAddress && (
+          <code className="text-xs font-mono text-muted-foreground break-all">{address}</code>
+        )}
       </div>
 
       <Card className="p-4 space-y-2">
