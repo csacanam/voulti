@@ -87,6 +87,25 @@ export async function runConformanceProbes(ctx: ProbeContext): Promise<ProbeResu
   const now = Math.floor(Date.now() / 1000);
   const results: ProbeResult[] = [];
 
+  // ── Do we even hold a secret? Checked before anything is sent, because
+  //    without one every delivery below goes out unsigned — including the
+  //    control — and an endpoint that correctly refuses an unsigned payment
+  //    notification then fails the control and gets told to fix itself. That
+  //    reading is backwards: refusing was the right call, and the missing
+  //    secret is ours. Running the probes first meant this branch was never
+  //    even reached for those merchants, so the one finding that explained
+  //    everything was the one they never saw.
+  if (!ctx.secret) {
+    results.push({ id: 'has-secret', verdict: 'fail', status: null, durationMs: 0, error: null });
+
+    // Not sent at all. An unsigned delivery would prove nothing either way and
+    // would leave a confusing 401 in the merchant's logs to chase.
+    for (const id of ['accepts-valid', 'rejects-tampered', 'rejects-replay', 'rejects-unsigned'] as ProbeId[]) {
+      results.push({ id, verdict: 'inconclusive', status: null, durationMs: 0, error: null });
+    }
+    return results;
+  }
+
   // ── Control. Everything below is meaningless if a correct delivery fails.
   const control = await send(ctx, payload, undefined);
   results.push({
@@ -104,17 +123,6 @@ export async function runConformanceProbes(ctx: ProbeContext): Promise<ProbeResu
     for (const id of ['rejects-tampered', 'rejects-replay', 'rejects-unsigned'] as ProbeId[]) {
       results.push({ id, verdict: 'inconclusive', status: null, durationMs: 0, error: null });
     }
-    return results;
-  }
-
-  if (!ctx.secret) {
-    results.push({
-      id: 'has-secret',
-      verdict: 'fail',
-      status: null,
-      durationMs: 0,
-      error: null,
-    });
     return results;
   }
 

@@ -214,6 +214,7 @@ export const en = {
     notReady: "Anything red here is a way to get goods without paying. Worth fixing before going live.",
     noResponse: "No response",
     notRun: "Not run — your server rejects valid deliveries too",
+    notRunNoSecret: "Not run — with no secret there is nothing to test",
     probe: {
       "accepts-valid": "Accepts a correctly signed delivery",
       "has-secret": "Has a signing secret",

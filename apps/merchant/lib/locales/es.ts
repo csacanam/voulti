@@ -214,6 +214,7 @@ export const es = {
     notReady: "Con algo en rojo no conviene salir a producción: son formas de cobrar sin pagar.",
     noResponse: "Sin respuesta",
     notRun: "No se corrió — tu servidor también rechaza las entregas válidas",
+    notRunNoSecret: "No se corrió — sin secreto no hay nada que probar",
     probe: {
       "accepts-valid": "Acepta una entrega bien firmada",
       "has-secret": "Tiene secreto de firma",

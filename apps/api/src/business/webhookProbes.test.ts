@@ -142,8 +142,37 @@ describe('when the commerce has no signing secret', () => {
     const results = await runConformanceProbes({ url, secret: null, commerceId: 'c1' });
 
     expect(verdictOf(results, 'has-secret')).toBe('fail');
-    // Probing rejection is meaningless when nothing is signed in the first place.
-    expect(verdictOf(results, 'rejects-tampered')).toBeUndefined();
+    // Reported rather than omitted: a merchant reading a short list cannot tell
+    // whether a check passed, failed, or was never attempted.
+    for (const id of ['accepts-valid', 'rejects-tampered', 'rejects-replay', 'rejects-unsigned']) {
+      expect(verdictOf(results, id)).toBe('inconclusive');
+    }
+  });
+
+  it('does not blame an endpoint that correctly refuses the unsigned delivery', async () => {
+    /**
+     * The reason this ordering is load-bearing. With no secret every delivery
+     * goes out unsigned, including the control — so a receiver that refuses
+     * unsigned payment notifications, which is exactly what we ask them to
+     * build, answered 401 and failed the control. The verdict the merchant
+     * read was "fix this first", pointed at the one part of the system that
+     * was behaving correctly, while the finding that explained it sat behind
+     * an early return they never reached.
+     */
+    let hits = 0;
+    const url = await serve((_req, res) => {
+      hits++;
+      res.writeHead(401).end('unsigned');
+    });
+
+    const results = await runConformanceProbes({ url, secret: null, commerceId: 'c1' });
+
+    expect(verdictOf(results, 'accepts-valid')).not.toBe('fail');
+    expect(verdictOf(results, 'has-secret')).toBe('fail');
+
+    // Nothing is sent at all: an unsigned delivery proves nothing either way
+    // and only leaves a 401 in the merchant's logs to chase.
+    expect(hits).toBe(0);
   });
 });
 

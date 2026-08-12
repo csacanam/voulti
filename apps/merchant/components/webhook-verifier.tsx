@@ -60,8 +60,15 @@ export function WebhookVerifier({ commerceId, hasUrl }: { commerceId: string; ha
 
   const anyFailed = results?.some((r) => r.verdict === "fail")
 
+  // Nothing ran because we hold no signing secret — a different reason from
+  // "your endpoint refuses valid deliveries", and blaming the endpoint for it
+  // sends the merchant debugging a server that behaved correctly.
+  const missingSecret = results?.some((r) => r.id === "has-secret" && r.verdict === "fail")
+
   const observed = (r: ProbeResult) => {
-    if (r.verdict === "inconclusive") return t.webhookVerify.notRun
+    if (r.verdict === "inconclusive") {
+      return missingSecret ? t.webhookVerify.notRunNoSecret : t.webhookVerify.notRun
+    }
     if (r.status !== null) return `HTTP ${r.status} · ${r.durationMs} ms`
     return r.error || t.webhookVerify.noResponse
   }
