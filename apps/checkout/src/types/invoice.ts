@@ -38,6 +38,12 @@ export interface Invoice {
   amount_usd?: string;
   usd_to_fiat_rate?: number;
   status: 'Pending' | 'Paid' | 'Refunded' | 'Expired';
+  /**
+   * Where to send the payer once this invoice reaches a final status. Already
+   * resolved by the API — no {invoice_id} left to substitute — and already
+   * checked against the merchant's allowed domains, so it is safe to follow.
+   */
+  return_url?: string | null;
   tokens: Token[];
   expires_at?: string;
   commerce_icon_url?: string;

@@ -8,6 +8,7 @@ import { CONTRACTS } from '../blockchain/config/contracts';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { buildPayload } from '../business/webhookDelivery';
 import { deliverAndLog } from '../business/webhookLog';
+import { validateReturnUrl, resolveReturnUrl } from '../business/returnUrl';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -19,7 +20,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
   app.post('/', async (req: AuthenticatedRequest, res) => {
     try {
       const body = (req.body || {}) as any;
-      const { commerce_id, amount_fiat, expires_at, reference, description } = body;
+      const { commerce_id, amount_fiat, expires_at, reference, description, return_url } = body;
       // `fiat_currency` accepted as an alias: it is the name the field carries
       // in every response, so integrators reach for it first.
       const currency = body.currency ?? body.fiat_currency;
@@ -79,7 +80,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
       // Validate commerce exists and get its currency and confirmation_url
       const { data: commerce, error: commerceError } = await supabase
         .from('commerces')
-        .select('id, name, wallet, minAmount, maxAmount, currency, confirmation_url, confirmation_email')
+        .select('id, name, wallet, minAmount, maxAmount, currency, confirmation_url, confirmation_email, return_url_domains')
         .eq('id', commerce_id)
         .single();
 
@@ -87,6 +88,24 @@ export async function invoicesRoutes(app: FastifyInstance) {
         return res.status(404).send({
           error: 'Commerce not found'
         });
+      }
+
+      // Where the payer's browser goes once this invoice reaches a final
+      // status. Checked here rather than at redirect time so a caller learns
+      // immediately, and — more importantly — so a URL that would not be
+      // followed is never stored in the first place.
+      //
+      // This endpoint takes no authentication and identifies the merchant by a
+      // commerce_id that is public by design, so without the allowlist anyone
+      // could mint an invoice against a real merchant and point the return at a
+      // site they control: the link would carry that merchant's name on our
+      // domain and bounce to a forgery. The allowlist is only writable by the
+      // wallet-authenticated owner, which is what the forger does not have.
+      if (return_url !== undefined && return_url !== null) {
+        const check = validateReturnUrl(return_url, commerce.return_url_domains);
+        if (!check.ok) {
+          return res.status(400).send({ error: check.message, code: `return_url:${check.reason}` });
+        }
       }
 
       // Price in whatever currency the caller asks for. The commerce's own
@@ -176,7 +195,10 @@ export async function invoicesRoutes(app: FastifyInstance) {
           confirmation_url_available: commerce.confirmation_url !== null,
           confirmation_email_available: commerce.confirmation_email !== null,
           ...(reference !== undefined ? { reference } : {}),
-          ...(description !== undefined ? { description } : {})
+          ...(description !== undefined ? { description } : {}),
+          // The template is stored, not the resolved URL: {invoice_id} is
+          // substituted per redirect, and the id does not exist yet here.
+          ...(return_url ? { return_url } : {})
         })
         .select()
         .single();
@@ -200,6 +222,9 @@ export async function invoicesRoutes(app: FastifyInstance) {
           created_at: invoice.created_at,
           reference: invoice.reference ?? null,
           description: invoice.description ?? null,
+          // Echoed resolved, so the caller sees the URL the payer will actually
+          // be sent to rather than the template it just submitted.
+          return_url: invoice.return_url ? resolveReturnUrl(invoice.return_url, invoice.id) : null,
           confirmation_url_available: invoice.confirmation_url_available,
           confirmation_email_available: invoice.confirmation_email_available
         }
@@ -386,7 +411,10 @@ export async function invoicesRoutes(app: FastifyInstance) {
       paid_at: invoice.paid_at,
       paid_amount: invoice.paid_amount,
       selected_network: invoice.selected_network,
-      blockchain_invoice_id: invoice.blockchain_invoice_id
+      blockchain_invoice_id: invoice.blockchain_invoice_id,
+      // Already resolved: the checkout redirects to this verbatim, so the
+      // placeholder must never survive into something a browser follows.
+      return_url: invoice.return_url ? resolveReturnUrl(invoice.return_url, invoice.id) : null
     });
   });
 

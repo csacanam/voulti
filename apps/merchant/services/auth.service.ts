@@ -26,6 +26,8 @@ export interface Commerce {
   icon_url: string | null
   confirmation_url: string | null
   confirmation_email: string
+  /** Hosts a return_url may point at. Empty means return_url is refused. */
+  return_url_domains: string[]
   created_at: string
 }
 

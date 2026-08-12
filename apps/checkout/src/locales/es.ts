@@ -58,6 +58,8 @@ export const es = {
     processing: 'Procesando pago...',
     completed: '¡Pago completado!',
     completedDescription: 'Este pedido ha sido pagado exitosamente.',
+    backToMerchant: 'Volver a {commerce}',
+    redirectingIn: 'Te llevamos de vuelta en {seconds}s…',
     expired: 'Pedido expirado',
     expiredDescription: 'Este pedido ha expirado y ya no puede ser pagado.',
     refunded: 'Pago reembolsado',
@@ -251,7 +253,7 @@ export const es = {
       step3Title: 'Paso 3: Redirige a tu cliente a la página de checkout',
       step3Description: 'Envía a tu cliente al link de checkout devuelto en la respuesta de la API para completar el pago.',
       step3Example: '🌐 Ejemplo:',
-      note: '📢 Si configuraste las URLs de confirmación y respuesta, Voulti notificará a la URL de confirmación cuando se complete el pago y redirigirá al usuario a la URL de respuesta.'
+      note: '📢 Con confirmation_url configurada, Voulti te notifica cuando se complete el pago. Y si mandás return_url al crear el cobro, devolvemos al pagador a tu sitio — el dominio tiene que estar autorizado antes desde tu panel.'
     }
   },
 

@@ -197,6 +197,13 @@ export const es = {
     webhookUrlLabel: "URL del webhook",
   },
 
+  returnDomains: {
+    label: "Dominios de retorno",
+    help: "A dónde podés devolver al pagador con return_url. Solo estos dominios y sus subdominios; el resto se rechaza al crear el cobro.",
+    add: "Agregar",
+    empty: "Sin dominios autorizados — por ahora cualquier return_url se rechaza.",
+  },
+
   webhookVerify: {
     title: "¿Tu servidor rechaza lo que debe rechazar?",
     subtitle: "Le mandamos entregas firmadas mal a propósito. Si las acepta, cualquiera que conozca tu URL puede hacerle creer que un pedido se pagó. Solo Voulti puede hacer esta prueba: somos los únicos que tenemos el secreto y podemos firmar mal a propósito.",

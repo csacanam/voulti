@@ -55,6 +55,38 @@ describe('the webhook statuses the docs promise', () => {
   });
 });
 
+describe('the return_url rules the docs promise', () => {
+  const RETURN_URL = read('apps/api/src/business/returnUrl.ts');
+
+  it('quotes error codes the validator can actually emit', () => {
+    // skill.md tells an integrator to branch on these to tell "the merchant
+    // has not set this up" apart from "I sent the wrong host". A renamed
+    // reason would leave that branch dead and the integrator guessing.
+    for (const code of ['no-allowlist', 'host-not-allowed']) {
+      expect(SKILL, `skill.md names return_url:${code}`).toContain(`return_url:${code}`);
+      expect(RETURN_URL, `the validator can no longer emit "${code}"`).toContain(`'${code}'`);
+    }
+  });
+
+  it('does not promise a return_url without saying the domain must be authorised', () => {
+    // The whole feature is opt-in per merchant. A doc that shows the field
+    // without the prerequisite sends integrators straight into a 400 — which
+    // is exactly how the old "response URL" sentence read before this existed.
+    if (SKILL.includes('return_url')) {
+      expect(SKILL, 'skill.md shows return_url without mentioning the allowlist').toMatch(
+        /authoris|allowlist|Return domains/i
+      );
+    }
+  });
+
+  it('keeps the placeholder the docs advertise', () => {
+    expect(SKILL).toContain('{invoice_id}');
+    expect(RETURN_URL, 'the placeholder was renamed out from under the docs').toContain(
+      "INVOICE_ID_PLACEHOLDER = '{invoice_id}'"
+    );
+  });
+});
+
 describe('the numbers the docs quote', () => {
   it('quote the real attempt count', () => {
     // The number lives in the retry schedule now, not in a loose constant —

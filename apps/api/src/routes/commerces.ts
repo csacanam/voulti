@@ -12,6 +12,7 @@ import { buildTestPayload } from '../business/webhookDelivery';
 import { deliverAndLog } from '../business/webhookLog';
 import { runConformanceProbes, summarise } from '../business/webhookProbes';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
+import { normaliseAllowedDomain } from '../business/returnUrl';
 import { sendTelegramAlert } from '../utils/notify';
 
 const supabase = createClient(
@@ -310,6 +311,72 @@ export async function commercesRoutes(app: FastifyInstance) {
       return res.send({ success: true, data: { currency: code, currency_symbol: SYMBOLS[code] || '$' } });
     } catch (error: any) {
       return res.status(500).send({ error: error.message || 'Failed to update currency' });
+    }
+  });
+
+  /**
+   * The domains this commerce allows a return_url to point at.
+   *
+   * This route is the whole security model for return_url, and the reason is
+   * the `preHandler` on it. POST /invoices has none — it identifies a merchant
+   * by a commerce_id that sits in the address bar of every payment link — so
+   * without a list only its owner can write, anyone could mint an invoice
+   * against a real merchant and send the payer onward to a site of their
+   * choosing, wearing that merchant's name and our domain.
+   *
+   * Same shape as the webhook route below on purpose: authenticate, confirm the
+   * wallet owns the commerce, write one column.
+   */
+  app.put('/:id/return-domains', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const { domains } = (req.body || {}) as { domains?: unknown };
+
+      if (!Array.isArray(domains)) {
+        return res.status(400).send({ error: 'domains must be an array of hostnames' });
+      }
+
+      if (domains.length > 20) {
+        return res.status(400).send({ error: 'At most 20 domains' });
+      }
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      // Normalised rather than stored as typed. A merchant pasting
+      // "https://peewah.co/gracias" means peewah.co, and silently keeping the
+      // raw string would produce a list that never matches anything — which
+      // reads as "return_url is broken" rather than "that entry is wrong".
+      const normalised: string[] = [];
+      for (const raw of domains) {
+        const domain = normaliseAllowedDomain(raw);
+        if (!domain) {
+          return res.status(400).send({ error: `"${String(raw).slice(0, 80)}" is not a valid domain` });
+        }
+        if (!normalised.includes(domain)) normalised.push(domain);
+      }
+
+      const { error } = await supabase
+        .from('commerces')
+        .update({ return_url_domains: normalised.length > 0 ? normalised : null })
+        .eq('id', id);
+
+      if (error) {
+        return res.status(500).send({ error: 'Failed to update return domains' });
+      }
+
+      return res.send({ success: true, data: { domains: normalised } });
+    } catch (error: any) {
+      console.error('Update return domains error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to update return domains' });
     }
   });
 
@@ -729,6 +796,7 @@ export async function commercesRoutes(app: FastifyInstance) {
           icon_url: commerce.icon_url,
           confirmation_url: commerce.confirmation_url,
           confirmation_email: commerce.confirmation_email,
+          return_url_domains: commerce.return_url_domains ?? [],
           created_at: commerce.created_at
         }
       });

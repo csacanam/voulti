@@ -23,6 +23,9 @@ const COMMERCE = {
   currency: 'COP',
   confirmation_url: null,
   confirmation_email: null,
+  // Mutated per test: the whole point of return_url validation is that this
+  // list, and only this list, decides what the endpoint accepts.
+  return_url_domains: null as string[] | null,
 };
 
 const RATES: Record<string, number> = { USD: 1, COP: 4000, EUR: 0.9 };
@@ -182,5 +185,59 @@ describe('POST /invoices — reference', () => {
   it('rejects one longer than 200 characters', async () => {
     const r = await post({ ...VALID, reference: 'x'.repeat(201) });
     expect(r.status).toBe(400);
+  });
+});
+
+/**
+ * This endpoint takes no authentication and identifies the merchant by a
+ * commerce_id that is public — it sits in the address bar of every payment
+ * link. So the request below is one anybody can send, and what stops it is
+ * that the allowlist can only be written by the wallet-authenticated owner.
+ */
+describe('POST /invoices — return_url', () => {
+  beforeEach(() => { COMMERCE.return_url_domains = null; });
+
+  it('refuses a return_url when the commerce configured no domains', async () => {
+    // The default has to be closed, or every existing commerce becomes a
+    // trampoline the moment this ships.
+    const r = await post({ ...VALID, return_url: 'https://peewah.co/gracias' });
+    expect(r.status).toBe(400);
+    expect(r.body.code).toBe('return_url:no-allowlist');
+  });
+
+  it('refuses a host the merchant never allowed', async () => {
+    COMMERCE.return_url_domains = ['peewah.co'];
+    const r = await post({ ...VALID, return_url: 'https://evil.com/gracias' });
+    expect(r.status).toBe(400);
+    expect(r.body.code).toBe('return_url:host-not-allowed');
+  });
+
+  it('refuses a lookalike domain', async () => {
+    COMMERCE.return_url_domains = ['peewah.co'];
+    const r = await post({ ...VALID, return_url: 'https://notpeewah.co/gracias' });
+    expect(r.status).toBe(400);
+  });
+
+  it('accepts an allowed host and echoes the resolved URL', async () => {
+    COMMERCE.return_url_domains = ['peewah.co'];
+    const r = await post({ ...VALID, return_url: 'https://peewah.co/gracias?id={invoice_id}' });
+    expect(r.status).toBe(201);
+    // Resolved on the way out, so the caller sees where the payer actually
+    // lands rather than the template it just sent.
+    expect(r.body.data.return_url).toBe('https://peewah.co/gracias?id=inv-1');
+  });
+
+  it('stores the template, not the resolved URL', async () => {
+    // Storing it resolved would freeze one invoice id into every later redirect.
+    COMMERCE.return_url_domains = ['peewah.co'];
+    const r = await post({ ...VALID, return_url: 'https://peewah.co/g?id={invoice_id}' });
+    expect(r.status).toBe(201);
+    expect(r.body.data.id).toBe('inv-1');
+  });
+
+  it('leaves invoices without a return_url untouched', async () => {
+    const r = await post(VALID);
+    expect(r.status).toBe(201);
+    expect(r.body.data.return_url).toBeNull();
   });
 });

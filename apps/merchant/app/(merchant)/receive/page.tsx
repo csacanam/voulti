@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2, Save, Bot } from "lucide-react"
+import { Lock, Copy, Check, Code, Webhook, Key, QrCode, Link as LinkIcon, ExternalLink, Loader2, Save, Bot, X } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { CreatePaymentLinkDialog } from "@/components/create-payment-link-dialog"
 import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
@@ -387,6 +387,100 @@ function CommerceLinkTab() {
   )
 }
 
+// ─── Return URL Domains ───
+/**
+ * The domains this commerce allows a payer to be sent back to.
+ *
+ * This list is the only thing standing between `return_url` and an open
+ * redirect. Creating an invoice needs no credentials and identifies the
+ * merchant by a commerce_id that is public — it is in the address bar of every
+ * payment link — so anyone can mint an invoice against this commerce. What they
+ * cannot do is edit this list, because saving it goes through the wallet.
+ *
+ * It starts empty, and empty refuses every return_url. That is deliberate: the
+ * feature turning itself on for commerces that never asked for it is exactly
+ * the outcome worth avoiding.
+ */
+function ReturnDomainsInput({ commerceId, current }: { commerceId: string; current: string[] }) {
+  const { t } = useLanguage()
+  const [domains, setDomains] = useState<string[]>(current)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const { toast } = useToast()
+
+  const save = async (next: string[]) => {
+    setSaving(true)
+    try {
+      const { getAuthToken } = await import("@/services/api")
+      const token = getAuthToken()
+      const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/return-domains`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ domains: next }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body?.error || '')
+
+      // The server normalises — a pasted "https://peewah.co/gracias" comes back
+      // as "peewah.co" — so the list is taken from the response rather than
+      // from what was typed, or the UI would show entries that never match.
+      setDomains(body?.data?.domains ?? next)
+      setDraft('')
+    } catch (err: any) {
+      toast({ title: err?.message || t.general.requestFailed, variant: 'destructive' as const })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input
+          placeholder="yourdomain.com"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && draft.trim()) { e.preventDefault(); save([...domains, draft.trim()]) } }}
+          className="font-mono text-sm"
+        />
+        <Button
+          onClick={() => draft.trim() && save([...domains, draft.trim()])}
+          disabled={saving || !draft.trim()}
+          variant="outline"
+          size="sm"
+          className="gap-1.5 shrink-0"
+        >
+          <Save className="w-3 h-3" />
+          {t.returnDomains.add}
+        </Button>
+      </div>
+
+      {domains.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {domains.map((domain) => (
+            <span key={domain} className="inline-flex items-center gap-1.5 text-xs font-mono bg-muted rounded-md px-2 py-1">
+              {domain}
+              <button
+                onClick={() => save(domains.filter((d) => d !== domain))}
+                disabled={saving}
+                className="text-muted-foreground hover:text-red-500 transition-colors"
+                aria-label={`Remove ${domain}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground italic">{t.returnDomains.empty}</p>
+      )}
+    </div>
+  )
+}
+
 // ─── Webhook Input ───
 function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentUrl: string | null }) {
   const [url, setUrl] = useState(currentUrl || '')
@@ -699,6 +793,12 @@ app.post("/webhooks/voulti", (req, res) => {
         <div>
           <p className="text-xs font-medium mb-1.5">{t.dev.webhookUrlLabel}</p>
           <WebhookInput commerceId={cid} currentUrl={commerce?.confirmation_url || null} />
+        </div>
+
+        <div>
+          <p className="text-xs font-medium mb-0.5">{t.returnDomains.label}</p>
+          <p className="text-xs text-muted-foreground mb-1.5">{t.returnDomains.help}</p>
+          <ReturnDomainsInput commerceId={cid} current={commerce?.return_url_domains || []} />
         </div>
 
         <WebhookSecret commerceId={cid} />

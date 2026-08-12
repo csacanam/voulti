@@ -16,6 +16,7 @@ import { ConnectWalletButton } from './ConnectWalletButton';
 import { TokenBalance } from './TokenBalance';
 import { PaymentAmount } from './PaymentAmount';
 import { CountdownTimer } from './CountdownTimer';
+import { ReturnToMerchant } from './ReturnToMerchant';
 import { PaymentButton } from './PaymentButton';
 import { WalletConnectionFlow } from './WalletConnectionFlow';
 import { NetworkMismatchWarning } from './NetworkMismatchWarning';
@@ -210,12 +211,27 @@ export const CheckoutPage: React.FC = () => {
   };
 
   const renderStatusContent = () => {
+    // Without this the payer is finished and stranded: a Voulti page with no
+    // way back to the site they were buying from. The merchant supplies the
+    // destination per invoice, so it can point at the order they just paid for
+    // rather than a generic home page.
+    const returnUrl = invoice.return_url;
+    const backToMerchant = (autoRedirect: boolean) =>
+      returnUrl ? (
+        <ReturnToMerchant
+          returnUrl={returnUrl}
+          commerceName={invoice.commerce_name}
+          autoRedirect={autoRedirect}
+        />
+      ) : null;
+
     if (effectiveStatus === 'Paid') {
       return (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
           <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.payment.completed}</h2>
           <p className="text-green-700">{t.payment.completedDescription}</p>
+          {backToMerchant(true)}
         </div>
       );
     }
@@ -226,6 +242,7 @@ export const CheckoutPage: React.FC = () => {
           <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.payment.expired}</h2>
           <p className="text-red-700">{t.payment.expiredDescription}</p>
+          {backToMerchant(false)}
         </div>
       );
     }
@@ -236,6 +253,7 @@ export const CheckoutPage: React.FC = () => {
           <RefreshCw className="h-16 w-16 text-blue-500 mx-auto mb-4" />
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.payment.refunded}</h2>
           <p className="text-blue-700">{t.payment.refundedDescription}</p>
+          {backToMerchant(false)}
         </div>
       );
     }

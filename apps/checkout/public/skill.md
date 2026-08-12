@@ -53,7 +53,8 @@ Response (`201`):
 
 ```json
 { "success": true, "data": { "id": "<invoice_id>", "commerce_id": "...", "amount_fiat": 50,
-  "fiat_currency": "USD", "status": "Pending", "expires_at": "...", "created_at": "..." } }
+  "fiat_currency": "USD", "status": "Pending", "expires_at": "...", "created_at": "...",
+  "reference": null, "description": null, "return_url": null } }
 ```
 
 The invoice id is **`data.id`**. Send the payer this link:
@@ -83,6 +84,27 @@ Putting an order id in `description` shows the payer a string that means nothing
 ```
 
 Both come back on `POST /invoices` and in the webhook payload. Neither is searchable, so keep your own id → invoice mapping at creation time.
+
+#### Sending the payer back to your site — `return_url`
+
+Without it the payer finishes on Voulti's page and has no way back to you. Pass `return_url` when creating the invoice and Voulti sends them to it once the invoice reaches a final status:
+
+```json
+{ "commerce_id": "...", "amount_fiat": 150, "currency": "USD",
+  "return_url": "https://yourdomain.com/orders/8814/thanks?invoice={invoice_id}" }
+```
+
+`{invoice_id}` is substituted with the real id. Use it — without it the payer arrives and you have no idea which invoice they just paid, and any state you kept in their session is gone the moment they finish paying on a different device than they started on.
+
+> ⚠️ **The domain must be authorised first, or you get a `400`.** Ask the merchant to add it under **Receive Payments → Developers → Return domains** *before* you send this field. A commerce with no domains configured refuses every `return_url` — that is the default, not a misconfiguration.
+>
+> This exists because `POST /invoices` needs no credentials and the `commerce_id` is public (it is in the address bar of every `/pay/` link). Without the check, anyone could create an invoice against a merchant and point the payer at a site of their choosing, on Voulti's domain and under that merchant's name. The allowlist can only be edited by the merchant signed into their dashboard, which is what makes it worth anything.
+
+Matching is by domain: an entry of `yourdomain.com` also accepts `www.yourdomain.com` and `shop.yourdomain.com`, but not `notyourdomain.com`. `https` only, except `localhost` for local development. Rejections come back as `400` with a `code` of `return_url:no-allowlist` or `return_url:host-not-allowed`, so you can tell "the merchant has not set this up" apart from "I sent the wrong host".
+
+**Timing:** the redirect fires at the final status, not when the payer signs. Signing is not settlement — redirecting there would land them on your page while the chain is still confirming, and you would show them "pending" anyway. A paid invoice redirects on a short countdown; expired and refunded ones only offer a button, so the payer can read what happened.
+
+> ⚠️ **Never trust the landing URL as proof of payment.** The payer controls their address bar, so anyone can open your thank-you page with any invoice id in it. Before you release anything of value there — a download, a certificate, a licence key — call `GET /invoices/<invoice_id>` and check `status` is `Paid`. This is the same rule as the webhook section below, and it matters more here, because a page that hands out something valuable is a page someone has a reason to forge their way into.
 
 ### Option B — Permanent link (payer chooses the amount)
 
@@ -134,10 +156,13 @@ GET https://api.voulti.com/invoices/<invoice_id>
   "status": "Paid", "expires_at": "...", "paid_at": "...", "amount_usd": "0.31",
   "usd_to_fiat_rate": 3181.1, "commerce_name": "...", "commerce_wallet": "0x…",
   "paid_tx_hash": "0x…", "paid_token": "USDT", "paid_network": "celo",
-  "paid_amount": 0.31471, "wallet_address": "0x…", "description": "Logo design", "tokens": [ … ] }
+  "paid_amount": 0.31471, "wallet_address": "0x…", "description": "Logo design",
+  "return_url": "https://yourdomain.com/orders/8814/thanks?invoice=<invoice_id>", "tokens": [ … ] }
 ```
 
 > ⚠️ **`amount_usd` and `usd_to_fiat_rate` are recomputed on every read, at today's rate.** They are not stored with the invoice, so a charge created months ago comes back priced at this morning's exchange rate — including one that is `Expired`, which quotes a price nobody can pay any more, and one that is `Paid`, where the number never matches what actually settled. For accounting, use `paid_amount` with `paid_token`: those are recorded at settlement and do not move. Treat `amount_usd` as a live quote for a `Pending` invoice and ignore it everywhere else.
+
+**`return_url` comes back already resolved**, on both this response and `POST /invoices` — the `{invoice_id}` placeholder is substituted for you, so the value is the URL the payer will actually be sent to, not the template you submitted. It is `null` when the invoice has none, which is also the case for every invoice created before you started sending the field.
 
 **`reference` and `created_at` are not on this response.** `reference` comes back on `POST /invoices` and in the webhook payload, but `GET /invoices/<id>` does not echo it — so you cannot use it to identify an invoice you fetched by id, and there is no way to search by it. Store your own id → invoice mapping at creation time. Likewise, capture `created_at` from the POST response if you need it; the GET will not give it back.
 

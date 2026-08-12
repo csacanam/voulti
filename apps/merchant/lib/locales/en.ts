@@ -197,6 +197,13 @@ export const en = {
     webhookUrlLabel: "Webhook URL",
   },
 
+  returnDomains: {
+    label: "Return domains",
+    help: "Where you can send the payer back with return_url. Only these domains and their subdomains; anything else is refused when the invoice is created.",
+    add: "Add",
+    empty: "No domains authorised — every return_url is refused for now.",
+  },
+
   webhookVerify: {
     title: "Does your server refuse what it should?",
     subtitle: "We send deliveries signed wrong on purpose. If it accepts them, anyone who learns your URL can make it believe an order was paid. Only Voulti can run this: we hold the secret, so we are the only ones who can mis-sign deliberately.",
