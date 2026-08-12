@@ -526,24 +526,61 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
 // ─── Webhook Signing Secret ───
 function WebhookSecret({ commerceId }: { commerceId: string }) {
   const [secret, setSecret] = useState<string | null>(null)
+  /**
+   * Whether we have asked yet. Kept apart from `secret` because "not revealed"
+   * and "revealed, and there is none" are different states that used to render
+   * identically: a commerce with no secret answered null, the button stayed
+   * exactly as it was, and clicking it looked like nothing happening at all.
+   */
+  const [revealed, setRevealed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [confirmingRotate, setConfirmingRotate] = useState(false)
   const { toast } = useToast()
   const { language } = useLanguage()
+  const es = language === 'es'
+
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const { getAuthToken } = await import("@/services/api")
+    const token = getAuthToken()
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
 
   const reveal = async () => {
     setLoading(true)
     try {
-      const { getAuthToken } = await import("@/services/api")
-      const token = getAuthToken()
       const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/webhook-secret`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: await authHeaders(),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
       setSecret(data.webhook_secret)
+      setRevealed(true)
     } catch {
-      toast({ title: language === 'es' ? 'No se pudo cargar el secreto' : 'Failed to load secret', variant: 'destructive' as const })
+      toast({ title: es ? 'No se pudo cargar el secreto' : 'Failed to load secret', variant: 'destructive' as const })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const issue = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/commerces/${commerceId}/webhook-secret`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setSecret(data.data.webhook_secret)
+      setRevealed(true)
+      setConfirmingRotate(false)
+      toast({ title: data.data.rotated
+        ? (es ? 'Secreto rotado — actualizá tu servidor' : 'Secret rotated — update your server')
+        : (es ? 'Secreto generado' : 'Secret generated') })
+    } catch {
+      toast({ title: es ? 'No se pudo generar el secreto' : 'Failed to generate secret', variant: 'destructive' as const })
     } finally {
       setLoading(false)
     }
@@ -558,25 +595,63 @@ function WebhookSecret({ commerceId }: { commerceId: string }) {
 
   return (
     <div className="mt-4 pt-4 border-t">
-      <p className="text-sm font-semibold mb-1">{language === 'es' ? 'Secreto de firma' : 'Signing secret'}</p>
+      <p className="text-sm font-semibold mb-1">{es ? 'Secreto de firma' : 'Signing secret'}</p>
       <p className="text-xs text-muted-foreground mb-2">
-        {language === 'es'
+        {es
           ? 'Cada webhook llega firmado con este secreto para que verifiques que viene de Voulti.'
           : 'Every webhook is signed with this secret so you can verify it comes from Voulti.'}
       </p>
+
       {secret ? (
-        <div className="flex gap-2 items-center">
-          <code className="bg-muted px-2 py-1 rounded text-xs font-mono break-all flex-1">{secret}</code>
-          <Button variant="outline" size="sm" onClick={copy} className="gap-1.5 shrink-0">
-            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-            {copied ? (language === 'es' ? 'Copiado' : 'Copied') : (language === 'es' ? 'Copiar' : 'Copy')}
+        <div className="space-y-2">
+          <div className="flex gap-2 items-center">
+            <code className="bg-muted px-2 py-1 rounded text-xs font-mono break-all flex-1">{secret}</code>
+            <Button variant="outline" size="sm" onClick={copy} className="gap-1.5 shrink-0">
+              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copied ? (es ? 'Copiado' : 'Copied') : (es ? 'Copiar' : 'Copy')}
+            </Button>
+          </div>
+          {/* Two steps, because rotating takes effect on the very next delivery
+              and a handler pinned to the old secret starts rejecting at once. */}
+          {confirmingRotate ? (
+            <div className="flex gap-2 items-center flex-wrap">
+              <p className="text-xs text-amber-600 flex-1 min-w-[16rem]">
+                {es
+                  ? 'El secreto actual deja de servir en la próxima entrega. Tu servidor va a rechazar los webhooks hasta que lo actualices.'
+                  : 'The current secret stops working on the next delivery. Your server will reject webhooks until you update it.'}
+              </p>
+              <Button variant="destructive" size="sm" onClick={issue} disabled={loading} className="shrink-0">
+                {loading ? '…' : (es ? 'Rotar igual' : 'Rotate anyway')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setConfirmingRotate(false)} className="shrink-0">
+                {es ? 'Cancelar' : 'Cancel'}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingRotate(true)} className="gap-1.5 text-muted-foreground">
+              <Key className="w-3 h-3" /> {es ? 'Rotar secreto' : 'Rotate secret'}
+            </Button>
+          )}
+        </div>
+      ) : revealed ? (
+        /* Asked, and there is none. Until this branch existed the button simply
+           did nothing, which is not a state anyone could act on. */
+        <div className="space-y-2">
+          <p className="text-xs text-amber-600">
+            {es
+              ? 'Este comercio no tiene secreto, así que sus webhooks salen SIN firmar y tu servidor no puede verificar que vienen de Voulti. Generá uno.'
+              : 'This commerce has no secret, so its webhooks go out UNSIGNED and your server cannot verify they come from Voulti. Generate one.'}
+          </p>
+          <Button variant="outline" size="sm" onClick={issue} disabled={loading} className="gap-1.5">
+            <Key className="w-3 h-3" /> {loading ? '…' : (es ? 'Generar secreto' : 'Generate secret')}
           </Button>
         </div>
       ) : (
         <Button variant="outline" size="sm" onClick={reveal} disabled={loading} className="gap-1.5">
-          <Key className="w-3 h-3" /> {loading ? '…' : (language === 'es' ? 'Revelar secreto' : 'Reveal secret')}
+          <Key className="w-3 h-3" /> {loading ? '…' : (es ? 'Revelar secreto' : 'Reveal secret')}
         </Button>
       )}
+
       <p className="text-xs text-muted-foreground mt-2">
         <code className="bg-muted px-1 rounded">X-Voulti-Signature: t=&lt;unix&gt;,v1=&lt;HMAC-SHA256(secret, t + "." + body)&gt;</code>
       </p>

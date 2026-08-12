@@ -13,6 +13,16 @@ import { deliverAndLog } from '../business/webhookLog';
 import { runConformanceProbes, summarise } from '../business/webhookProbes';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 import { normaliseAllowedDomain } from '../business/returnUrl';
+import { randomBytes } from 'crypto';
+
+/**
+ * 32 random bytes as hex — the same shape the 2026-07-12 backfill produced with
+ * `encode(gen_random_bytes(32), 'hex')`, so old and new secrets are
+ * indistinguishable to anything that consumes them.
+ */
+function newWebhookSecret(): string {
+  return randomBytes(32).toString('hex');
+}
 import { sendTelegramAlert } from '../utils/notify';
 
 const supabase = createClient(
@@ -532,6 +542,54 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
+  /**
+   * Issue a new signing secret for this commerce.
+   *
+   * Two jobs in one route, because to the merchant they are the same action.
+   * For a commerce whose secret is missing it is the only way out — the
+   * dashboard has been telling people to "generate the secret" at a button that
+   * did not exist. For one that already has a secret it is a rotation, which is
+   * what a merchant needs the day it leaks.
+   *
+   * Rotation takes effect on the next delivery, so a handler pinned to the old
+   * secret starts rejecting immediately. The caller is told which of the two
+   * happened, so the dashboard can warn before rotating and stay quiet when
+   * there is nothing to break.
+   */
+  app.post('/:id/webhook-secret', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params as { id: string };
+
+      const { data: commerce } = await supabase
+        .from('commerces')
+        .select('wallet, webhook_secret')
+        .eq('id', id)
+        .single();
+
+      if (!commerce) return res.status(404).send({ error: 'Commerce not found' });
+      if (commerce.wallet.toLowerCase() !== req.walletAddress) {
+        return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      const rotated = Boolean(commerce.webhook_secret);
+      const secret = newWebhookSecret();
+
+      const { error } = await supabase
+        .from('commerces')
+        .update({ webhook_secret: secret })
+        .eq('id', id);
+
+      if (error) {
+        return res.status(500).send({ error: 'Failed to update webhook secret' });
+      }
+
+      return res.send({ success: true, data: { webhook_secret: secret, rotated } });
+    } catch (error: any) {
+      console.error('Rotate webhook secret error:', error);
+      return res.status(500).send({ error: error.message || 'Failed to update webhook secret' });
+    }
+  });
+
   // Get withdrawal fee estimate for a token
   app.get('/withdraw-fee/:tokenSymbol', async (req, res) => {
     try {
@@ -850,6 +908,16 @@ export async function commercesRoutes(app: FastifyInstance) {
           name,
           currency: currency || 'USD',
           confirmation_email: (req as any).userEmail || null,
+          // Every commerce signs from the moment it exists.
+          //
+          // This used to be missing, and the gap did not look like one: a
+          // migration backfilled every commerce that existed on 2026-07-12, so
+          // the invariant held for everyone who was already here and silently
+          // broke for everyone created after. Those commerces received real
+          // payment webhooks with no X-Voulti-Signature header at all — and a
+          // merchant who verifies the signature, which is what we tell them to
+          // do, rejects every delivery and never learns they were paid.
+          webhook_secret: newWebhookSecret(),
         })
         .select()
         .single();
