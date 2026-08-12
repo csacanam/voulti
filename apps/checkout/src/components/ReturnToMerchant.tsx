@@ -3,7 +3,13 @@ import { ArrowRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { interpolate } from '../utils/i18n';
 
-const REDIRECT_SECONDS = 5;
+/**
+ * Long enough to read the screen before it leaves. The same card carries the
+ * order id, the amount and a link to the transaction on the block explorer —
+ * five seconds is not enough to take in a hash, let alone decide to click it.
+ * Anyone who does not care has the button right there.
+ */
+const REDIRECT_SECONDS = 10;
 
 interface ReturnToMerchantProps {
   returnUrl: string;
