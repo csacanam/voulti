@@ -76,7 +76,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
           {onRetry && (
             <button
               onClick={() => { onClose(); onRetry(); }}
-              className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
               Try Again

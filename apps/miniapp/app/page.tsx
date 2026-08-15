@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { usePrivy } from "@privy-io/react-auth"
-import { Wallet, Plus, Loader2, ArrowUpRight, Settings } from "lucide-react"
+import { Plus, Loader2, ArrowUpRight, Settings } from "lucide-react"
 import { useCommerce } from "@/hooks/use-commerce"
 import { useIsMiniPay } from "@/hooks/use-minipay"
 import { OnboardingSheet } from "@/components/onboarding-sheet"
+import { VoultiMark } from "@/components/voulti-logo"
 import { api } from "@/lib/api"
 
 interface InvoiceRow {
@@ -74,9 +75,11 @@ export default function Home() {
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-6 gap-4">
-        <Wallet className="w-12 h-12 text-violet-600" />
+        {/* The connect screen is the first thing a merchant outside MiniPay
+            sees, so it shows the mark rather than a generic wallet icon. */}
+        <VoultiMark className="w-14 h-14 text-[#288E5B]" label="Voulti" />
         <h1 className="text-xl font-bold">Connect your wallet</h1>
-        <button onClick={login} className="px-6 py-3 bg-violet-600 text-white rounded-full font-medium">
+        <button onClick={login} className="px-6 py-3 bg-brand-600 text-white rounded-full font-medium">
           Connect
         </button>
       </div>
@@ -114,9 +117,12 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">Voulti Pay</p>
-            <p className="font-semibold truncate">{commerce.name}</p>
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            <VoultiMark className="w-8 h-8 flex-shrink-0 text-[#288E5B]" />
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Voulti Pay</p>
+              <p className="font-semibold truncate">{commerce.name}</p>
+            </div>
           </div>
           <Link href="/account" className="p-2 text-muted-foreground hover:text-foreground flex-shrink-0 ml-2">
             <Settings className="w-5 h-5" />
@@ -125,7 +131,7 @@ export default function Home() {
       </header>
 
       <main className="px-4 py-6 space-y-6">
-        <div className="bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-2xl p-5">
+        <div className="bg-gradient-to-br from-brand-600 to-brand-800 text-white rounded-2xl p-5">
           <p className="text-white/70 text-sm">Total received</p>
           <p className="text-3xl font-bold mt-1 break-all">
             {totalReceived.toLocaleString()} <span className="text-base font-normal opacity-70">{commerce.currency}</span>
@@ -135,7 +141,7 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-2">
           <Link
             href="/new"
-            className="py-4 bg-violet-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-md"
+            className="py-4 bg-brand-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-md"
           >
             <Plus className="w-4 h-4" />
             Create link

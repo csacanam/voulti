@@ -40,8 +40,8 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
 
     // Header — purple gradient
     const grad = ctx.createLinearGradient(0, 0, width, headerHeight)
-    grad.addColorStop(0, "#7c3aed")
-    grad.addColorStop(1, "#6d28d9")
+    grad.addColorStop(0, "#017B49")
+    grad.addColorStop(1, "#015732")
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, width, headerHeight)
 
@@ -148,7 +148,7 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
         *{margin:0;padding:0;box-sizing:border-box}
         body{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;font-family:'Inter',sans-serif}
         .s{width:360px;background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,0.1)}
-        .h{background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:32px 24px;text-align:center}
+        .h{background:linear-gradient(135deg,#017B49,#015732);padding:32px 24px;text-align:center}
         .h h1{color:#fff;font-size:28px;font-weight:900;letter-spacing:-0.5px;line-height:1.2}
         .h p{color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;margin-top:8px}
         .m{padding:32px;text-align:center}
@@ -197,7 +197,7 @@ export function QrModal({ open, onOpenChange, url }: QrModalProps) {
           <div
             className="text-center"
             style={{
-              background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+              background: "linear-gradient(135deg, #017B49, #015732)",
               padding: "28px 20px",
             }}
           >

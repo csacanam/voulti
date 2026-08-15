@@ -37,12 +37,12 @@ export const BuyingSoonModal: React.FC<BuyingSoonModalProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0 p-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center">
-              <ShoppingCart className="h-8 w-8 text-violet-600" />
+            <div className="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center">
+              <ShoppingCart className="h-8 w-8 text-brand-600" />
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-violet-600">
+              <h3 className="text-lg font-semibold text-brand-600">
                 {interpolate(t.tokens?.buyingSoon || 'Function to buy {symbol} coming soon', { symbol: tokenSymbol })}
               </h3>
 
@@ -57,7 +57,7 @@ export const BuyingSoonModal: React.FC<BuyingSoonModalProps> = ({
         <div className="p-6 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
             {t.payment?.close || 'Close'}
           </button>

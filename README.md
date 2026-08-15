@@ -1,4 +1,4 @@
-# Voulti
+<img src="assets/brand/voulti-wordmark.png" alt="Voulti" width="212">
 
 Crypto payment gateway for merchants. Accept USDC, USDT and stablecoins on 5 networks.
 
@@ -15,6 +15,9 @@ contracts/
 
 packages/
   shared/       Shared utilities
+
+assets/
+  brand/        The logo, and the icons every app is derived from
 ```
 
 ## Networks

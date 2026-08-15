@@ -227,7 +227,7 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
         </p>
         <button
           onClick={() => router.push("/")}
-          className="mt-4 px-8 py-3 bg-violet-600 text-white rounded-full font-semibold"
+          className="mt-4 px-8 py-3 bg-brand-600 text-white rounded-full font-semibold"
         >
           Done
         </button>
@@ -291,7 +291,7 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
         <button
           onClick={submit}
           disabled={!canSubmit}
-          className="w-full mt-auto py-4 bg-violet-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full mt-auto py-4 bg-brand-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {submitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : "Withdraw"}
         </button>

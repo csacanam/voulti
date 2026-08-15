@@ -1,7 +1,7 @@
 "use client"
 
 import { usePrivy } from "@privy-io/react-auth"
-import { Building2, Zap, Globe, Shield, QrCode, Send, Wallet, ArrowUpRight } from "lucide-react"
+import { Zap, Globe, Shield, QrCode, Send, Wallet, ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useCommerce } from "@/components/providers/commerce-provider"
@@ -10,6 +10,7 @@ import { useLanguage } from "@/components/providers/language-provider"
 import { TokenBalanceCard } from "@/components/token-balance-card"
 import { WalletFunds } from "@/components/wallet-funds"
 import { Spinner } from "@/components/ui/spinner"
+import { VoultiMark } from "@/components/voulti-logo"
 import Link from "next/link"
 
 function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
@@ -17,9 +18,9 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-        <Building2 className="w-8 h-8 text-primary" />
-      </div>
+      {/* The pre-login screen is the first Voulti a merchant sees, so it shows
+          the mark rather than a generic building icon. */}
+      <VoultiMark className="w-16 h-16 text-[#288E5B] mb-6" label="Voulti" />
 
       <h2 className="text-3xl font-bold tracking-tight mb-3">
         {t.landing.title}
@@ -48,8 +49,8 @@ function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
           <p className="text-xs text-muted-foreground">{t.landing.instantSetupDesc}</p>
         </div>
         <div className="flex flex-col items-center gap-2 p-4">
-          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-purple-500" />
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-primary" />
           </div>
           <h3 className="font-medium text-sm">{t.landing.selfCustody}</h3>
           <p className="text-xs text-muted-foreground">{t.landing.selfCustodyDesc}</p>

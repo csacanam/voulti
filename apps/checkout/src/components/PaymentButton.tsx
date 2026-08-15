@@ -73,7 +73,7 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
           w-full px-4 py-3 font-medium rounded-lg transition-colors flex items-center justify-center space-x-2
           ${disabled || isButtonDisabled
             ? 'bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200'
-            : 'bg-violet-600 hover:bg-violet-700 text-white'
+            : 'bg-brand-600 hover:bg-brand-700 text-white'
           }
           ${className}
         `}

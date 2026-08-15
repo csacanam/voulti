@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
 import { QRCodeComponent } from './QRCode';
 import { MetaTags } from './MetaTags';
+import { VoultiLogo } from './VoultiLogo';
 
 const DEMO_COMMERCE_ID = '43f5294f-3ed7-4850-9376-7de4fef763d7';
 
@@ -34,16 +35,13 @@ export const HomePage: React.FC = () => {
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">V</span>
-            </div>
-            <span className="text-lg font-bold text-gray-900">Voulti</span>
+            <VoultiLogo />
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <a
               href="https://app.voulti.com"
-              className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               {language === 'es' ? 'Crear Cuenta' : 'Get Started'}
             </a>
@@ -67,13 +65,13 @@ export const HomePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="https://app.voulti.com"
-              className="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
+              className="bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
             >
               {language === 'es' ? 'Crear Cuenta Gratis' : 'Create Free Account'}
             </a>
             <a
               href="#demos"
-              className="bg-white border border-gray-200 hover:border-violet-300 text-gray-700 font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
+              className="bg-white border border-gray-200 hover:border-brand-300 text-gray-700 font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
             >
               {language === 'es' ? 'Ver Cómo Funciona' : 'See How It Works'}
             </a>
@@ -102,7 +100,7 @@ export const HomePage: React.FC = () => {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 font-bold flex items-center justify-center">1</div>
+                  <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center">1</div>
                   <h3 className="text-xl font-bold">
                     {language === 'es' ? 'QR en tu local' : 'QR at your store'}
                   </h3>
@@ -116,7 +114,7 @@ export const HomePage: React.FC = () => {
                   href={commerceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-violet-600 hover:text-violet-700 font-medium text-sm"
+                  className="text-brand-600 hover:text-brand-700 font-medium text-sm"
                 >
                   {language === 'es' ? 'Probar demo en vivo →' : 'Try live demo →'}
                 </a>
@@ -124,7 +122,7 @@ export const HomePage: React.FC = () => {
               <div className="flex justify-center">
                 <div className="w-[280px] overflow-hidden rounded-[22px] shadow-sm border border-gray-200">
                   {/* Purple header */}
-                  <div style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', padding: '22px 16px' }} className="text-center">
+                  <div style={{ background: 'linear-gradient(135deg, #017B49, #026A3E)', padding: '22px 16px' }} className="text-center">
                     <p className="text-white font-black text-[22px] leading-tight" style={{ letterSpacing: '-0.5px' }}>
                       {language === 'es' ? 'Aceptamos' : 'Crypto'}<br/>
                       {language === 'es' ? 'Cripto Aquí' : 'Accepted Here'}
@@ -170,7 +168,7 @@ export const HomePage: React.FC = () => {
                   href="https://app.voulti.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-violet-600 hover:text-violet-700 font-medium text-sm"
+                  className="text-brand-600 hover:text-brand-700 font-medium text-sm"
                 >
                   {language === 'es' ? 'Crear link de pago →' : 'Create a payment link →'}
                 </a>
@@ -185,7 +183,7 @@ export const HomePage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleCopy(commerceUrl)}
-                    className="w-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                    className="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
                   >
                     {copied ? (language === 'es' ? '¡Copiado!' : 'Copied!') : (language === 'es' ? 'Copiar link' : 'Copy link')}
                   </button>
@@ -211,7 +209,7 @@ export const HomePage: React.FC = () => {
                   href="/docs"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-violet-600 hover:text-violet-700 font-medium text-sm"
+                  className="text-brand-600 hover:text-brand-700 font-medium text-sm"
                 >
                   {language === 'es' ? 'Ver documentación API →' : 'View API docs →'}
                 </a>
@@ -255,7 +253,7 @@ export const HomePage: React.FC = () => {
                   href="/skill.md"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-violet-600 hover:text-violet-700 font-medium text-sm"
+                  className="text-brand-600 hover:text-brand-700 font-medium text-sm"
                 >
                   {language === 'es' ? 'Ver skill.md →' : 'View skill.md →'}
                 </a>
@@ -300,7 +298,7 @@ and how to check payments.`}
               </p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center">
-              <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl">💰</span>
               </div>
               <h3 className="font-semibold mb-2">
@@ -332,7 +330,7 @@ and how to check payments.`}
       {/* Final CTA */}
       <section className="py-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="bg-gradient-to-r from-violet-50 to-violet-100 rounded-2xl border border-violet-200 p-8 md:p-12">
+          <div className="bg-gradient-to-r from-brand-50 to-brand-100 rounded-2xl border border-brand-200 p-8 md:p-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">
               {language === 'es' ? 'Empieza a recibir pagos hoy' : 'Start accepting payments today'}
             </h2>
@@ -343,7 +341,7 @@ and how to check payments.`}
             </p>
             <a
               href="https://app.voulti.com"
-              className="inline-flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
+              className="inline-flex bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-lg"
             >
               {language === 'es' ? 'Crear Cuenta Gratis' : 'Create Free Account'}
             </a>
@@ -356,7 +354,7 @@ and how to check payments.`}
         <div className="max-w-5xl mx-auto text-center">
           <p className="text-gray-400 text-xs">
             &copy; Voulti {new Date().getFullYear()} &middot; A{' '}
-            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 hover:text-violet-700 transition-colors">Saka Labs</a>{' '}
+            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="font-medium text-brand-600 hover:text-brand-700 transition-colors">Saka Labs</a>{' '}
             product
           </p>
         </div>

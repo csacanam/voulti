@@ -57,7 +57,7 @@ export function ReturnToMerchant({ returnUrl, commerceName, autoRedirect }: Retu
           payer who paid from their phone and returned to a stale tab. */}
       <a
         href={returnUrl}
-        className="flex items-center justify-center gap-2 w-full bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-medium rounded-lg px-4 py-3 min-h-[48px] transition-colors"
+        className="flex items-center justify-center gap-2 w-full bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-medium rounded-lg px-4 py-3 min-h-[48px] transition-colors"
       >
         {interpolate(t.payment.backToMerchant, { commerce: commerceName })}
         <ArrowRight className="w-4 h-4" />

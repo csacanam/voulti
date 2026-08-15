@@ -6,6 +6,7 @@ import { createInvoice } from '../services/invoiceService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { LanguageSelector } from './LanguageSelector';
+import { VoultiLogo } from './VoultiLogo';
 import { useLanguage } from '../contexts/LanguageContext';
 import { interpolate } from '../utils/i18n';
 import { useNavigate } from 'react-router-dom';
@@ -203,10 +204,7 @@ export const CommercePage: React.FC = () => {
             the product and it should not look like a different one. */}
         <div className="flex items-center justify-between mb-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">V</span>
-            </div>
-            <span className="text-lg font-bold text-gray-900">Voulti</span>
+            <VoultiLogo />
           </Link>
           <LanguageSelector />
         </div>
@@ -218,8 +216,8 @@ export const CommercePage: React.FC = () => {
             {commerce.icon_url ? (
               <img src={commerce.icon_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0">
-                <Store className="w-5 h-5 text-violet-600" />
+              <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center flex-shrink-0">
+                <Store className="w-5 h-5 text-brand-600" />
               </div>
             )}
             <div className="min-w-0">
@@ -264,7 +262,7 @@ export const CommercePage: React.FC = () => {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0"
-                  className={`w-full bg-white border rounded-lg py-3 pl-16 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                  className={`w-full bg-white border rounded-lg py-3 pl-16 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
                     amountError ? 'border-red-500' : 'border-gray-300'
                   }`}
                   min={commerce?.min_amount || 0}
@@ -300,7 +298,7 @@ export const CommercePage: React.FC = () => {
               className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
                 isGenerating || !amount || !!amountError || !effectiveCurrency
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-violet-600 hover:bg-violet-700 text-white'
+                  : 'bg-brand-600 hover:bg-brand-700 text-white'
               }`}
             >
               {isGenerating ? (
@@ -336,7 +334,7 @@ export const CommercePage: React.FC = () => {
         {/* Footer */}
         <div className="text-center mt-6 pb-4">
           <p className="text-gray-400 text-xs">
-            {t.poweredBy} <Link to="/" className="font-bold text-violet-600 hover:text-violet-700 transition-colors">Voulti</Link>
+            {t.poweredBy} <Link to="/" className="font-bold text-brand-600 hover:text-brand-700 transition-colors">Voulti</Link>
             
           </p>
         </div>

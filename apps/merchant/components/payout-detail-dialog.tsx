@@ -68,7 +68,9 @@ ${r.receiptTxHash}: ${payout.txHash}
               </div>
             </div>
 
-            <Badge className="bg-accent text-accent-foreground">
+            {/* Neutral on purpose: this prints whatever status the payout came
+                back with, so it must not colour itself as success. */}
+            <Badge className="bg-secondary text-secondary-foreground">
               {payout.statusOriginal || r.unknownStatus}
             </Badge>
           </div>

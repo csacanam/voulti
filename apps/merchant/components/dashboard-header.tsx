@@ -8,6 +8,7 @@ import { useCommerce } from "@/components/providers/commerce-provider"
 import { useLanguage } from "@/components/providers/language-provider"
 import { LanguageSelector } from "@/components/language-selector"
 import { MainNav } from "@/components/main-nav"
+import { VoultiLogo } from "@/components/voulti-logo"
 
 export function DashboardHeader() {
   const { ready, authenticated, login, logout } = usePrivy()
@@ -23,11 +24,8 @@ export function DashboardHeader() {
             {/* Same mark as the checkout and the public site. It was a bare
                 wordmark here, so the dashboard did not read as the same
                 product the merchant's customers are looking at. */}
-            <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs">V</span>
-              </div>
-              <span className="text-lg font-bold text-foreground">Voulti</span>
+            <Link href="/" className="flex-shrink-0">
+              <VoultiLogo />
             </Link>
 
             {authenticated && (

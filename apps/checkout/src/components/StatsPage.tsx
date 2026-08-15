@@ -6,6 +6,7 @@ import { injected } from 'wagmi/connectors';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
 import { MetaTags } from './MetaTags';
+import { VoultiLogo } from './VoultiLogo';
 import { SUPPORTED_CHAINS } from '../config/chains';
 
 /**
@@ -143,16 +144,13 @@ export const StatsPage: React.FC = () => {
         <header className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="max-w-5xl mx-auto flex justify-between items-center">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">V</span>
-              </div>
-              <span className="text-lg font-bold text-gray-900">Voulti</span>
+              <VoultiLogo />
             </Link>
             <div className="flex items-center gap-3">
               <LanguageSelector />
               <a
                 href="https://app.voulti.com"
-                className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 {es ? 'Crear Cuenta' : 'Get Started'}
               </a>
@@ -224,7 +222,7 @@ export const StatsPage: React.FC = () => {
                           <button
                             onClick={() => withdraw(row.network, (row as any).tokenAddress, row.symbol)}
                             disabled={busy !== null}
-                            className="text-xs font-medium text-violet-600 hover:text-violet-700 disabled:text-gray-400"
+                            className="text-xs font-medium text-brand-600 hover:text-brand-700 disabled:text-gray-400"
                           >
                             {busy === `${row.network}:${row.symbol}`
                               ? (es ? 'Retirando…' : 'Withdrawing…')
@@ -271,7 +269,7 @@ export const StatsPage: React.FC = () => {
                         href={`${EXPLORERS.celo}${addr}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block font-mono text-sm text-violet-600 hover:text-violet-700 break-all"
+                        className="block font-mono text-sm text-brand-600 hover:text-brand-700 break-all"
                       >
                         {addr}
                       </a>

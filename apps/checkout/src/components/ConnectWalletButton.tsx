@@ -84,7 +84,7 @@ export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
       <button
         onClick={connectWallet}
         disabled={isPending || isConnecting}
-        className={`w-full px-4 py-3 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 ${className}`}
+        className={`w-full px-4 py-3 bg-brand-600 hover:bg-brand-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 ${className}`}
       >
         {isPending || isConnecting ? (
           <>

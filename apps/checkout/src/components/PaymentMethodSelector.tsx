@@ -15,10 +15,10 @@ export function PaymentMethodSelector({ onSelectWallet, onSelectAddress }: Payme
 
       <button
         onClick={onSelectAddress}
-        className="w-full flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-violet-500 hover:bg-gray-50 transition-all text-left group"
+        className="w-full flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-brand-500 hover:bg-gray-50 transition-all text-left group"
       >
-        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
-          <QrCode className="w-6 h-6 text-violet-600" />
+        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center group-hover:bg-brand-100 transition-colors">
+          <QrCode className="w-6 h-6 text-brand-600" />
         </div>
         <div>
           <div className="font-medium text-gray-900">{t.paymentMethod.payByAddress}</div>
@@ -28,10 +28,10 @@ export function PaymentMethodSelector({ onSelectWallet, onSelectAddress }: Payme
 
       <button
         onClick={onSelectWallet}
-        className="w-full flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-violet-500 hover:bg-gray-50 transition-all text-left group"
+        className="w-full flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-brand-500 hover:bg-gray-50 transition-all text-left group"
       >
-        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
-          <Wallet className="w-6 h-6 text-violet-600" />
+        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center group-hover:bg-brand-100 transition-colors">
+          <Wallet className="w-6 h-6 text-brand-600" />
         </div>
         <div>
           <div className="font-medium text-gray-900">{t.paymentMethod.connectWallet}</div>

@@ -17,21 +17,28 @@ import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
 export const metadata: Metadata = {
+  // Without a base, the relative image paths below resolve against localhost
+  // in the built HTML and every social card renders blank.
+  metadataBase: new URL('https://app.voulti.com'),
   title: 'Voulti — Accept Crypto Payments',
   description: 'Crypto payment gateway for merchants. Accept USDC, USDT and stablecoins on 5 networks. Self-custody, instant settlement.',
   keywords: ['crypto payments', 'USDC', 'USDT', 'stablecoin', 'payment gateway', 'merchant', 'Celo', 'Arbitrum', 'Polygon', 'Base', 'BSC'],
   authors: [{ name: 'Saka Labs', url: 'https://sakalabs.io' }],
+  // The favicon and the touch icon come from app/icon.svg and app/apple-icon.png,
+  // which Next picks up by filename. Declaring them here too would emit them twice.
   openGraph: {
     title: 'Voulti — Accept Crypto Payments',
     description: 'Let your customers pay with USDC, USDT and stablecoins on 5 networks.',
     url: 'https://voulti.com',
     siteName: 'Voulti',
     type: 'website',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Voulti' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Voulti — Accept Crypto Payments',
     description: 'Crypto payment gateway for merchants. 5 networks, instant settlement.',
+    images: ['/og.png'],
   },
 }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
+import { VoultiLogo } from './VoultiLogo';
 
 const API_BASE = 'https://api.voulti.com';
 const CHECKOUT_BASE = 'https://voulti.com';
@@ -24,10 +25,7 @@ export const ApiDocsPage: React.FC = () => {
       <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">V</span>
-            </div>
-            <span className="text-lg font-bold text-gray-900">Voulti</span>
+            <VoultiLogo />
             <span className="text-sm text-gray-400 ml-1">API</span>
           </Link>
           <LanguageSelector />
@@ -45,7 +43,7 @@ export const ApiDocsPage: React.FC = () => {
         {/* Step 1: Create Invoice */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 font-bold flex items-center justify-center">1</div>
+            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center">1</div>
             <h2 className="text-xl font-bold">
               {isEs ? 'Crea un invoice' : 'Create an invoice'}
             </h2>
@@ -92,8 +90,8 @@ export const ApiDocsPage: React.FC = () => {
             </pre>
           </div>
 
-          <div className="mt-4 bg-violet-50 border border-violet-200 rounded-lg p-4">
-            <p className="text-sm text-violet-700">
+          <div className="mt-4 bg-brand-50 border border-brand-200 rounded-lg p-4">
+            <p className="text-sm text-brand-700">
               <strong>{isEs ? 'Tu Commerce ID' : 'Your Commerce ID'}:</strong>{' '}
               {isEs
                 ? 'Lo encuentras en tu dashboard → Account → Commerce ID'
@@ -109,7 +107,7 @@ export const ApiDocsPage: React.FC = () => {
         {/* Step 2: Redirect */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 font-bold flex items-center justify-center">2</div>
+            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center">2</div>
             <h2 className="text-xl font-bold">
               {isEs ? 'Redirige al cliente al checkout' : 'Redirect the customer to checkout'}
             </h2>
@@ -142,7 +140,7 @@ export const ApiDocsPage: React.FC = () => {
         {/* Step 3: Check Status */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-700 font-bold flex items-center justify-center">3</div>
+            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center">3</div>
             <h2 className="text-xl font-bold">
               {isEs ? 'Verifica si ya pagó' : 'Check if they paid'}
             </h2>
@@ -194,7 +192,7 @@ export const ApiDocsPage: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
             <p className="text-sm text-gray-600 mb-3">
               {isEs ? 'Configúralo en:' : 'Set it up at:'}{' '}
-              <a href="https://app.voulti.com/receive" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">
+              <a href="https://app.voulti.com/receive" target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">
                 app.voulti.com → Receive → Developers
               </a>
             </p>
@@ -262,7 +260,7 @@ export const ApiDocsPage: React.FC = () => {
         </div>
 
         {/* CTA */}
-        <div className="bg-violet-50 border border-violet-200 rounded-xl p-8 text-center">
+        <div className="bg-brand-50 border border-brand-200 rounded-xl p-8 text-center">
           <h2 className="text-xl font-bold mb-2">
             {isEs ? '¿Listo para integrar?' : 'Ready to integrate?'}
           </h2>
@@ -273,7 +271,7 @@ export const ApiDocsPage: React.FC = () => {
           </p>
           <a
             href="https://app.voulti.com"
-            className="inline-flex bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            className="inline-flex bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             {isEs ? 'Crear Cuenta' : 'Create Account'}
           </a>
@@ -283,7 +281,7 @@ export const ApiDocsPage: React.FC = () => {
         <div className="text-center mt-12 pt-8 border-t border-gray-200">
           <p className="text-gray-400 text-xs">
             &copy; Voulti {new Date().getFullYear()} &middot; A{' '}
-            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 hover:text-violet-700">Saka Labs</a>{' '}
+            <a href="https://sakalabs.io" target="_blank" rel="noopener noreferrer" className="font-medium text-brand-600 hover:text-brand-700">Saka Labs</a>{' '}
             product
           </p>
         </div>

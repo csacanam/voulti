@@ -97,7 +97,7 @@ export default function NewLinkPage() {
         <button
           type="submit"
           disabled={loading || !amount}
-          className="mt-auto py-4 bg-violet-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="mt-auto py-4 bg-brand-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Creating...</> : "Create link"}
         </button>

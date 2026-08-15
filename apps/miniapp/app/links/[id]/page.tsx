@@ -140,7 +140,7 @@ export default function LinkDetailPage() {
             ? "bg-green-50 border border-green-200"
             : isExpired
             ? "bg-gray-50 border border-gray-200"
-            : "bg-gradient-to-br from-violet-600 to-purple-700 text-white"
+            : "bg-gradient-to-br from-brand-600 to-brand-800 text-white"
         }`}>
           <p className={`text-xs uppercase tracking-wide ${isPaid ? "text-green-700" : isExpired ? "text-gray-500" : "text-white/70"}`}>
             {isPaid ? "Paid" : isExpired ? "Expired" : "Awaiting payment"}

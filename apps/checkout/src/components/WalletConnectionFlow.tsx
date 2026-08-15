@@ -80,8 +80,8 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
     return (
       <div className={`space-y-6 ${className}`}>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center">
-          <div className="w-14 h-14 rounded-full bg-violet-50 flex items-center justify-center mx-auto mb-4">
-            <Wallet className="w-7 h-7 text-violet-600" />
+          <div className="w-14 h-14 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-4">
+            <Wallet className="w-7 h-7 text-brand-600" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
             {t.wallet?.connectFirst || 'Connect your wallet'}
@@ -95,7 +95,7 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
           ) : (
             <button
               onClick={onOpenWalletSelection}
-              className="w-full max-w-sm mx-auto px-4 py-3 bg-violet-600 text-white font-medium rounded-lg hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
+              className="w-full max-w-sm mx-auto px-4 py-3 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2"
             >
               <Wallet className="w-5 h-5" />
               {t.payment?.connectWallet || 'Connect Wallet'}
@@ -174,7 +174,7 @@ export const WalletConnectionFlow: React.FC<WalletConnectionFlowProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={copyAddress}
-                  className="flex items-center gap-1.5 text-sm text-gray-900 font-mono hover:text-violet-600 transition-colors min-h-[32px]"
+                  className="flex items-center gap-1.5 text-sm text-gray-900 font-mono hover:text-brand-600 transition-colors min-h-[32px]"
                   title="Copy address"
                 >
                   {address?.slice(0, 6)}...{address?.slice(-4)}

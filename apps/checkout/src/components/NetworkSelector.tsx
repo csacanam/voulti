@@ -33,7 +33,7 @@ export function NetworkSelector({ selectedChainId, onSelect }: NetworkSelectorPr
                 unavailable
                   ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                   : selectedChainId === config.chain.id
-                    ? 'border-violet-500 bg-violet-50 text-violet-700 active:scale-[0.98]'
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 active:scale-[0.98]'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 active:bg-gray-100 active:scale-[0.98]'
               }`}
             >

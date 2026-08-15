@@ -12,13 +12,14 @@ export const metadata: Metadata = {
     description: 'Create payment links and get paid in USDC or USDT.',
     url: 'https://pay.voulti.com',
     siteName: 'Voulti Pay',
-    images: [{ url: '/og.png', width: 1200, height: 630 }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Voulti' }],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Voulti Pay',
     description: 'Create payment links and get paid in USDC or USDT.',
+    images: ['/og.png'],
   },
   other: {
     // MiniPay detection hints
@@ -33,7 +34,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#7c3aed',
+  themeColor: '#288E5B',
 }
 
 export default function RootLayout({

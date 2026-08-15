@@ -122,7 +122,7 @@ export const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-start space-x-3">
-            <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Wallet className="w-6 h-6 text-gray-900" />
             </div>
             <div className="flex flex-col">
@@ -207,7 +207,7 @@ export const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({
                   onClick={() => setSelectedCategory('mobile')}
                   className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md transition-colors duration-200 ${
                     selectedCategory === 'mobile'
-                      ? 'bg-violet-600 text-gray-900'
+                      ? 'bg-brand-600 text-gray-900'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
@@ -218,7 +218,7 @@ export const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({
                   onClick={() => setSelectedCategory('desktop')}
                   className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md transition-colors duration-200 ${
                     selectedCategory === 'desktop'
-                      ? 'bg-violet-600 text-gray-900'
+                      ? 'bg-brand-600 text-gray-900'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >

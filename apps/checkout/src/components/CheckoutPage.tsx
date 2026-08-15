@@ -10,6 +10,7 @@ import { useNetworkMismatch } from '../hooks/useNetworkMismatch';
 import { GroupedToken } from '../types/invoice';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
+import { VoultiLogo } from './VoultiLogo';
 import { TokenDropdown } from './TokenDropdown';
 import { StatusBadge } from './StatusBadge';
 import { ConnectWalletButton } from './ConnectWalletButton';
@@ -361,7 +362,7 @@ export const CheckoutPage: React.FC = () => {
 
                           <button
                             onClick={() => setPaymentMode('address')}
-                            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                           >
                             <QrCode className="h-5 w-5" />
                             <span>{t.paymentMethod.payByAddress}</span>
@@ -395,10 +396,7 @@ export const CheckoutPage: React.FC = () => {
             also tells the payer what site they are on before they send money. */}
         <div className="flex items-center justify-between mb-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">V</span>
-            </div>
-            <span className="text-lg font-bold text-gray-900">Voulti</span>
+            <VoultiLogo />
           </Link>
           <LanguageSelector />
         </div>
@@ -418,8 +416,8 @@ export const CheckoutPage: React.FC = () => {
                   className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0">
-                  <Store className="w-5 h-5 text-violet-600" />
+                <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center flex-shrink-0">
+                  <Store className="w-5 h-5 text-brand-600" />
                 </div>
               )}
               <div className="min-w-0">
@@ -470,7 +468,7 @@ export const CheckoutPage: React.FC = () => {
                     href={getBlockExplorerUrl(invoice.paid_network, invoice.paid_tx_hash)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-violet-600 hover:text-violet-700 text-sm transition-colors"
+                    className="text-brand-600 hover:text-brand-700 text-sm transition-colors"
                   >
                     {t.order.viewOnExplorer}
                   </a>
@@ -498,7 +496,7 @@ export const CheckoutPage: React.FC = () => {
         {/* Footer */}
         <div className="text-center mt-6 pb-4">
           <p className="text-gray-400 text-xs">
-            {t.poweredBy} <Link to="/" className="font-bold text-violet-600 hover:text-violet-700 transition-colors">Voulti</Link>
+            {t.poweredBy} <Link to="/" className="font-bold text-brand-600 hover:text-brand-700 transition-colors">Voulti</Link>
             
           </p>
         </div>

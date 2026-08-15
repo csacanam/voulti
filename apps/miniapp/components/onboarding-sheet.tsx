@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Store } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { VoultiMark } from "@/components/voulti-logo"
 
 const CURRENCIES = [
   { code: "USD", label: "USD — US Dollar" },
@@ -43,9 +44,7 @@ export function OnboardingSheet({ onSubmit }: Props) {
   return (
     <div className="min-h-screen flex flex-col px-6 py-8">
       <div className="flex flex-col items-center gap-3 mb-8">
-        <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center">
-          <Store className="w-8 h-8 text-violet-600" />
-        </div>
+        <VoultiMark className="w-16 h-16 text-[#288E5B]" label="Voulti" />
         <h1 className="text-2xl font-bold text-center">Welcome to Voulti Pay</h1>
         <p className="text-sm text-muted-foreground text-center">
           Set up your business to start receiving payments in crypto
@@ -109,7 +108,7 @@ export function OnboardingSheet({ onSubmit }: Props) {
         <button
           type="submit"
           disabled={loading || !name.trim()}
-          className="mt-4 py-4 bg-violet-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+          className="mt-4 py-4 bg-brand-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? (
             <><Loader2 className="w-5 h-5 animate-spin" /> Creating...</>

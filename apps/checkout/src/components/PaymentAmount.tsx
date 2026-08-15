@@ -84,10 +84,10 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
   };
 
   return (
-    <div className="bg-violet-50 border border-violet-200 rounded-lg p-4">
+    <div className="bg-brand-50 border border-brand-200 rounded-lg p-4">
       <div className="flex items-center space-x-2 mb-3">
-        <Calculator className="h-5 w-5 text-violet-600" />
-        <h3 className="text-violet-700 font-medium">{t.payment.amountToPay}</h3>
+        <Calculator className="h-5 w-5 text-brand-600" />
+        <h3 className="text-brand-700 font-medium">{t.payment.amountToPay}</h3>
       </div>
 
       <div className="space-y-3">

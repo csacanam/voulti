@@ -158,7 +158,7 @@ export default function AccountPage() {
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 ${
                         isFullyActive
                           ? "bg-card border border-border text-foreground"
-                          : "bg-violet-600 text-white"
+                          : "bg-brand-600 text-white"
                       } disabled:opacity-50`}
                     >
                       {updating === n.network ? (

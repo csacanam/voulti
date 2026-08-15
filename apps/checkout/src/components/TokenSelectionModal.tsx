@@ -88,7 +88,7 @@ export const TokenSelectionModal: React.FC<TokenSelectionModalProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-start space-x-3">
-            <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Coins className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col">
@@ -117,7 +117,7 @@ export const TokenSelectionModal: React.FC<TokenSelectionModalProps> = ({
               placeholder={t.payment?.searchTokens || 'Search tokens...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -154,7 +154,7 @@ export const TokenSelectionModal: React.FC<TokenSelectionModalProps> = ({
                     onClick={() => handleTokenSelect(token)}
                     className={`w-full text-left p-4 rounded-lg transition-all duration-200 border ${
                       isSelected
-                        ? 'bg-violet-50 border-violet-500 text-violet-900'
+                        ? 'bg-brand-50 border-brand-500 text-brand-900'
                         : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-900'
                     }`}
                   >
@@ -180,10 +180,10 @@ export const TokenSelectionModal: React.FC<TokenSelectionModalProps> = ({
                             </span>
                           </div>
                           <div className="flex-1">
-                            <div className={`font-bold ${isSelected ? 'text-violet-900' : 'text-gray-900'}`}>
+                            <div className={`font-bold ${isSelected ? 'text-brand-900' : 'text-gray-900'}`}>
                               {token.symbol}
                             </div>
-                            <div className={`text-sm ${isSelected ? 'text-violet-600' : 'text-gray-500'}`}>
+                            <div className={`text-sm ${isSelected ? 'text-brand-600' : 'text-gray-500'}`}>
                               {token.name}
                             </div>
                           </div>
@@ -191,11 +191,11 @@ export const TokenSelectionModal: React.FC<TokenSelectionModalProps> = ({
 
                         {networkInfo && (
                           <div className="mt-3 space-y-1">
-                            <div className={`text-sm ${isSelected ? 'text-violet-600' : 'text-gray-400'}`}>
+                            <div className={`text-sm ${isSelected ? 'text-brand-600' : 'text-gray-400'}`}>
                               {t.payment?.amountToPay || 'Amount to pay'}: {networkInfo.amount_to_pay} {token.symbol}
                             </div>
                             {networkInfo.rate_to_usd && (
-                              <div className={`text-sm ${isSelected ? 'text-violet-600' : 'text-gray-400'}`}>
+                              <div className={`text-sm ${isSelected ? 'text-brand-600' : 'text-gray-400'}`}>
                                 {t.payment?.tokenPrice?.replace('{price}', networkInfo.rate_to_usd.toString()) || `Price: $${networkInfo.rate_to_usd}`}
                               </div>
                             )}
@@ -205,7 +205,7 @@ export const TokenSelectionModal: React.FC<TokenSelectionModalProps> = ({
 
                       {isSelected && (
                         <div className="ml-4">
-                          <div className="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center">
+                          <div className="w-6 h-6 bg-brand-600 rounded-full flex items-center justify-center">
                             <div className="w-2 h-2 bg-white rounded-full"></div>
                           </div>
                         </div>

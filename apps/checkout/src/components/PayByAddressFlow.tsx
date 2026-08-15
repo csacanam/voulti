@@ -192,7 +192,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                       onClick={() => handleTokenSelect(token)}
                       className={`p-4 rounded-lg text-left transition-all border min-h-[56px] ${
                         selectedToken?.symbol === token.symbol
-                          ? 'border-violet-500 bg-violet-50'
+                          ? 'border-brand-500 bg-brand-50'
                           : 'border-gray-200 bg-white hover:border-gray-300 active:bg-gray-100'
                       }`}
                     >
@@ -219,7 +219,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
                   {selectedToken.amount_to_pay} {selectedToken.symbol}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  {t.payByAddress.onNetwork} <span className="text-violet-600 font-medium">{networkName}</span>
+                  {t.payByAddress.onNetwork} <span className="text-brand-600 font-medium">{networkName}</span>
                 </p>
               </div>
 
@@ -239,7 +239,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
               <button
                 onClick={handleGenerateAddress}
                 disabled={loading}
-                className="w-full py-4 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 min-h-[56px] active:bg-violet-800"
+                className="w-full py-4 bg-brand-600 text-white rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 min-h-[56px] active:bg-brand-800"
               >
                 {loading ? (
                   <>
@@ -330,7 +330,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
             <>
               {/* Network + Token badges */}
               <div className="flex items-center justify-center gap-2">
-                <span className="px-3 py-1.5 bg-violet-50 border border-violet-200 rounded-full text-xs font-medium text-violet-700">
+                <span className="px-3 py-1.5 bg-brand-50 border border-brand-200 rounded-full text-xs font-medium text-brand-700">
                   {networkName}
                 </span>
                 <span className="px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-full text-xs font-medium text-gray-600">
@@ -386,7 +386,7 @@ export function PayByAddressFlow({ invoice, onBack, onSuccess }: PayByAddressFlo
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-gray-400">{t.payByAddress.depositAddress}</p>
-                  <span className="flex items-center gap-1 text-xs text-violet-600 group-hover:text-violet-700">
+                  <span className="flex items-center gap-1 text-xs text-brand-600 group-hover:text-brand-700">
                     {copied === 'address' ? (
                       <><Check className="w-4 h-4" /> {t.payByAddress.copied}</>
                     ) : (

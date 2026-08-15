@@ -24,7 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         loginMethods: ["wallet"],
         appearance: {
           theme: "light",
-          accentColor: "#7c3aed",
+          accentColor: "#288E5B",
         },
         embeddedWallets: {
           createOnLogin: "off", // never create a new wallet — use the injected one

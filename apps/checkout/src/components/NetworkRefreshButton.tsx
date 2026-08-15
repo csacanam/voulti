@@ -37,7 +37,7 @@ export const NetworkRefreshButton: React.FC<NetworkRefreshButtonProps> = ({
           flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors
           ${isRefreshing 
             ? 'bg-gray-600 text-gray-500 cursor-not-allowed' 
-            : 'bg-violet-600 hover:bg-violet-700 text-gray-900'
+            : 'bg-brand-600 hover:bg-brand-700 text-gray-900'
           }
         `}
         title={t.network?.refreshNetwork || 'Refresh Network'}

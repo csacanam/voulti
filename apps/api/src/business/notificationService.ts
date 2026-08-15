@@ -540,11 +540,26 @@ export class NotificationService {
   }
 
   /**
+   * The masthead every e-mail opens with.
+   *
+   * The logo is loaded from the checkout, which is what serves voulti.com, so
+   * there is one copy to keep current rather than an attachment per message.
+   * The white background is deliberate: the wordmark is dark on transparent,
+   * and mail clients that force a dark theme would otherwise swallow it.
+   */
+  private emailHeader(): string {
+    return `
+        <div style="background-color: #ffffff; padding: 4px 0 20px; border-bottom: 1px solid #e6e8ea; margin-bottom: 24px;">
+          <img src="https://voulti.com/wordmark.png" alt="Voulti" width="132" height="36" style="display: block; border: 0;">
+        </div>`;
+  }
+
+  /**
    * Generate HTML content for email based on status
    */
   private generateEmailHtml(invoice: InvoiceData, commerce: CommerceData, status: string): string {
     const { title, emoji, color, message, detailsTitle, backgroundColor } = this.getEmailConfig(status);
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -553,6 +568,7 @@ export class NotificationService {
         <title>${title}</title>
       </head>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        ${this.emailHeader()}
         <h2 style="color: ${color};">${emoji} ${title}</h2>
         <p>Dear ${commerce.name},</p>
         <p>${message}</p>
@@ -726,6 +742,7 @@ export class NotificationService {
         <title>Confirmation URL Failed</title>
       </head>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        ${this.emailHeader()}
         <h2 style="color: #dc3545;">⚠️ Confirmation URL Failed</h2>
         <p>Dear ${commerce.name},</p>
         <p>We're having trouble reaching your confirmation URL for invoice payment notifications.</p>
