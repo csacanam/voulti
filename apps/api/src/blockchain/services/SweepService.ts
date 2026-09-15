@@ -24,6 +24,20 @@ const ERC20_ABI = [
 const POLL_INTERVAL = Number(process.env.SWEEP_POLL_INTERVAL_MS || 15000);
 const MAX_RETRIES = Number(process.env.SWEEP_MAX_RETRIES || 5);
 
+/**
+ * How often the wrong-network scan runs, independent of the poll interval.
+ *
+ * It is by far the most expensive thing in a cycle: one `balanceOf` per token
+ * on every *other* network, for every deposit still awaiting payment — seven
+ * extra RPC calls per pending deposit on Celo, against four cycles a minute.
+ * And it is looking for a mistake the payer made once when they sent the
+ * transfer, not for a state that keeps changing; re-asking every fifteen
+ * seconds buys nothing but request volume.
+ */
+const CROSS_NETWORK_SCAN_INTERVAL_MS = Number(
+  process.env.SWEEP_CROSS_NETWORK_INTERVAL_MS || 60_000
+);
+
 // Sender lookup: how far back to scan, and how wide a single eth_getLogs may be
 const MAX_SENDER_LOOKBACK_SECONDS = 6 * 3600;
 const MAX_SENDER_LOOKBACK_BLOCKS = 120_000;
@@ -39,6 +53,13 @@ export const LATE_DEPOSIT_WINDOW_MS = 24 * 3600 * 1000;
 export class SweepService {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private isProcessing = false;
+  /**
+   * When the wrong-network scan last ran. A timestamp rather than a cycle
+   * counter: once enough deposits are live a cycle takes longer than the poll
+   * interval, and a counter would silently stretch the real spacing with it.
+   * Starting at 0 means the first cycle after a boot always scans.
+   */
+  private lastCrossNetworkScanAt = 0;
 
   async start(): Promise<void> {
     if (this.pollInterval) return;
@@ -115,10 +136,37 @@ export class SweepService {
       // the only correct ending for it is a refund. The retry budget is
       // enforced below instead of in the query, so giving up on sweeping is
       // never the same as giving up on the money.
+      //
+      // The embedded `invoices!inner(id)` exists only to carry the filter
+      // below — the loop still reads each invoice fresh, because a sweep
+      // earlier in the same cycle can settle one. Selecting just the key keeps
+      // the row payload unchanged in practice.
+      //
+      // The filter is what stops rows accumulating forever. A deposit whose
+      // invoice expired longer ago than the late-arrival window is one this
+      // loop can only `continue` past: settling reverts on-chain, and the
+      // window that justified still watching it has closed. Fetching it to
+      // decide that again costs a query against `invoices` every fifteen
+      // seconds, for every such row, for the life of the service — every
+      // expired deposit ever created, forever. Ruling them out in the database
+      // keeps the poll set proportional to what is actually in flight.
+      //
+      // `status.eq.Paid` is not an exception to that rule but a consequence of
+      // the order below: a settled invoice is handled by
+      // checkAndRefundOrphanedDeposit *before* expiry is ever considered, so
+      // those rows must survive the filter however old they are, or tokens
+      // that landed at a deposit address after a wallet payment would never be
+      // returned.
+      const lateWindowCutoff = new Date(Date.now() - LATE_DEPOSIT_WINDOW_MS).toISOString();
+
       const { data: deposits, error } = await supabase
         .from('deposit_addresses')
-        .select('*')
-        .in('status', ['awaiting', 'partial', 'detected', 'sweeping', 'failed', 'expired']);
+        .select('*, invoices!inner(id)')
+        .in('status', ['awaiting', 'partial', 'detected', 'sweeping', 'failed', 'expired'])
+        .or(
+          `status.eq.Paid,expires_at.is.null,expires_at.gt.${lateWindowCutoff}`,
+          { referencedTable: 'invoices' }
+        );
 
       if (error || !deposits || deposits.length === 0) return;
 
@@ -166,8 +214,12 @@ export class SweepService {
         }
       }
 
-      // Check if tokens arrived on a different network
-      await this.checkOtherNetworkDeposits();
+      // Check if tokens arrived on a different network. Deliberately not on
+      // every cycle — see CROSS_NETWORK_SCAN_INTERVAL_MS.
+      if (Date.now() - this.lastCrossNetworkScanAt >= CROSS_NETWORK_SCAN_INTERVAL_MS) {
+        this.lastCrossNetworkScanAt = Date.now();
+        await this.checkOtherNetworkDeposits();
+      }
     } catch (err: any) {
       console.error('[SweepService] Poll cycle error:', err.message);
     } finally {
