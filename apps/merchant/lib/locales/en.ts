@@ -121,11 +121,8 @@ export const en = {
       loginTransfers: "Please login to view your transfers",
     },
     withdraw: "Withdraw",
-    withdrawFee: "Withdrawal fee",
-    avoidFee: "This fee only applies because your wallet has no {native} for gas. Send a small amount to it and withdraw the full balance for free.",
-    youReceive: "You receive",
+    needsGas: "This wallet needs about {amount} {native} to pay for the transaction. Send at least that to the address below and withdraw again.",
     checkingGas: "Checking...",
-    balanceTooSmall: "Balance too small to cover the withdrawal fee.",
   },
   createLink: {
     title: "New Payment Link",

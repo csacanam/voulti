@@ -51,14 +51,4 @@ export const api = {
 
   getBalances: (commerceId: string, token: string) =>
     request<{ data: any[] }>(`/commerces/${commerceId}/balances`, { token }).then(r => r.data),
-
-  getWithdrawFee: (tokenSymbol: string) =>
-    request<{ data: { fee_token: number; fee_usd: number } }>(`/commerces/withdraw-fee/${tokenSymbol}`).then(r => r.data),
-
-  withdrawFor: (commerceId: string, body: { token_address: string; amount: string; network: string; to: string }, token: string) =>
-    request<{ data: any }>(`/commerces/${commerceId}/withdraw-for`, {
-      method: "POST",
-      token,
-      body: JSON.stringify(body),
-    }).then(r => r.data),
 }

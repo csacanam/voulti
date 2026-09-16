@@ -1,3 +1,5 @@
+import { ethers } from "ethers"
+
 export const PROXY_ADDRESSES: Record<string, string> = {
   celo: "0xcdbBc0DB75bCE387Bdc9Ea2248c5f92b1f8D88C1",
   arbitrum: "0xf8553C9Df40057b2920A245637B8C0581EC75767",
@@ -33,7 +35,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
   polygon: {
     chainId: 137,
     name: "Polygon",
-    rpcUrl: "https://polygon-rpc.com",
+    rpcUrl: "https://polygon-bor-rpc.publicnode.com",
     nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
   },
   base: {
@@ -50,11 +52,27 @@ export const NETWORKS: Record<string, NetworkConfig> = {
   },
 }
 
-// Min native balance to attempt a direct withdraw (skip gasless fee)
-export const GAS_THRESHOLDS: Record<string, number> = {
-  celo: 0.01,
-  arbitrum: 0.0002,
-  polygon: 0.05,
-  base: 0.0002,
-  bsc: 0.0005,
+// The user signs the withdrawal, so their wallet needs native gas. This used to
+// be a hardcoded per-chain table, which went stale: measured against live prices
+// it was under the real cost on Polygon and Celo, so it would have told users to
+// fund an amount that still fails. Price it live instead, and leave room for the
+// gas price to move before they get around to funding.
+const GAS_BUFFER = 2
+
+// Round up to one significant figure — an estimate should look like one, and
+// nobody can act on "send 0.0000077 ETH".
+function roundUp(n: number): number {
+  if (!(n > 0)) return 0
+  const magnitude = Math.pow(10, Math.floor(Math.log10(n)))
+  return parseFloat((Math.ceil(n / magnitude) * magnitude).toPrecision(2))
+}
+
+export async function gasNeeded(
+  provider: ethers.JsonRpcProvider,
+  tx: ethers.TransactionRequest
+): Promise<number | null> {
+  const [gas, fees] = await Promise.all([provider.estimateGas(tx), provider.getFeeData()])
+  const price = fees.maxFeePerGas ?? fees.gasPrice
+  if (!price) return null
+  return roundUp(parseFloat(ethers.formatEther(gas * price)) * GAS_BUFFER)
 }

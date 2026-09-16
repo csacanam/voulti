@@ -17,12 +17,29 @@ import { NETWORKS } from "@/blockchain/networks"
 import { apiClient } from "@/services/api"
 import type { TokenBalance } from "@/hooks/use-token-balance"
 
-const GAS_THRESHOLDS: Record<string, number> = {
-  celo: 0.01,
-  arbitrum: 0.0002,
-  polygon: 0.05,
-  base: 0.0002,
-  bsc: 0.0005,
+// The merchant signs the withdrawal, so their wallet needs native gas. This
+// used to be a hardcoded per-chain table, which went stale: measured against
+// live prices it was under the real cost on Polygon and Celo, so it would have
+// told merchants to fund an amount that still fails. Price it live instead, and
+// leave room for the gas price to move before they get around to funding.
+const GAS_BUFFER = 2
+
+// Round up to one significant figure — an estimate should look like one, and
+// nobody can act on "send 0.0000077 ETH".
+function roundUp(n: number): number {
+  if (!(n > 0)) return 0
+  const magnitude = Math.pow(10, Math.floor(Math.log10(n)))
+  return parseFloat((Math.ceil(n / magnitude) * magnitude).toPrecision(2))
+}
+
+async function gasNeeded(
+  provider: ethers.JsonRpcProvider,
+  tx: ethers.TransactionRequest
+): Promise<number | null> {
+  const [gas, fees] = await Promise.all([provider.estimateGas(tx), provider.getFeeData()])
+  const price = fees.maxFeePerGas ?? fees.gasPrice
+  if (!price) return null
+  return roundUp(parseFloat(ethers.formatEther(gas * price)) * GAS_BUFFER)
 }
 
 interface WithdrawDialogProps {
@@ -42,13 +59,11 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
   const [recipient, setRecipient] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hasGas, setHasGas] = useState<boolean | null>(null)
+  const [gasShortfall, setGasShortfall] = useState<number | null>(null)
   const [checkingGas, setCheckingGas] = useState(true)
-  const [fee, setFee] = useState<number>(0)
 
   const network = networkEntry.network
   const balance = networkEntry.balanceNum
-  const netAmount = hasGas === false ? balance - fee : balance
   const validRecipient = recipient && ethers.isAddress(recipient)
 
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
@@ -59,12 +74,16 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     setRecipient("")
     setError(null)
 
+    // The withdrawal is signed by the merchant's own wallet, so this only
+    // decides whether to warn them up front that it needs gas, and how much.
+    // A failed check warns about nothing: let them try and read the wallet's
+    // answer rather than quote a number we could not verify.
     const check = async () => {
       setCheckingGas(true)
-      setHasGas(null)
+      setGasShortfall(null)
 
       const networkConfig = NETWORKS[network]
-      if (!networkConfig) { setHasGas(false); setCheckingGas(false); return }
+      if (!networkConfig) { setCheckingGas(false); return }
 
       try {
         const wallet = wallets.find(w => w.walletClientType === "privy")
@@ -72,22 +91,24 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
           const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
             name: networkConfig.name, chainId: networkConfig.chainId,
           })
-          const bal = await provider.getBalance(wallet.address)
-          setHasGas(parseFloat(ethers.formatEther(bal)) >= (GAS_THRESHOLDS[network] || 0.001))
-        } else {
-          setHasGas(false)
+          // Price the real call. The recipient does not change the cost, so
+          // stand in the merchant's own address — they have not typed one yet.
+          const data = new ethers.Interface(DERAMP_PROXY_ABI).encodeFunctionData("withdrawTo", [
+            networkEntry.tokenAddress,
+            ethers.parseUnits(networkEntry.balance, networkEntry.decimals),
+            wallet.address,
+          ])
+          const [needed, bal] = await Promise.all([
+            gasNeeded(provider, { from: wallet.address, to: PROXY_ADDRESSES[network], data }),
+            provider.getBalance(wallet.address),
+          ])
+          if (needed !== null && parseFloat(ethers.formatEther(bal)) < needed) {
+            setGasShortfall(needed)
+          }
         }
       } catch {
-        setHasGas(false)
-      }
-
-      try {
-        const resp = await apiClient.get<{ success: boolean; data: { fee_token: number } }>(
-          `/commerces/withdraw-fee/${symbol}`, { skipAuth: true }
-        )
-        if (resp.success) setFee(resp.data.fee_token)
-      } catch {
-        setFee(0)
+        // RPC down, or the call would revert for an unrelated reason. Say
+        // nothing rather than guess an amount.
       }
 
       setCheckingGas(false)
@@ -96,8 +117,7 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     check()
   }, [open, network, symbol, wallets])
 
-  // Direct withdraw — merchant has gas, uses withdrawTo
-  const handleDirectWithdraw = async () => {
+  const handleWithdraw = async () => {
     if (!validRecipient) return
     setLoading(true)
     setError(null)
@@ -154,29 +174,6 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     }
   }
 
-  // Gasless withdraw — backend pays gas, charges fee
-  const handleGaslessWithdraw = async () => {
-    if (!commerce || !validRecipient) return
-    setLoading(true)
-    setError(null)
-
-    try {
-      const resp = await apiClient.post<{ success: boolean; data: { tx_hash: string; net_amount: string } }>(
-        `/commerces/${commerce.commerce_id}/withdraw-for`,
-        { token_address: networkEntry.tokenAddress, amount: networkEntry.balance, network, to: recipient }
-      )
-
-      if (resp.success) {
-        toast({ title: t.send?.transferSent || "Withdrawal sent!", description: `${resp.data.net_amount} ${symbol} → ${recipient.slice(0, 6)}...${recipient.slice(-4)}` })
-        onSuccess()
-      }
-    } catch (err: any) {
-      setError(err.message || "Withdrawal failed")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v) }}>
       <DialogContent className="w-[calc(100%-2rem)] max-w-sm">
@@ -213,49 +210,35 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
                 <span className="font-semibold">{fmt(balance)} {symbol}</span>
               </div>
 
-              {hasGas === false && fee > 0 && (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t.send?.withdrawFee || "Withdrawal fee"}</span>
-                    <span className="font-medium text-amber-600">-{fmt(fee)} {symbol}</span>
-                  </div>
-                  {/* Avoidable, so say so where it is charged instead of
-                      letting the merchant find out after the fact. */}
-                  <div className="border-t pt-3 space-y-1.5">
-                    <p className="text-xs text-muted-foreground">
-                      {(t.send?.avoidFee ||
-                        "This fee only applies because your wallet has no {native} for gas. Send a small amount to it and withdraw the full balance for free."
-                      ).replace("{native}", NETWORKS[network]?.nativeCurrency?.symbol || "gas")}
-                    </p>
-                    <p className="text-xs font-mono break-all text-muted-foreground/80">
-                      {commerce?.wallet}
-                    </p>
-                  </div>
-
-                  {netAmount > 0 ? (
-                    <div className="border-t pt-3 flex justify-between items-center">
-                      <span className="font-medium text-sm">{t.send?.youReceive || "You receive"}</span>
-                      <span className="font-bold text-lg">{fmt(netAmount)} {symbol}</span>
-                    </div>
-                  ) : (
-                    <div className="border-t pt-3">
-                      <p className="text-sm text-destructive">{t.send?.balanceTooSmall || "Balance too small to cover the withdrawal fee."}</p>
-                    </div>
-                  )}
-                </>
-              )}
-
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{t.send?.network || "Network"}</span>
                 <span className="font-medium capitalize">{network}</span>
               </div>
             </div>
 
+            {/* The merchant signs this themselves, so the wallet needs gas.
+                Say it before they try, with the address to fund. */}
+            {gasShortfall !== null && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs space-y-1.5">
+                  <p>
+                    {(t.send?.needsGas ||
+                      "This wallet needs about {amount} {native} to pay for the transaction. Send at least that to the address below and withdraw again."
+                    )
+                      .replace("{amount}", gasShortfall.toLocaleString(undefined, { maximumFractionDigits: 8 }))
+                      .replace("{native}", NETWORKS[network]?.nativeCurrency?.symbol || "gas")}
+                  </p>
+                  <p className="font-mono break-all opacity-80">{commerce?.wallet}</p>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Button
-              onClick={hasGas ? handleDirectWithdraw : handleGaslessWithdraw}
+              onClick={handleWithdraw}
               className="w-full gap-2"
               size="lg"
-              disabled={loading || netAmount <= 0 || !validRecipient}
+              disabled={loading || balance <= 0 || !validRecipient}
             >
               {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> {t.send?.sendingProgress || "Processing..."}</>
