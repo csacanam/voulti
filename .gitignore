@@ -42,3 +42,6 @@ pnpm-debug.log*
 # scripts temporales de diagnostico
 .watch-*.cjs
 .*-test.js
+
+# TypeScript incremental build info
+*.tsbuildinfo
