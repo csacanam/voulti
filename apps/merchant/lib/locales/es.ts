@@ -121,12 +121,8 @@ export const es = {
       loginTransfers: "Inicia sesión para ver tus transferencias",
     },
     withdraw: "Retirar",
-    withdrawFee: "Comisión por retiro",
-    avoidFee: "Esta comisión solo aplica porque tu wallet no tiene {native} para el gas. Mándale un poco y retira el saldo completo sin costo.",
-    gasUnknown: "No pudimos consultar el saldo de {native} de tu wallet en este momento, así que el retiro va sin comisión. Si la wallet no tiene {native} para el gas, la transacción fallará: mándale un poco y vuelve a intentar.",
-    youReceive: "Recibes",
+    needsGas: "Esta wallet necesita un poco de {native} para pagar la transacción. Mándale un poco a la dirección de abajo y vuelve a retirar.",
     checkingGas: "Verificando...",
-    balanceTooSmall: "Saldo insuficiente para cubrir la comisión de retiro.",
   },
   createLink: {
     title: "Nuevo Link de Pago",

@@ -781,7 +781,14 @@ export async function commercesRoutes(app: FastifyInstance) {
     }
   });
 
-  // Gasless withdraw: backend executes withdrawFor on behalf of commerce
+  // Gasless withdraw: backend executes withdrawFor on behalf of commerce.
+  //
+  // UNREACHABLE TODAY — no client calls this. withdrawFor() is not in the
+  // deployed proxy bytecode on any of the 5 mainnets: it was added to
+  // DerampProxy.sol in 78b90fd, but the proxy is a hand-written router with a
+  // reverting fallback, not a delegatecall proxy, and only the module was ever
+  // redeployed. Every call reverts with "Function not found". Do not wire a UI
+  // back up to this until the proxy itself is redeployed.
   app.post('/:id/withdraw-for', { preHandler: requireAuth }, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params as { id: string };

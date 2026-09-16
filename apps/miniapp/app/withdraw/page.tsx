@@ -97,56 +97,45 @@ export default function WithdrawPage() {
 
 function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => void }) {
   const router = useRouter()
-  const { getAccessToken } = usePrivy()
   const { wallets } = useWallets()
   const { state } = useCommerce()
   const [recipient, setRecipient] = useState("")
-  const [fee, setFee] = useState<number>(0)
-  const [hasGas, setHasGas] = useState<boolean | null>(null)
+  const [needsGas, setNeedsGas] = useState(false)
   const [checkingGas, setCheckingGas] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ netAmount: string; txHash: string } | null>(null)
 
   const amount = parseFloat(balance.balance)
-  const netAmount = hasGas === false ? Math.max(amount - fee, 0) : amount
   const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(recipient.trim())
-  const canSubmit = isValidAddress && netAmount > 0 && !submitting && !checkingGas
+  const canSubmit = isValidAddress && amount > 0 && !submitting && !checkingGas
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 
-  // Check gas + fee on mount
+  // The user signs the withdrawal themselves, so this only decides whether to
+  // warn up front that the wallet needs gas. A failed check warns about nothing.
   useEffect(() => {
     const check = async () => {
       setCheckingGas(true)
+      setNeedsGas(false)
       const net = NETWORKS[balance.network]
-      if (!net) { setHasGas(false); setCheckingGas(false); return }
+      if (!net) { setCheckingGas(false); return }
 
       try {
         const wallet = wallets.find(w => w.walletClientType === "privy") || wallets[0]
         if (wallet) {
           const provider = new ethers.JsonRpcProvider(net.rpcUrl, { name: net.name, chainId: net.chainId })
           const bal = await provider.getBalance(wallet.address)
-          setHasGas(parseFloat(ethers.formatEther(bal)) >= (GAS_THRESHOLDS[balance.network] || 0.001))
-        } else {
-          setHasGas(false)
+          setNeedsGas(parseFloat(ethers.formatEther(bal)) < (GAS_THRESHOLDS[balance.network] || 0.001))
         }
       } catch {
-        setHasGas(false)
-      }
-
-      try {
-        const d = await api.getWithdrawFee(balance.symbol)
-        setFee(d.fee_token)
-      } catch {
-        setFee(0)
+        // RPC down. Say nothing rather than guess.
       }
 
       setCheckingGas(false)
     }
     check()
-  }, [balance.network, balance.symbol, wallets])
+  }, [balance.network, wallets])
 
-  // Direct withdraw — user signs with their wallet (no fee)
   const directWithdraw = async () => {
     const wallet = wallets.find(w => w.walletClientType === "privy") || wallets[0]
     if (!wallet) throw new Error("No wallet found")
@@ -179,27 +168,12 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
     return { netAmount: fmt(amount), txHash: receipt.hash }
   }
 
-  // Gasless withdraw via API (fee charged)
-  const gaslessWithdraw = async () => {
-    if (state.status !== "ready") throw new Error("Not ready")
-    const token = await getAccessToken()
-    if (!token) throw new Error("No auth token")
-    const data: any = await api.withdrawFor(state.commerce.commerce_id, {
-      token_address: balance.tokenAddress,
-      amount: balance.balance,
-      network: balance.network,
-      to: recipient.trim(),
-    }, token)
-    return { netAmount: data?.net_amount || fmt(netAmount), txHash: data?.tx_hash || "" }
-  }
-
   const submit = async () => {
     if (!canSubmit) return
     setSubmitting(true)
     setError(null)
     try {
-      const r = hasGas ? await directWithdraw() : await gaslessWithdraw()
-      setResult(r)
+      setResult(await directWithdraw())
     } catch (err: any) {
       const msg = err?.message || "Withdrawal failed"
       if (err?.code === "ACTION_REJECTED" || msg.includes("rejected")) {
@@ -262,24 +236,24 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
             <span className="text-muted-foreground">Available</span>
             <span className="font-medium">{fmt(amount)} {balance.symbol}</span>
           </div>
-          {hasGas === false && fee > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Fee</span>
-              <span className="font-medium text-amber-600">-{fmt(fee)} {balance.symbol}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-sm pt-2 border-t border-border">
-            <span className="font-medium">You receive</span>
-            <span className="font-bold">{fmt(netAmount)} {balance.symbol}</span>
-          </div>
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Network</span>
             <span className="capitalize">{balance.network}</span>
           </div>
         </div>
 
-        {netAmount <= 0 && (
-          <p className="text-sm text-destructive">Balance too small to cover the withdrawal fee</p>
+        {/* You sign this yourself, so the wallet needs gas. Say it before you
+            try, with the address to fund. */}
+        {needsGas && (
+          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1.5">
+            <p>
+              This wallet needs a little {NETWORKS[balance.network]?.nativeCurrency?.symbol || "gas"} to
+              pay for the transaction. Send some to the address below and withdraw again.
+            </p>
+            <p className="font-mono break-all opacity-80">
+              {state.status === "ready" ? state.commerce.wallet : ""}
+            </p>
+          </div>
         )}
 
         {error && (
