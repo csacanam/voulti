@@ -36,7 +36,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
   polygon: {
     chainId: 137,
     name: "Polygon",
-    rpcUrl: "https://polygon-rpc.com",
+    rpcUrl: "https://polygon-bor-rpc.publicnode.com",
     blockExplorer: "https://polygonscan.com",
     nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
   },

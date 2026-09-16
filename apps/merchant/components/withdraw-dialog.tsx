@@ -43,12 +43,16 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasGas, setHasGas] = useState<boolean | null>(null)
+  const [gasUnknown, setGasUnknown] = useState(false)
   const [checkingGas, setCheckingGas] = useState(true)
   const [fee, setFee] = useState<number>(0)
 
   const network = networkEntry.network
   const balance = networkEntry.balanceNum
-  const netAmount = hasGas === false ? balance - fee : balance
+  // A failed check is not a "no gas" answer: only charge the fee when we
+  // actually confirmed the wallet cannot pay for its own gas.
+  const chargesFee = hasGas === false && !gasUnknown
+  const netAmount = chargesFee ? balance - fee : balance
   const validRecipient = recipient && ethers.isAddress(recipient)
 
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
@@ -62,9 +66,10 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     const check = async () => {
       setCheckingGas(true)
       setHasGas(null)
+      setGasUnknown(false)
 
       const networkConfig = NETWORKS[network]
-      if (!networkConfig) { setHasGas(false); setCheckingGas(false); return }
+      if (!networkConfig) { setHasGas(false); setGasUnknown(true); setCheckingGas(false); return }
 
       try {
         const wallet = wallets.find(w => w.walletClientType === "privy")
@@ -78,7 +83,11 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
           setHasGas(false)
         }
       } catch {
+        // The RPC is down, not the wallet. Try the free withdrawal anyway —
+        // if there really is no gas the wallet rejects it and says so, which
+        // beats quietly taking a fee the merchant may not owe.
         setHasGas(false)
+        setGasUnknown(true)
       }
 
       try {
@@ -213,7 +222,17 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
                 <span className="font-semibold">{fmt(balance)} {symbol}</span>
               </div>
 
-              {hasGas === false && fee > 0 && (
+              {gasUnknown && (
+                <div className="border-t pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    {(t.send?.gasUnknown ||
+                      "We couldn't check your wallet's {native} balance right now, so we'll withdraw with no fee. If the wallet has no {native} for gas, the transaction will fail — send it a small amount and try again."
+                    ).replace(/\{native\}/g, NETWORKS[network]?.nativeCurrency?.symbol || "gas")}
+                  </p>
+                </div>
+              )}
+
+              {chargesFee && fee > 0 && (
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t.send?.withdrawFee || "Withdrawal fee"}</span>
@@ -252,7 +271,7 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
             </div>
 
             <Button
-              onClick={hasGas ? handleDirectWithdraw : handleGaslessWithdraw}
+              onClick={chargesFee ? handleGaslessWithdraw : handleDirectWithdraw}
               className="w-full gap-2"
               size="lg"
               disabled={loading || netAmount <= 0 || !validRecipient}

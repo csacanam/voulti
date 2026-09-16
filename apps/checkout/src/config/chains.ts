@@ -113,7 +113,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
       USDC: { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", symbol: "USDC", name: "USD Coin", decimals: 6 },
       USDT: { address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT", name: "Tether USD", decimals: 6 },
     },
-    rpcUrls: ['https://polygon-rpc.com'],
+    rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
     blockExplorer: 'https://polygonscan.com',
     nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
   },

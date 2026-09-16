@@ -123,6 +123,7 @@ export const es = {
     withdraw: "Retirar",
     withdrawFee: "Comisión por retiro",
     avoidFee: "Esta comisión solo aplica porque tu wallet no tiene {native} para el gas. Mándale un poco y retira el saldo completo sin costo.",
+    gasUnknown: "No pudimos consultar el saldo de {native} de tu wallet en este momento, así que el retiro va sin comisión. Si la wallet no tiene {native} para el gas, la transacción fallará: mándale un poco y vuelve a intentar.",
     youReceive: "Recibes",
     checkingGas: "Verificando...",
     balanceTooSmall: "Saldo insuficiente para cubrir la comisión de retiro.",

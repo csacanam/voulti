@@ -117,7 +117,7 @@ export const useNetworkMismatch = ({ selectedNetwork }: UseNetworkMismatchProps)
             symbol: 'MATIC',
             decimals: 18,
           },
-          rpcUrls: ['https://polygon-rpc.com'],
+          rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
           blockExplorerUrls: ['https://polygonscan.com'],
         };
       case 8453: // Base
