@@ -17,12 +17,29 @@ import { NETWORKS } from "@/blockchain/networks"
 import { apiClient } from "@/services/api"
 import type { TokenBalance } from "@/hooks/use-token-balance"
 
-const GAS_THRESHOLDS: Record<string, number> = {
-  celo: 0.01,
-  arbitrum: 0.0002,
-  polygon: 0.05,
-  base: 0.0002,
-  bsc: 0.0005,
+// The merchant signs the withdrawal, so their wallet needs native gas. This
+// used to be a hardcoded per-chain table, which went stale: measured against
+// live prices it was under the real cost on Polygon and Celo, so it would have
+// told merchants to fund an amount that still fails. Price it live instead, and
+// leave room for the gas price to move before they get around to funding.
+const GAS_BUFFER = 2
+
+// Round up to one significant figure — an estimate should look like one, and
+// nobody can act on "send 0.0000077 ETH".
+function roundUp(n: number): number {
+  if (!(n > 0)) return 0
+  const magnitude = Math.pow(10, Math.floor(Math.log10(n)))
+  return parseFloat((Math.ceil(n / magnitude) * magnitude).toPrecision(2))
+}
+
+async function gasNeeded(
+  provider: ethers.JsonRpcProvider,
+  tx: ethers.TransactionRequest
+): Promise<number | null> {
+  const [gas, fees] = await Promise.all([provider.estimateGas(tx), provider.getFeeData()])
+  const price = fees.maxFeePerGas ?? fees.gasPrice
+  if (!price) return null
+  return roundUp(parseFloat(ethers.formatEther(gas * price)) * GAS_BUFFER)
 }
 
 interface WithdrawDialogProps {
@@ -42,7 +59,7 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
   const [recipient, setRecipient] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [needsGas, setNeedsGas] = useState(false)
+  const [gasShortfall, setGasShortfall] = useState<number | null>(null)
   const [checkingGas, setCheckingGas] = useState(true)
 
   const network = networkEntry.network
@@ -57,12 +74,13 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
     setRecipient("")
     setError(null)
 
-    // The withdrawal itself is signed by the merchant's own wallet, so this
-    // only decides whether to warn them up front that it needs gas. A failed
-    // check warns about nothing: let them try and read the wallet's answer.
+    // The withdrawal is signed by the merchant's own wallet, so this only
+    // decides whether to warn them up front that it needs gas, and how much.
+    // A failed check warns about nothing: let them try and read the wallet's
+    // answer rather than quote a number we could not verify.
     const check = async () => {
       setCheckingGas(true)
-      setNeedsGas(false)
+      setGasShortfall(null)
 
       const networkConfig = NETWORKS[network]
       if (!networkConfig) { setCheckingGas(false); return }
@@ -73,11 +91,24 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
           const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl, {
             name: networkConfig.name, chainId: networkConfig.chainId,
           })
-          const bal = await provider.getBalance(wallet.address)
-          setNeedsGas(parseFloat(ethers.formatEther(bal)) < (GAS_THRESHOLDS[network] || 0.001))
+          // Price the real call. The recipient does not change the cost, so
+          // stand in the merchant's own address — they have not typed one yet.
+          const data = new ethers.Interface(DERAMP_PROXY_ABI).encodeFunctionData("withdrawTo", [
+            networkEntry.tokenAddress,
+            ethers.parseUnits(networkEntry.balance, networkEntry.decimals),
+            wallet.address,
+          ])
+          const [needed, bal] = await Promise.all([
+            gasNeeded(provider, { from: wallet.address, to: PROXY_ADDRESSES[network], data }),
+            provider.getBalance(wallet.address),
+          ])
+          if (needed !== null && parseFloat(ethers.formatEther(bal)) < needed) {
+            setGasShortfall(needed)
+          }
         }
       } catch {
-        // RPC down. Say nothing rather than guess.
+        // RPC down, or the call would revert for an unrelated reason. Say
+        // nothing rather than guess an amount.
       }
 
       setCheckingGas(false)
@@ -187,14 +218,16 @@ export function WithdrawDialog({ open, onOpenChange, networkEntry, symbol, onSuc
 
             {/* The merchant signs this themselves, so the wallet needs gas.
                 Say it before they try, with the address to fund. */}
-            {needsGas && (
+            {gasShortfall !== null && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs space-y-1.5">
                   <p>
                     {(t.send?.needsGas ||
-                      "This wallet needs a little {native} to pay for the transaction. Send some to the address below and withdraw again."
-                    ).replace("{native}", NETWORKS[network]?.nativeCurrency?.symbol || "gas")}
+                      "This wallet needs about {amount} {native} to pay for the transaction. Send at least that to the address below and withdraw again."
+                    )
+                      .replace("{amount}", gasShortfall.toLocaleString(undefined, { maximumFractionDigits: 8 }))
+                      .replace("{native}", NETWORKS[network]?.nativeCurrency?.symbol || "gas")}
                   </p>
                   <p className="font-mono break-all opacity-80">{commerce?.wallet}</p>
                 </AlertDescription>

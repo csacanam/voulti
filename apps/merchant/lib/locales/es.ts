@@ -121,7 +121,7 @@ export const es = {
       loginTransfers: "Inicia sesión para ver tus transferencias",
     },
     withdraw: "Retirar",
-    needsGas: "Esta wallet necesita un poco de {native} para pagar la transacción. Mándale un poco a la dirección de abajo y vuelve a retirar.",
+    needsGas: "Esta wallet necesita unos {amount} {native} para pagar la transacción. Mándale al menos eso a la dirección de abajo y vuelve a retirar.",
     checkingGas: "Verificando...",
   },
   createLink: {

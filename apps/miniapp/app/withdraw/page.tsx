@@ -7,7 +7,7 @@ import { ethers } from "ethers"
 import { ArrowLeft, Loader2, ArrowDown, CheckCircle2 } from "lucide-react"
 import { api } from "@/lib/api"
 import { useCommerce } from "@/hooks/use-commerce"
-import { PROXY_ADDRESSES, DERAMP_PROXY_ABI, NETWORKS, GAS_THRESHOLDS } from "@/lib/contracts"
+import { PROXY_ADDRESSES, DERAMP_PROXY_ABI, NETWORKS, gasNeeded } from "@/lib/contracts"
 
 interface Balance {
   network: string
@@ -100,7 +100,7 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
   const { wallets } = useWallets()
   const { state } = useCommerce()
   const [recipient, setRecipient] = useState("")
-  const [needsGas, setNeedsGas] = useState(false)
+  const [gasShortfall, setGasShortfall] = useState<number | null>(null)
   const [checkingGas, setCheckingGas] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -112,11 +112,12 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 
   // The user signs the withdrawal themselves, so this only decides whether to
-  // warn up front that the wallet needs gas. A failed check warns about nothing.
+  // warn up front that the wallet needs gas, and how much. A failed check warns
+  // about nothing rather than quoting a number we could not verify.
   useEffect(() => {
     const check = async () => {
       setCheckingGas(true)
-      setNeedsGas(false)
+      setGasShortfall(null)
       const net = NETWORKS[balance.network]
       if (!net) { setCheckingGas(false); return }
 
@@ -124,17 +125,30 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
         const wallet = wallets.find(w => w.walletClientType === "privy") || wallets[0]
         if (wallet) {
           const provider = new ethers.JsonRpcProvider(net.rpcUrl, { name: net.name, chainId: net.chainId })
-          const bal = await provider.getBalance(wallet.address)
-          setNeedsGas(parseFloat(ethers.formatEther(bal)) < (GAS_THRESHOLDS[balance.network] || 0.001))
+          // Price the real call. The recipient does not change the cost, so
+          // stand in the user's own address — they have not typed one yet.
+          const data = new ethers.Interface(DERAMP_PROXY_ABI).encodeFunctionData("withdrawTo", [
+            balance.tokenAddress,
+            ethers.parseUnits(balance.balance, balance.decimals),
+            wallet.address,
+          ])
+          const [needed, bal] = await Promise.all([
+            gasNeeded(provider, { from: wallet.address, to: PROXY_ADDRESSES[balance.network], data }),
+            provider.getBalance(wallet.address),
+          ])
+          if (needed !== null && parseFloat(ethers.formatEther(bal)) < needed) {
+            setGasShortfall(needed)
+          }
         }
       } catch {
-        // RPC down. Say nothing rather than guess.
+        // RPC down, or the call would revert for an unrelated reason. Say
+        // nothing rather than guess an amount.
       }
 
       setCheckingGas(false)
     }
     check()
-  }, [balance.network, wallets])
+  }, [balance.network, balance.tokenAddress, balance.balance, balance.decimals, wallets])
 
   const directWithdraw = async () => {
     const wallet = wallets.find(w => w.walletClientType === "privy") || wallets[0]
@@ -244,11 +258,12 @@ function WithdrawForm({ balance, onBack }: { balance: Balance; onBack: () => voi
 
         {/* You sign this yourself, so the wallet needs gas. Say it before you
             try, with the address to fund. */}
-        {needsGas && (
+        {gasShortfall !== null && (
           <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1.5">
             <p>
-              This wallet needs a little {NETWORKS[balance.network]?.nativeCurrency?.symbol || "gas"} to
-              pay for the transaction. Send some to the address below and withdraw again.
+              This wallet needs about {gasShortfall.toLocaleString(undefined, { maximumFractionDigits: 8 })}{" "}
+              {NETWORKS[balance.network]?.nativeCurrency?.symbol || "gas"} to pay for the transaction.
+              Send at least that to the address below and withdraw again.
             </p>
             <p className="font-mono break-all opacity-80">
               {state.status === "ready" ? state.commerce.wallet : ""}
