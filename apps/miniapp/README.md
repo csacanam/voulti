@@ -41,8 +41,7 @@ Corre en puerto 3002.
 ### 4. Withdraw
 - Balances agregados por token, detalle por red al expandir
 - Selector de red/token específico
-- Si tiene gas → retiro directo
-- Si no → gasless con fee $1 USD
+- Direct withdrawal: the merchant signs and pays their own gas, no Voulti fee
 
 ## Auth flow
 

@@ -217,7 +217,7 @@ Note `paid_amount` is the **crypto** amount actually transferred (e.g. `0.31471`
 
 The wallet on the account is an **identity**, not a destination. It is the key that proves ownership — it is what authorises changing the webhook URL, reading the signing secret, and withdrawing. Nothing is ever sent to it automatically.
 
-**Withdrawing is a separate, deliberate action** the merchant takes from **Receive Payments → Balance** in their dashboard. They can send the funds to any address, not only the wallet they sign in with. There is a **$1 flat fee** per withdrawal, which is why it is worth accumulating rather than withdrawing per sale — on a $5 charge that fee is 20%, far more than anything gas costs.
+**Withdrawing is a separate, deliberate action** the merchant takes from **Receive Payments → Balance** in their dashboard. They can send the funds to any address, not only the wallet they sign in with. Voulti charges **no withdrawal fee**: the merchant signs the withdrawal with their own wallet and pays only that network's gas, so that wallet needs a little of the native token (CELO, ETH, POL, BNB). The dashboard says how much when it is short. Gas is cents on these networks, so withdrawing per sale works, although batching still saves the gas.
 
 So three balances answer three different questions, and only one of them is the merchant's money:
 
