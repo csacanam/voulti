@@ -2,6 +2,7 @@ import React from 'react';
 import { Calculator, Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { interpolate } from '../utils/i18n';
+import { formatFiatNumber } from '../utils/formatFiat';
 
 interface PaymentAmountProps {
   amountToPay?: string;
@@ -75,12 +76,7 @@ export const PaymentAmount: React.FC<PaymentAmountProps> = ({
   };
 
   const formatFiatAmount = (amount: number, currency: string) => {
-    const locale = language === 'es' ? 'es-CO' : 'en-US';
-    return new Intl.NumberFormat(locale, {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount) + ' ' + currency;
+    return formatFiatNumber(amount, language) + ' ' + currency;
   };
 
   return (

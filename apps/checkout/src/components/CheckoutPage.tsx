@@ -29,6 +29,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { interpolate } from '../utils/i18n';
 import { LanguageSelector } from './LanguageSelector';
 import { groupTokensBySymbol } from '../utils/tokenUtils';
+import { formatFiatNumber } from '../utils/formatFiat';
 import { findChainIdByBackendName } from '../config/chains';
 import { PaymentOption } from '../blockchain/types';
 import { WalletSelectionModal } from './WalletSelectionModal';
@@ -195,12 +196,7 @@ export const CheckoutPage: React.FC = () => {
   const groupedTokens = groupTokensBySymbol(invoice.tokens);
 
   const formatAmount = (amount: number, currency: string) => {
-    const locale = language === 'es' ? 'es-CO' : 'en-US';
-    const formattedNumber = new Intl.NumberFormat(locale, {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    const formattedNumber = formatFiatNumber(amount, language);
 
     // Format like "COP $ 50,000" to be consistent with pay page
     return `${currency} $ ${formattedNumber}`;
