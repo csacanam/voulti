@@ -59,8 +59,8 @@ export const HomePage: React.FC = () => {
           </h1>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
             {language === 'es'
-              ? 'Voulti es la pasarela de pagos que permite a cualquier comercio recibir USDC, USDT y stablecoins en 5 redes. Sin intermediarios. Liquidación instantánea. Solo 1% de comisión.'
-              : 'Voulti is the payment gateway that lets any business accept USDC, USDT and stablecoins on 5 networks. No middlemen. Instant settlement. Just 1% fee.'}
+              ? 'Voulti es la pasarela de pagos que permite a cualquier comercio recibir USDC, USDT y stablecoins en 5 redes. Sin bancos. Liquidación instantánea. Solo 1% de comisión.'
+              : 'Voulti is the payment gateway that lets any business accept USDC, USDT and stablecoins on 5 networks. No banks. Instant settlement. Just 1% fee.'}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
