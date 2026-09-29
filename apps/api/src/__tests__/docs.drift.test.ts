@@ -35,6 +35,23 @@ const INDEX = read('apps/api/src/index.ts');
 const INVOICE_ROUTES = read('apps/api/src/routes/invoices.ts');
 const COMMERCE_ROUTES = read('apps/api/src/routes/commerces.ts');
 
+/** What an agent reads before telling a merchant where their money is. */
+const AGENT_DOCS: Record<string, string> = {
+  'skill.md': SKILL,
+  'skills/voulti/SKILL.md': read('skills/voulti/SKILL.md'),
+  'llms.txt': read('apps/checkout/public/llms.txt'),
+  'mcp/README.md': read('mcp/README.md'),
+  'mcp/package.json': read('mcp/package.json'),
+};
+
+describe('the installable skill', () => {
+  it('is the same file voulti.com/skill.md serves', () => {
+    // `npx skills add csacanam/voulti` installs this copy. TODO.md said "edit
+    // one, copy to the other"; nobody did, and it kept promising self-custody.
+    expect(AGENT_DOCS['skills/voulti/SKILL.md'], 'copy apps/checkout/public/skill.md over skills/voulti/SKILL.md').toBe(SKILL);
+  });
+});
+
 /** Everything a reader could be told, in one haystack. */
 const ALL_DOCS = [SKILL, DEV_TAB, LOCALE_ES, LOCALE_EN].join('\n');
 
@@ -107,11 +124,23 @@ describe('where the docs say the money is', () => {
     expect(PROXY).toContain('safeTransferFrom(msg.sender, address(this), amount)');
     expect(PROCESSOR).toContain('addToBalance(invoice.commerce, token, commerceAmount)');
 
-    expect(SKILL, 'skill.md claims self-custody; the contract escrows').not.toMatch(/self-custody/i);
-    expect(SKILL, 'skill.md claims Voulti never holds funds; it does').not.toMatch(/never holds funds/i);
-    expect(SKILL, 'skill.md says funds go straight to the wallet; they do not').not.toMatch(
-      /straight to the merchant's wallet/i
-    );
+    // Checked only against skill.md at first, so the installable copy, llms.txt
+    // and the MCP README went on saying it for weeks after skill.md was fixed.
+    for (const [name, doc] of Object.entries(AGENT_DOCS)) {
+      expect(doc, `${name} claims self-custody; the contract escrows`).not.toMatch(/self-custody/i);
+      expect(doc, `${name} claims Voulti never holds funds; it does`).not.toMatch(/never holds funds/i);
+      expect(doc, `${name} says funds go straight to the wallet; they do not`).not.toMatch(
+        /straight to the merchant's (own )?wallet/i
+      );
+    }
+  });
+
+  it('does not quote a withdrawal fee, because the only withdrawal left is self-signed', () => {
+    // The gasless withdrawFor path (and its $1 fee) was pulled from every UI
+    // in #2: it is not in the deployed proxy. The merchant pays gas, nothing else.
+    for (const [name, doc] of Object.entries(AGENT_DOCS)) {
+      expect(doc, `${name} quotes a withdrawal fee that no longer exists`).not.toMatch(/\$1 (flat )?fee|fee \$1/i);
+    }
   });
 
   it('warns against sending money to a contract address', () => {

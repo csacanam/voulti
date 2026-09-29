@@ -34,4 +34,4 @@ Contexto: Voulti tiene la tesis agent más fuerte del portafolio ("tu agente pue
 
 ## Mantenimiento
 
-- [ ] Skill duplicado: `skills/voulti/SKILL.md` ↔ `apps/checkout/public/skill.md`. Al editar uno, copiar al otro.
+- [x] Skill duplicado: `skills/voulti/SKILL.md` ↔ `apps/checkout/public/skill.md`. Now enforced by `docs.drift.test.ts`: copy public → skills.
