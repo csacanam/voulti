@@ -1,6 +1,6 @@
 # Voulti Merchant Dashboard
 
-Merchant dashboard for **Voulti** — a crypto payment gateway for merchants and AI agents: a no-auth REST API to accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with instant self-custody settlement and a 1% fee.
+Merchant dashboard for **Voulti** — a crypto payment gateway for merchants and AI agents: a no-auth REST API to accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with a 1% fee, settled on-chain to a balance the merchant withdraws.
 
 This app serves `app.voulti.com`: self-service merchant signup (wallet or email via Privy/SIWE), balances, invoices, payouts, and the **Developers** page.
 

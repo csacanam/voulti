@@ -293,8 +293,8 @@ and how to check payments.`}
               </h3>
               <p className="text-sm text-gray-500">
                 {language === 'es'
-                  ? 'Los fondos llegan a tu wallet en el momento que tu cliente paga.'
-                  : 'Funds arrive in your wallet the moment your customer pays.'}
+                  ? 'Los fondos se acreditan a tu saldo en el momento que tu cliente paga.'
+                  : 'Funds are credited to your balance the moment your customer pays.'}
               </p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center">
@@ -315,12 +315,12 @@ and how to check payments.`}
                 <span className="text-xl">🔐</span>
               </div>
               <h3 className="font-semibold mb-2">
-                {language === 'es' ? 'Auto-custodia' : 'Self-custody'}
+                {language === 'es' ? 'Retira cuando quieras' : 'Withdraw anytime'}
               </h3>
               <p className="text-sm text-gray-500">
                 {language === 'es'
-                  ? 'Tus fondos, tu wallet. Retira cuando quieras, sin permisos.'
-                  : 'Your funds, your wallet. Withdraw anytime, no permissions needed.'}
+                  ? 'Tu saldo, disponible siempre. Retíralo a cualquier wallet, sin pedirle permiso a nadie.'
+                  : 'Your balance, always available. Withdraw it to any wallet, without asking anyone.'}
               </p>
             </div>
           </div>

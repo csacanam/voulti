@@ -1,6 +1,6 @@
 # Voulti API
 
-Backend for **Voulti** — a crypto payment gateway for merchants and AI agents: a no-auth REST API to accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with instant self-custody settlement and a 1% fee.
+Backend for **Voulti** — a crypto payment gateway for merchants and AI agents: a no-auth REST API to accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with a 1% fee, settled on-chain to a balance the merchant withdraws.
 
 Fastify + TypeScript + Supabase, serving `api.voulti.com`.
 
@@ -19,7 +19,7 @@ Fastify + TypeScript + Supabase, serving `api.voulti.com`.
 
 ## Architecture notes
 
-- **Self-custody settlement**: funds go straight to the merchant's wallet through the Deramp proxy contracts (verified on all 5 mainnets — `contracts/core/deployed-addresses/PRODUCTION.md`). Voulti never holds funds.
+- **Contract settlement**: a paid invoice moves the funds into the Deramp proxy contract and credits the merchant's balance there (verified on all 5 mainnets — `contracts/core/deployed-addresses/PRODUCTION.md`). The merchant withdraws it with their own wallet. The owner can swap modules and pause withdrawals, so this is custodial, not self-custody.
 - **HD-wallet deposits**: pay-by-address flow with automatic deposit detection and sweep (cron-driven — see root README for cron jobs).
 - **Notification pipeline**: `src/business/notificationService.ts` — webhook + email confirmations, batched, with blockchain status verification before notifying.
 - **DB**: Supabase/Postgres. Canonical schema in `db/schema.sql`, incremental migrations in `db/migrations/` (run in Supabase before deploying code that depends on them).

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   // in the built HTML and every social card renders blank.
   metadataBase: new URL('https://app.voulti.com'),
   title: 'Voulti — Accept Crypto Payments',
-  description: 'Crypto payment gateway for merchants. Accept USDC, USDT and stablecoins on 5 networks. Self-custody, instant settlement.',
+  description: 'Crypto payment gateway for merchants. Accept USDC, USDT and stablecoins on 5 networks. Instant settlement, 1% fee.',
   keywords: ['crypto payments', 'USDC', 'USDT', 'stablecoin', 'payment gateway', 'merchant', 'Celo', 'Arbitrum', 'Polygon', 'Base', 'BSC'],
   authors: [{ name: 'Saka Labs', url: 'https://sakalabs.io' }],
   // The favicon and the touch icon come from app/icon.svg and app/apple-icon.png,

@@ -189,7 +189,7 @@ export const en = {
   // Home
   home: {
     heroTitle: 'Accept stablecoins.\nSettle instantly.',
-    heroSubtitle: 'USDC, USDT and stablecoins on 5 networks. Two ways to pay: connect wallet or send to an address. Self-custody, 1% fee.',
+    heroSubtitle: 'USDC, USDT and stablecoins on 5 networks. Two ways to pay: connect wallet or send to an address. 1% fee.',
     ctaButton: 'Create Free Account',
     ctaSecondary: 'See How It Works',
     subcopy: 'Celo · Arbitrum · Polygon · Base · BSC',
@@ -205,7 +205,7 @@ export const en = {
     whyChoose: {
       instantPayments: {
         title: 'Instant settlement',
-        description: 'No waiting periods. Funds arrive in your wallet the moment your customer pays.'
+        description: 'No waiting periods. Funds are credited to your balance the moment your customer pays.'
       },
       lowFees: {
         title: '1% flat fee',

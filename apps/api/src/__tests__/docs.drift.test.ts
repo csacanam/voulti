@@ -135,6 +135,21 @@ describe('where the docs say the money is', () => {
     }
   });
 
+  it('is not claimed on the marketing pages either', () => {
+    // The landing sold "Auto-custodia" and "funds arrive in your wallet" long
+    // after the docs stopped. The owner can swap modules and pause withdrawals.
+    const PAGES: Record<string, string> = {
+      'HomePage.tsx': read('apps/checkout/src/components/HomePage.tsx'),
+      'checkout index.html': read('apps/checkout/index.html'),
+      'checkout locales': read('apps/checkout/src/locales/en.ts') + read('apps/checkout/src/locales/es.ts'),
+      'merchant layout.tsx': read('apps/merchant/app/layout.tsx'),
+    };
+    for (const [name, page] of Object.entries(PAGES)) {
+      expect(page, `${name} claims self-custody`).not.toMatch(/self-custody|auto-?custodia/i);
+      expect(page, `${name} says funds land in the wallet`).not.toMatch(/arrive in your wallet|llegan a tu wallet/i);
+    }
+  });
+
   it('does not quote a withdrawal fee, because the only withdrawal left is self-signed', () => {
     // The gasless withdrawFor path (and its $1 fee) was pulled from every UI
     // in #2: it is not in the deployed proxy. The merchant pays gas, nothing else.

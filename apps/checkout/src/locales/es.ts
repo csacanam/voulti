@@ -189,7 +189,7 @@ export const es = {
   // Home
   home: {
     heroTitle: 'Acepta stablecoins.\nLiquida al instante.',
-    heroSubtitle: 'USDC, USDT y stablecoins en 5 redes. Dos formas de pagar: conectar wallet o enviar a una dirección. Auto-custodia, 1% de comisión.',
+    heroSubtitle: 'USDC, USDT y stablecoins en 5 redes. Dos formas de pagar: conectar wallet o enviar a una dirección. 1% de comisión.',
     ctaButton: 'Crear Cuenta Gratis',
     ctaSecondary: 'Ver Cómo Funciona',
     subcopy: 'Celo · Arbitrum · Polygon · Base · BSC',
@@ -205,7 +205,7 @@ export const es = {
     whyChoose: {
       instantPayments: {
         title: 'Liquidación instantánea',
-        description: 'Sin tiempos de espera. Los fondos llegan a tu wallet en el momento que tu cliente paga.'
+        description: 'Sin tiempos de espera. Los fondos se acreditan a tu saldo en el momento que tu cliente paga.'
       },
       lowFees: {
         title: '1% de comisión fija',

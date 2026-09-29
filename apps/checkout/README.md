@@ -1,6 +1,6 @@
 # Voulti Checkout
 
-Customer-facing payment page for **Voulti** — a crypto payment gateway for merchants and AI agents: a no-auth REST API to accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with instant self-custody settlement and a 1% fee.
+Customer-facing payment page for **Voulti** — a crypto payment gateway for merchants and AI agents: a no-auth REST API to accept USDC, USDT and stablecoins on 5 networks (Celo, Base, Arbitrum, Polygon, BSC) with a 1% fee, settled on-chain to a balance the merchant withdraws.
 
 This app serves `voulti.com`: the landing page, the hosted checkout (`/checkout/:invoice_id`), the permanent merchant payment page (`/pay/:commerce_id`), and the agent/LLM surfaces (`/skill.md`, `/llms.txt`).
 
