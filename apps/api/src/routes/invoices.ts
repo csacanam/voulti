@@ -2,13 +2,14 @@ import { FastifyInstance } from 'fastify';
 import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
-import { NETWORKS } from '../blockchain/config/networks';
+import { NETWORKS, getNetworkByChainId } from '../blockchain/config/networks';
 import { getProvider } from '../blockchain/utils/web3';
 import { CONTRACTS } from '../blockchain/config/contracts';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { buildPayload } from '../business/webhookDelivery';
 import { deliverAndLog } from '../business/webhookLog';
 import { validateReturnUrl, resolveReturnUrl } from '../business/returnUrl';
+import { priceInvoice } from '../business/invoicePricing';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -303,91 +304,14 @@ export async function invoicesRoutes(app: FastifyInstance) {
       return res.status(500).send({ error: 'Commerce not found' });
     }
 
-    // 2. Get fiat to USD conversion rate
-    const { data: fiatRate, error: fiatRateError } = await supabase
-      .from('fiat_exchange_rates')
-      .select('usd_to_currency_rate')
-      .eq('currency_code', invoice.fiat_currency)
-      .single();
-
-    if (fiatRateError || !fiatRate) {
-      return res.status(500).send({ error: 'Fiat conversion rate not found' });
+    // 2-4. Price it in every token it can be paid with. Shared with
+    // POST /blockchain/create so the amount shown is the amount charged.
+    const pricing = await priceInvoice(invoice, commerce);
+    if (!pricing.ok) {
+      return res.status(500).send({ error: pricing.error });
     }
-
-    const baseAmountInUSD = Number(invoice.amount_fiat) / Number(fiatRate.usd_to_currency_rate);
-    const amountInUSD = baseAmountInUSD * (1 + Number(commerce.spread) / 100);
-
-    // 3. Get enabled tokens for the commerce
-    // `!inner` + the is_active filter is what actually retires a token: flip
-    // tokens_addresses.is_active and it stops being offered everywhere, without
-    // deleting the per-commerce rows (so re-enabling is one flag, not a
-    // reconstruction) and without touching in-flight deposits, which the sweep
-    // resolves from its own record rather than from this list.
-    const { data: tokensEnabled, error: tokensEnabledError } = await supabase
-      .from('tokens_enabled')
-      .select(`
-        tokens_addresses!inner (
-          is_active,
-          network,
-          contract_address,
-          decimals,
-          token_symbol,
-          tokens (
-            name,
-            symbol,
-            rate_to_usd,
-            updated_at,
-            source,
-            logo
-          )
-        )
-      `)
-      .eq('commerce_id', invoice.commerce_id)
-      .eq('tokens_addresses.is_active', true);
-
-    if (tokensEnabledError || !tokensEnabled) {
-      return res.status(500).send({ error: 'Error fetching enabled tokens' });
-    }
-
-    // 3.5. Read actual on-chain whitelist status per network
-    const { getCommerceNetworkStatus } = await import('../business/commerceNetworks');
-    const networkStatus = await getCommerceNetworkStatus(commerce.wallet);
-    // Build a set of allowed (network, tokenAddress) for fast lookup
-    // NOTE: normalize network name to lowercase — DB stores "Celo" but code uses "celo"
-    const allowed = new Set<string>();
-    for (const ns of networkStatus) {
-      if (!ns.active) continue;
-      for (const t of ns.tokens) {
-        if (t.whitelisted) allowed.add(`${ns.network.toLowerCase()}:${t.address.toLowerCase()}`);
-      }
-    }
-
-    // 4. Build token response — only include tokens actually whitelisted on-chain
-    const tokens = tokensEnabled
-      .map((tokenEnabled) => {
-        const addr = tokenEnabled.tokens_addresses as any;
-        const token = addr.tokens as any;
-
-        const key = `${addr.network.toLowerCase()}:${addr.contract_address.toLowerCase()}`;
-        if (!allowed.has(key)) return null;
-
-        const amountInToken = amountInUSD / Number(token.rate_to_usd);
-        const displayDecimals = Math.min(addr.decimals, amountInToken >= 1000 ? 2 : 6);
-        const amountFormatted = amountInToken.toFixed(displayDecimals);
-
-        return {
-          symbol: token.symbol,
-          name: token.name,
-          network: addr.network,
-          contract_address: addr.contract_address,
-          decimals: addr.decimals,
-          rate_to_usd: token.rate_to_usd,
-          amount_to_pay: amountFormatted,
-          updated_at: token.updated_at,
-          logo: token.logo
-        };
-      })
-      .filter(Boolean);
+    const { amountInUSD, tokens } = pricing;
+    const fiatRate = { usd_to_currency_rate: pricing.usdToFiatRate };
 
     // 5. Respond with all data
     return res.send({
@@ -783,13 +707,58 @@ export async function invoicesRoutes(app: FastifyInstance) {
         // Check if invoice exists and get commerce wallet
         const { data: existingInvoice, error: fetchError } = await supabase
           .from("invoices")
-          .select("id, status, commerce_id, paid_token, paid_network, paid_tx_hash, wallet_address, paid_amount, paid_at")
+          .select("id, status, commerce_id, paid_token, paid_network, paid_tx_hash, wallet_address, paid_amount, paid_at, selected_network")
           .eq("id", id)
           .single();
 
         if (fetchError || !existingInvoice) {
           return res.status(404).send({
             error: "Invoice not found"
+          });
+        }
+
+        /**
+         * The contract decides whether this invoice is paid, not the caller.
+         *
+         * This route is public — the checkout calls it from the payer's browser
+         * right after the transaction — and it used to write status "Paid" for
+         * whatever it was sent. Anyone could mark any invoice paid with a made-up
+         * tx hash, and GET /invoices/:id, which merchants and agents poll before
+         * releasing goods, would say so. The webhook re-checked the chain; the
+         * public status did not.
+         *
+         * So: the network is the one the server recorded at creation, the
+         * invoice must read as paid on that contract, and the amount stored is
+         * the contract's. A paid invoice is never rewritten.
+         */
+        if (existingInvoice.status === "Paid") {
+          return res.status(409).send({ error: "Invoice is already paid" });
+        }
+        if (!existingInvoice.selected_network) {
+          return res.status(400).send({ error: "Invoice was never created on-chain" });
+        }
+
+        let onChain;
+        try {
+          const chainNetwork = getNetworkByChainId(Number(existingInvoice.selected_network));
+          const verifier = new InvoiceService(chainNetwork, false);
+          await verifier.init(process.env.PRIVATE_KEY!);
+          // The payer's wallet saw the receipt; our RPC can be a block or two
+          // behind. Give it a few seconds before calling a real payment unpaid,
+          // because nothing else marks a wallet payment Paid in the database.
+          for (let attempt = 0; attempt < 6; attempt++) {
+            onChain = await verifier.getInvoiceStatus(ethers.id(id));
+            if (onChain.exists && onChain.status === "paid") break;
+            await new Promise((r) => setTimeout(r, Number(process.env.PAYMENT_VERIFY_RETRY_MS ?? 2000)));
+          }
+        } catch (err: any) {
+          console.error(`payment-data: could not read invoice ${id} on-chain:`, err?.message);
+          return res.status(502).send({ error: "Could not verify the payment on-chain, try again" });
+        }
+
+        if (!onChain || !onChain.exists || onChain.status !== "paid") {
+          return res.status(409).send({
+            error: `Invoice is ${onChain?.exists ? onChain.status : "not found"} on-chain, not paid`,
           });
         }
 
@@ -816,7 +785,9 @@ export async function invoicesRoutes(app: FastifyInstance) {
         } catch {
           // fallback to default
         }
-        const feeAmount = (paid_amount * feePercent) / 10000;
+        // The contract's figure, not the caller's.
+        const confirmedAmount = onChain.paidAmount !== undefined ? Number(onChain.paidAmount) : Number(paid_amount);
+        const feeAmount = (confirmedAmount * feePercent) / 10000;
 
         const updateData: any = {
           status: "Paid",
@@ -830,7 +801,7 @@ export async function invoicesRoutes(app: FastifyInstance) {
           // the two flows agree instead of overloading one field with two
           // meanings depending on how the invoice happened to be paid.
           payer_address: wallet_address,
-          paid_amount,
+          paid_amount: confirmedAmount,
           fee_percent: feePercent,
           fee_amount: feeAmount,
           paid_at: new Date().toISOString()

@@ -18,7 +18,7 @@ You help merchants (or agents selling services) accept crypto payments: USDC, US
 
 1. Send your human to **https://app.voulti.com** — sign up with email or wallet, ~1 minute. They pick a currency for their dashboard totals, but that does **not** limit what they can charge in: you choose the currency on every invoice.
 2. Ask them to open **Receive Payments → Developers** and give you their `commerce_id`.
-3. Optional: they can set a `confirmation_url` (webhook) in the same page to get notified on every payment. That page also holds the **webhook signing secret** — ask for it at the same time if you are going to verify signatures (you should; see below). It must reach your server as a secret, not live in client code.
+3. Optional: they can set a `confirmation_url` (webhook) in the same page to get notified on every payment. It must be a public `https` URL: `localhost`, private IPs and plain `http` are refused, and redirects are not followed, so give the final URL (to test locally, use a tunnel such as ngrok). That page also holds the **webhook signing secret** — ask for it at the same time if you are going to verify signatures (you should; see below). It must reach your server as a secret, not live in client code.
 
 **Call the API from a server, never from the browser.** The endpoints need no key, but `api.voulti.com` does not send CORS headers for third-party origins, so a `fetch` from page JavaScript is blocked. Server-side is also where you want invoice creation anyway: the amount is decided by your code, not by whoever has the page open.
 

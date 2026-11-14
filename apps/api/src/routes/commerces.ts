@@ -10,6 +10,7 @@ import DerampProxyABI from '../blockchain/abi/DerampProxy.json';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { buildTestPayload } from '../business/webhookDelivery';
 import { deliverAndLog } from '../business/webhookLog';
+import { validateWebhookUrlForSave } from '../business/webhookUrl';
 import { runConformanceProbes, summarise } from '../business/webhookProbes';
 import { getCommerceNetworkStatus, enableCommerceOnNetwork, disableCommerceOnNetwork } from '../business/commerceNetworks';
 import { normaliseAllowedDomain } from '../business/returnUrl';
@@ -469,6 +470,11 @@ export async function commercesRoutes(app: FastifyInstance) {
 
       if (!commerce || commerce.wallet.toLowerCase() !== req.walletAddress) {
         return res.status(403).send({ error: 'Not authorized' });
+      }
+
+      if (confirmation_url) {
+        const invalid = await validateWebhookUrlForSave(confirmation_url);
+        if (invalid) return res.status(400).send({ error: invalid });
       }
 
       const { error } = await supabase

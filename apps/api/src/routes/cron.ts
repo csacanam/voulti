@@ -9,6 +9,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { requireAdminSecret, requireCronSecret } from '../middleware/workerSecret';
 import { ethers } from 'ethers';
 import { NETWORKS } from '../blockchain/config/networks';
 import { sendTelegramAlert } from '../utils/notify';
@@ -137,7 +138,7 @@ export async function cronRoutes(app: FastifyInstance) {
   // Production networks only (skip hardhat)
   const prodNetworks = Object.entries(NETWORKS).filter(([name]) => name !== 'hardhat');
 
-  app.get('/health', async (_req, reply) => {
+  app.get('/health', { preHandler: requireCronSecret }, async (_req, reply) => {
     try {
       // Step 1: Fetch all native balances in parallel, each reading across all
       // of the network's RPCs and taking the max so a single bad node can't
@@ -237,7 +238,9 @@ export async function cronRoutes(app: FastifyInstance) {
   });
 
   // ── Test: send all alert types with real balances ──────────────────────
-  app.get('/test-alerts', async (_req, reply) => {
+  // Admin only: open, it let anyone post convincing "critical balance" alerts
+  // to the operator's Telegram.
+  app.get('/test-alerts', { preHandler: requireAdminSecret }, async (_req, reply) => {
     try {
       const balanceResults = await Promise.all(
         prodNetworks.map(async ([name, config]) => {

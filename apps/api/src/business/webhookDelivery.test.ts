@@ -1,9 +1,10 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll, afterAll } from 'vitest';
 import { createHmac } from 'crypto';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { createServer, Server } from 'http';
 import { join } from 'path';
 import { deliverWebhook, buildTestPayload, buildPayload, TEST_INVOICE_ID } from './webhookDelivery';
+import { allowPrivateTargetsForTests } from './webhookUrl';
 
 /**
  * These run against a real HTTP server on localhost rather than a mocked fetch.
@@ -28,6 +29,11 @@ async function serve(
   const { port } = server!.address() as any;
   return `http://127.0.0.1:${port}/hook`;
 }
+
+// The receiver lives on 127.0.0.1, which production refuses to reach.
+// webhookUrl.test.ts covers the refusal; this file covers the wire.
+beforeAll(() => allowPrivateTargetsForTests(true));
+afterAll(() => allowPrivateTargetsForTests(false));
 
 afterEach(async () => {
   if (server) {
@@ -123,6 +129,25 @@ describe('deliverWebhook', () => {
     expect(result.status).toBeNull();
     expect(result.error).toMatch(/aborted|answer within/i);
   }, 10_000);
+
+  it('reports a redirect instead of following it', async () => {
+    // Following it is how a public URL reaches an internal one: the guard
+    // checks the first host, the 302 picks the second.
+    let followed = false;
+    const url = await serve((req, res) => {
+      if (req.url === '/internal') {
+        followed = true;
+        return res.writeHead(200).end('secret');
+      }
+      res.writeHead(302, { Location: '/internal' }).end();
+    });
+
+    const result = await deliverWebhook(url, 'secret', buildTestPayload('Paid', { amount_fiat: 10, fiat_currency: 'USD' }));
+
+    expect(followed).toBe(false);
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(302);
+  });
 
   it('treats a 200 as delivered even when the body carries an error', async () => {
     // Not a bug: HTTP is the contract. Recording the body is what lets a
@@ -259,7 +284,7 @@ describe('nothing delivers a webhook without recording it', () => {
   it('only webhookLog.ts imports the raw sender', () => {
     const src = join(__dirname, '..');
     const offenders = walk(src)
-      .filter((f) => !/webhookDelivery\.(ts|test\.ts)$|webhookLog\.ts$/.test(f))
+      .filter((f) => !/\.test\.ts$|webhookDelivery\.ts$|webhookLog\.ts$/.test(f)) // tests are not call sites
       .filter((f) => /from '\.[./]*(business\/)?webhookDelivery'/.test(readFileSync(f, 'utf8')))
       .filter((f) => {
         const body = readFileSync(f, 'utf8');

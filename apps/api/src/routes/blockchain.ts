@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify';
+import { requireAdminSecret } from '../middleware/workerSecret';
 import { InvoiceService } from '../blockchain/services/InvoiceServices';
 import { ethers } from 'ethers';
 import { createClient } from '@supabase/supabase-js';
+import { priceInvoice } from '../business/invoicePricing';
 import { NETWORKS } from '../blockchain/config/networks';
 
 // Helper function to get network name by chainId
@@ -24,7 +26,7 @@ export async function blockchainRoutes(app: FastifyInstance) {
   // Create invoice on blockchain
   app.post('/create', async (req, res) => {
     try {
-      const { invoiceId, paymentOptions, expiresAt, chainId, supportsENS } = req.body as any;
+      const { invoiceId, paymentOptions, chainId, supportsENS } = req.body as any;
 
       // Validate required fields
       if (!invoiceId || !paymentOptions || !chainId) {
@@ -56,7 +58,8 @@ export async function blockchainRoutes(app: FastifyInstance) {
         .select(`
           *,
           commerces (
-            wallet
+            wallet,
+            spread
           )
         `)
         .eq('id', invoiceId)
@@ -115,8 +118,41 @@ export async function blockchainRoutes(app: FastifyInstance) {
         }
       }
 
-      // Set expiration time from backend invoice or use provided value
-      const finalExpiresAt = expiresAt || (invoice.expires_at ? Math.floor(new Date(invoice.expires_at).getTime() / 1000) : Math.floor(Date.now() / 1000) + 60 * 60);
+      // The expiry is the invoice's, never the caller's: a body value could
+      // keep an on-chain invoice payable long after it expired here.
+      const finalExpiresAt = invoice.expires_at
+        ? Math.floor(new Date(invoice.expires_at).getTime() / 1000)
+        : Math.floor(Date.now() / 1000) + 60 * 60;
+
+      // The caller picks WHICH token; the server decides HOW MUCH. The amount
+      // and decimals in the body are ignored — trusting them let anyone put a
+      // $1,000 invoice on-chain for one base unit and collect a real Paid
+      // webhook. See business/invoicePricing.ts.
+      const pricing = await priceInvoice(invoice, {
+        spread: (invoice.commerces as any)?.spread ?? 0,
+        wallet: commerceWallet,
+      });
+      if (!pricing.ok) {
+        return res.status(500).send({ error: pricing.error });
+      }
+      const onThisNetwork = pricing.tokens.filter(
+        (t) => t.network.toLowerCase() === String(networkName).toLowerCase()
+      );
+      const requested: any[] = Array.isArray(paymentOptions) ? paymentOptions : [];
+      const serverOptions = onThisNetwork
+        .filter((t) =>
+          requested.some((o) => {
+            const ref = String(o?.token ?? '').toLowerCase();
+            return ref === t.contract_address.toLowerCase() || ref === t.symbol.toLowerCase();
+          })
+        )
+        .map((t) => ({ token: t.contract_address, amount: t.amount_to_pay, decimals: t.decimals }));
+
+      if (serverOptions.length === 0) {
+        return res.status(400).send({
+          error: 'None of the requested tokens can pay this invoice on this network',
+        });
+      }
 
       // Convert UUID to hash for blockchain
       const blockchainInvoiceId = ethers.id(invoiceId);
@@ -128,7 +164,7 @@ export async function blockchainRoutes(app: FastifyInstance) {
       const result = await invoiceService.createInvoice({
         invoiceId: blockchainInvoiceId,
         commerce: commerceWallet,
-        paymentOptions,
+        paymentOptions: serverOptions,
         expiresAt: finalExpiresAt
       });
 
@@ -155,7 +191,7 @@ export async function blockchainRoutes(app: FastifyInstance) {
           invoiceId: invoiceId, // Original UUID from backend
           commerce: commerceWallet,
           expiresAt: finalExpiresAt,
-          paymentOptions: paymentOptions,
+          paymentOptions: serverOptions,
           
           // Blockchain info
           blockchainInvoiceId: blockchainInvoiceId, // Blockchain hash
@@ -233,8 +269,10 @@ export async function blockchainRoutes(app: FastifyInstance) {
     }
   });
 
-  // Cancel invoice on blockchain and update database
-  app.post('/cancel/:invoiceId', async (req, res) => {
+  // Cancel invoice on blockchain and update database.
+  // Admin only: it signs with the backend key, and open to anyone it let a
+  // stranger cancel every live invoice on-chain. Nothing in the apps calls it.
+  app.post('/cancel/:invoiceId', { preHandler: requireAdminSecret }, async (req, res) => {
     try {
       const { invoiceId } = req.params as { invoiceId: string };
       const { chainId, supportsENS } = req.body as { chainId: number; supportsENS?: boolean };

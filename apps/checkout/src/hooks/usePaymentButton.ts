@@ -304,7 +304,16 @@ export const usePaymentButton = ({
 
       // Check if approval is needed
       const allowance = await tokenContract.allowance(address, networkContracts.DERAMP_PROXY);
-      const requiredAmount = ethers.parseUnits(paymentOption.amount, tokenConfig.decimals);
+      // Approve what the contract will charge. The server prices the on-chain
+      // invoice when it creates it, so a rate update since this page loaded
+      // would leave an approval for the displayed amount short.
+      const status = await BlockchainService.getStatus(invoiceId, chainId);
+      const onChainOption = status.success && status.data.exists
+        ? status.data.paymentOptions.find(
+            (o: { token: string; amount: string }) => o.token.toLowerCase() === tokenConfig.address.toLowerCase()
+          )
+        : undefined;
+      const requiredAmount = ethers.parseUnits(onChainOption?.amount ?? paymentOption.amount, tokenConfig.decimals);
 
       if (allowance < requiredAmount) {
         // Approve token
