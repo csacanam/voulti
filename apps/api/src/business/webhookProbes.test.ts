@@ -1,7 +1,8 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { createServer, Server } from 'http';
 import { runConformanceProbes, summarise } from './webhookProbes';
+import { allowPrivateTargetsForTests } from './webhookUrl';
 
 /**
  * These run against real receivers — a correct one, a gullible one, a broken
@@ -21,6 +22,10 @@ vi.mock('./webhookLog', async () => {
       real.deliverWebhook(url, secret, payload, opts),
   };
 });
+
+// The receivers live on 127.0.0.1, which production refuses to reach.
+beforeAll(() => allowPrivateTargetsForTests(true));
+afterAll(() => allowPrivateTargetsForTests(false));
 
 const SECRET = 'whsec_conformance';
 let server: Server | null = null;

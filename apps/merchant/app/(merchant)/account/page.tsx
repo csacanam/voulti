@@ -33,12 +33,17 @@ function WebhookSection({ commerceId, currentUrl }: { commerceId: string; curren
         },
         body: JSON.stringify({ confirmation_url: url || null }),
       })
-      if (!res.ok) throw new Error('Failed to save')
+      if (!res.ok) {
+        // The API says why (http instead of https, a private address); a bare
+        // "Failed to save" leaves the merchant guessing what to change.
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || '')
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       toast({ title: saved ? '' : 'Webhook URL saved' })
-    } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' })
+    } catch (err: any) {
+      toast({ title: 'Failed to save', description: err?.message || undefined, variant: 'destructive' })
     } finally {
       setSaving(false)
     }

@@ -503,14 +503,15 @@ function WebhookInput({ commerceId, currentUrl }: { commerceId: string; currentU
         },
         body: JSON.stringify({ confirmation_url: url || null }),
       })
-      if (!res.ok) throw new Error()
       const body = await res.json().catch(() => ({}))
+      // The API says why (http instead of https, a private address).
+      if (!res.ok) throw new Error(body?.error || '')
       setSharedWith(body?.data?.sharedWith ?? [])
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       toast({ title: 'Webhook URL saved' })
-    } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' as const })
+    } catch (err: any) {
+      toast({ title: 'Failed to save', description: err?.message || undefined, variant: 'destructive' as const })
     } finally {
       setSaving(false)
     }

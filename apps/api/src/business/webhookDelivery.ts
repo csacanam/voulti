@@ -1,4 +1,11 @@
 import { createHmac } from 'crypto';
+import { fetch } from 'undici';
+import {
+  BLOCKED_TARGET_MESSAGE,
+  checkWebhookUrlStatic,
+  isBlockedTargetError,
+  webhookDispatcher,
+} from './webhookUrl';
 
 /**
  * One place that builds, signs and delivers a webhook — and says what happened.
@@ -110,6 +117,13 @@ export async function deliverWebhook(
     headers['X-Voulti-Signature'] = `t=${t},v1=${v1}`;
   }
 
+  // Literal IPs and bad schemes never reach the lookup guard in the
+  // dispatcher, so they are refused here. See webhookUrl.ts for the why.
+  const refused = checkWebhookUrlStatic(url);
+  if (refused) {
+    return { ok: false, status: null, body: null, durationMs: 0, error: refused, signed: false };
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
   const startedAt = Date.now();
@@ -120,6 +134,10 @@ export async function deliverWebhook(
       headers,
       body,
       signal: controller.signal,
+      // A 3xx is reported as the answer, never followed: a redirect to an
+      // internal address would otherwise skip every check above.
+      redirect: 'manual',
+      dispatcher: webhookDispatcher(),
     });
 
     // Read the body even on success: a 200 with an error inside it is a real
@@ -149,7 +167,9 @@ export async function deliverWebhook(
       durationMs,
       error: aborted
         ? `No answer within ${WEBHOOK_TIMEOUT_MS}ms — the delivery was aborted`
-        : err?.message || 'Request failed',
+        : isBlockedTargetError(err)
+          ? BLOCKED_TARGET_MESSAGE
+          : err?.message || 'Request failed',
       signed: Boolean(headers['X-Voulti-Signature']),
     };
   } finally {
