@@ -1,5 +1,6 @@
 // src/routes/prices.ts
 import { FastifyInstance } from 'fastify';
+import { requireCronSecret } from '../middleware/workerSecret';
 import { createClient } from '@supabase/supabase-js';
 import { TokenPriceService } from '../business/tokenPrices';
 import { FiatRateService } from '../business/fiatRates';
@@ -33,7 +34,7 @@ export async function pricesRoutes(app: FastifyInstance) {
   });
 
   // Endpoint for external worker - update token prices
-  app.post('/update-token-prices', async (req, res) => {
+  app.post('/update-token-prices', { preHandler: requireCronSecret }, async (req, res) => {
     try {
       const tokenService = new TokenPriceService();
       await tokenService.updateAllTokenPrices();
@@ -54,7 +55,7 @@ export async function pricesRoutes(app: FastifyInstance) {
   });
 
   // Endpoint for external worker - update fiat rates
-  app.post('/update-fiat-rates', async (req, res) => {
+  app.post('/update-fiat-rates', { preHandler: requireCronSecret }, async (req, res) => {
     try {
       const fiatService = new FiatRateService();
       await fiatService.updateAllFiatRates();

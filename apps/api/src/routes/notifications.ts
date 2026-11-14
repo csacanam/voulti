@@ -1,10 +1,11 @@
 import { FastifyInstance } from 'fastify';
+import { requireCronSecret } from '../middleware/workerSecret';
 import { NotificationService } from '../business/notificationService';
 
 export async function notificationsRoutes(app: FastifyInstance) {
   
   // Process pending email notifications (called by external worker)
-  app.post('/process-emails', async (req, res) => {
+  app.post('/process-emails', { preHandler: requireCronSecret }, async (req, res) => {
     try {
       console.log('📧 Processing pending email notifications...');
       
@@ -25,7 +26,7 @@ export async function notificationsRoutes(app: FastifyInstance) {
   });
 
   // Process pending URL confirmations (called by external worker)
-  app.post('/process-url-confirmations', async (req, res) => {
+  app.post('/process-url-confirmations', { preHandler: requireCronSecret }, async (req, res) => {
     try {
       console.log('🔗 Processing pending URL confirmations...');
       

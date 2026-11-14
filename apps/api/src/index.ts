@@ -45,13 +45,9 @@ async function main() {
 
   // Ping endpoint
   app.get('/ping', async (request, reply) => {
-    return {
-      pong: true,
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      version: process.version
-    };
+    // Liveness only. Uptime, memory and the Node version were read back by a
+    // stranger through the webhook SSRF; none of it helps a monitor.
+    return { pong: true, timestamp: new Date().toISOString() };
   });
 
   app.register(invoicesRoutes, { prefix: '/invoices' });
