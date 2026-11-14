@@ -734,29 +734,43 @@ export async function invoicesRoutes(app: FastifyInstance) {
         if (existingInvoice.status === "Paid") {
           return res.status(409).send({ error: "Invoice is already paid" });
         }
-        if (!existingInvoice.selected_network) {
-          return res.status(400).send({ error: "Invoice was never created on-chain" });
-        }
+        // Which network to read. Normally the one /blockchain/create recorded.
+        // But that write happens after the on-chain transaction, so a create
+        // request that times out or dies in between leaves the invoice on-chain
+        // with no network here — and the payer can still pay it. Then every
+        // production network is checked, and the one that has it is recorded.
+        const recorded = existingInvoice.selected_network ? Number(existingInvoice.selected_network) : null;
+        const candidates: number[] = recorded
+          ? [recorded]
+          : Object.values(NETWORKS).map((n) => n.chainId).filter((c) => c !== NETWORKS.hardhat?.chainId);
 
-        let onChain;
+        let onChain: any;
+        let paidChainId: number | null = null;
         try {
-          const chainNetwork = getNetworkByChainId(Number(existingInvoice.selected_network));
-          const verifier = new InvoiceService(chainNetwork, false);
-          await verifier.init(process.env.PRIVATE_KEY!);
           // The payer's wallet saw the receipt; our RPC can be a block or two
           // behind. Give it a few seconds before calling a real payment unpaid,
           // because nothing else marks a wallet payment Paid in the database.
-          for (let attempt = 0; attempt < 6; attempt++) {
-            onChain = await verifier.getInvoiceStatus(ethers.id(id));
-            if (onChain.exists && onChain.status === "paid") break;
-            await new Promise((r) => setTimeout(r, Number(process.env.PAYMENT_VERIFY_RETRY_MS ?? 2000)));
+          for (let attempt = 0; attempt < 6 && paidChainId === null; attempt++) {
+            for (const chainId of candidates) {
+              const verifier = new InvoiceService(getNetworkByChainId(chainId), false);
+              await verifier.init(process.env.PRIVATE_KEY!);
+              const status = await verifier.getInvoiceStatus(ethers.id(id));
+              if (status.exists) onChain = status;
+              if (status.exists && status.status === "paid") {
+                paidChainId = chainId;
+                break;
+              }
+            }
+            if (paidChainId === null) {
+              await new Promise((r) => setTimeout(r, Number(process.env.PAYMENT_VERIFY_RETRY_MS ?? 2000)));
+            }
           }
         } catch (err: any) {
           console.error(`payment-data: could not read invoice ${id} on-chain:`, err?.message);
           return res.status(502).send({ error: "Could not verify the payment on-chain, try again" });
         }
 
-        if (!onChain || !onChain.exists || onChain.status !== "paid") {
+        if (paidChainId === null || !onChain) {
           return res.status(409).send({
             error: `Invoice is ${onChain?.exists ? onChain.status : "not found"} on-chain, not paid`,
           });
@@ -771,11 +785,13 @@ export async function invoicesRoutes(app: FastifyInstance) {
             .eq('id', existingInvoice.commerce_id)
             .single();
 
-          if (commerce?.wallet && paid_network) {
-            const networkConfig = NETWORKS[paid_network as keyof typeof NETWORKS];
-            const contracts = CONTRACTS[paid_network];
+          // The network the contract confirmed, not the label the browser sent.
+          const feeNetwork = getNetworkByChainId(paidChainId);
+          if (commerce?.wallet) {
+            const networkConfig = NETWORKS[feeNetwork];
+            const contracts = CONTRACTS[feeNetwork];
             if (networkConfig && contracts) {
-              const provider = getProvider(paid_network);
+              const provider = getProvider(feeNetwork);
               const accessManager = new ethers.Contract(contracts.ACCESS_MANAGER, [
                 'function getCommerceFee(address commerce) view returns (uint256)',
               ], provider);
@@ -802,6 +818,9 @@ export async function invoicesRoutes(app: FastifyInstance) {
           // meanings depending on how the invoice happened to be paid.
           payer_address: wallet_address,
           paid_amount: confirmedAmount,
+          // Backfills them when /blockchain/create never got to.
+          selected_network: paidChainId,
+          blockchain_invoice_id: ethers.id(id),
           fee_percent: feePercent,
           fee_amount: feeAmount,
           paid_at: new Date().toISOString()

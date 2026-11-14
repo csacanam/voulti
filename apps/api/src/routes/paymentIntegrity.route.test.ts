@@ -173,12 +173,29 @@ describe('PUT /invoices/:id/payment-data', () => {
     expect(updates.some((u) => u.status === 'Paid')).toBe(false);
   });
 
-  it('does not touch an invoice never created on-chain', async () => {
+  it('does not mark paid an invoice that exists on no network', async () => {
     invoiceRow.selected_network = null;
+    chainStatus = { exists: false, status: 'not_found' };
+    vi.stubEnv('PAYMENT_VERIFY_RETRY_MS', '0');
+    const r = await call('PUT', '/invoices/inv-1/payment-data', PAYMENT);
+    vi.unstubAllEnvs();
+
+    expect(r.status).toBe(409);
+    expect(updates).toEqual([]);
+  });
+
+  it('finds the network when create never recorded it, and records it', async () => {
+    // Happened in production: the create request died after the on-chain
+    // transaction and before saving selected_network. The payer paid anyway,
+    // and the invoice sat Pending although the contract had it paid.
+    invoiceRow.selected_network = null;
+    chainStatus = { exists: true, status: 'paid', paidAmount: '0.500535' };
     const r = await call('PUT', '/invoices/inv-1/payment-data', PAYMENT);
 
-    expect(r.status).toBe(400);
-    expect(updates).toEqual([]);
+    expect(r.status).toBe(200);
+    const paid = updates.find((u) => u.status === 'Paid');
+    expect(paid.selected_network).toBeTypeOf('number');
+    expect(paid.blockchain_invoice_id).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
   it('never rewrites an invoice that is already paid', async () => {
